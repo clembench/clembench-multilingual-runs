@@ -1,0 +1,1395 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_7obj_lt', episode 1 with Qwen3.6-35B-A3B-FP8-without-reasoning.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Aš esu jūsų žaidimo vedėjas, o jūs žaidžiate bendrą žaidimą, kurio žaidimo lenta yra tokia lentelė:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌◌M│◌├─╢ 2
+║AT◌├─┘◌║ 3
+║◌◌P│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│S◌O║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+
+</code></pre>
+<ul>
+<li>Viršutiniame krašte x koordinatės didėja į dešinę, o dešiniajame krašte y koordinatės didėja žemyn.</li>
+<li>Tinklelyje atsitiktine tvarka išdėstyti šie objektai: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Kitas žaidėjas mato kitą žaidimo lentos variantą, kuriame objektai išdėstyti skirtingose atsitiktinėse vietose. Jūs negalite matyti kito žaidėjo lentos, o jis negali matyti jūsų lentos.</p>
+<p><strong>Tikslas:</strong></p>
+<p>Abu žaidėjai turi perkelti objektus savo fone taip, kad vienodi objektai atsidurtų tose pačiose koordinatėse. Turite bendrauti su kitu žaidėju ir susitarti dėl bendros tikslinės konfigūracijos.</p>
+<p><strong>Taisyklės:</strong></p>
+<ul>
+<li>Kiekvieno ėjimo metu galite išsiųsti lygiai vieną iš šių dviejų komandų:</li>
+<li><code>SAKYTI: &lt;ŽINUTĖ&gt;</code>: norėdami išsiųsti žinutę (viską iki kitos eilutės pertraukos) kitam žaidėjui. Aš ją persiųsiu jūsų partneriui.</li>
+<li><code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: perkelti objektą į naują poziciją, kur <code>&lt;X&gt;</code> yra stulpelis, o <code>&lt;Y&gt;</code> yra eilutė. Aš jums pranešiu, ar jūsų perkėlimas buvo sėkmingas, ar ne.</li>
+<li>Jei nesilaikysite formato arba siųsite kelias komandas iš karto, turėsiu jus nubausti.</li>
+<li>Jei abu žaidėjai sukaups daugiau nei 16 baudų, abu pralaimi žaidimą.</li>
+<li>Labai svarbu, kad bendrautumėte su kitu žaidėju dėl savo tikslinės būsenos! Vienintelis būdas, kuriuo galite perduoti savo strategiją kitam žaidėjui, yra komanda <code>SAKYTI: &lt;ŽINUTĖ&gt;</code>!</li>
+</ul>
+<p><strong>Objektų perkėlimas</strong></p>
+<ul>
+<li>Objektus galima perkelti tik į langelius, esančius tinklelio ribose. Tikslinis langelis turi būti tuščias, t. y. jame turi būti tik simbolis '◌'.</li>
+<li>Jei bandysite perkelti objektą į vietą, kuri nėra tuščia, arba bandysite jį perkelti už tinklelio ribų, turėsiu jus nubausti. Gausite dar vieną bandymą.</li>
+<li>Prieš atlikdami perkėlimą, dukart patikrinkite, ar tikslinė vieta yra tuščia ir ar joje nėra jokios raidės, rėmelio ar linijos!</li>
+</ul>
+<p><strong>Žaidimo pabaiga</strong></p>
+<p>Jei manote, kad pasiekėte tikslą - sulygiavote visus objektus, galite paprašyti kito žaidėjo baigti žaidimą siųsdami <code>SAKYTI: baigta?</code>. Jei kitas žaidėjas paprašys jūsų baigti žaidimą, o jūs atsakysite <code>SAKYTI: baigta!</code>, žaidimas baigsis.</p>
+<p>Abu žaidėjai laimi, jei žaidimas baigiasi per 28 raundus, kur vienas raundas apibrėžiamas kaip du žaidėjai, kiekvienas išsiuntęs po vieną galiojančią komandą.</p>
+<p><strong>Taškų skaičiavimas:</strong></p>
+<p>Kuo arčiau vienodų objektų abiejose žaidimo lentose, tuo daugiau taškų gausite. Baudos mažina jūsų taškus. Ar pavyks pagerinti rekordą?</p>
+<p>Išsiųskite žinutę kitam žaidėjui, kad pradėtumėte žaidimą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAKYTI: Sveiki! Kadangi negalime matyti vienas kito lentų, turime susitarti dėl bendro „kodavimo“ plano. Kadangi objektai yra atsitiktinai išdėstyti, mes negalime tiesiog pasakyti „perkėlk M į (2,2)“, nes pas jį M gali būti kitur.</p>
+<p>Mūsų strategija turi būti tokia:
+1. Mes abu turime susitarti dėl <strong>tvarkos</strong>, kuria mes perkelsime objektus. Pavyzdžiui, mes sutariame, kad pirmiausia perkelsime objektą, esantį viršutiniame kairiajame kampe (arba bet kurį konkretų kampą), ir jį fiksuosime.
+2. Tačiau, kadangi mes nežinome, kur yra objektai pas kitą žaidėją, paprasčiausias būdas yra susitarti dėl <strong>unikalių identifikatorių</strong> arba <strong>koordinatinių sistemų</strong>, kurias mes abu galime stebėti savo lentose.</p>
+<p>Bet palaukite – taisyklės sako: „Abu žaidėjai turi perkelti objektus savo fone taip, kad vienodi objektai atsidurtų tose pačiose koordinatėse.“ Tai reiškia, kad mes turime pasiekti <strong>tą pačią galutinę konfigūraciją</strong>.</p>
+<p>Kadangi mes nežinome, kur yra objektai pas kitą žaidėją, mes negalime tiesiogiai koordinuoti judesių „tu perkeli A, aš perkeliu B“. Mums reikia susitarti dėl <strong>tikslinės būsenos</strong> (target state).</p>
+<p><strong>Problema:</strong> Mes nežinome, kur yra objektai pas kitą žaidėją, todėl negalime pasakyti jam: „Tavo A turi būti čia“. Mes galime tik pasakyti: „Mes sutariame, kad galutinėje būsenoje A bus (x,y), B bus (u,v) ir t.t.“</p>
+<p>Taigi, mano strategija:
+1. Aš pasiūlysiu konkrečią tikslinę konfigūraciją (kur kiekviena raidė turi stovėti).
+2. Jūs turite patikrinti, ar jūsų lentoje yra visi šie objektai (P, O, T, S, D, A, M). Jei taip, jūs turėsite juos perkelti į nurodytas vietas.
+3. Aš taip pat perkelsiu savo objektus į tas pačias vietas.</p>
+<p>Kadangi aš negaliu matyti jūsų lentos, aš turiu pasirinkti <strong>neutralią</strong> tikslinę konfigūraciją, kuri yra galiojanti abiem (t.y., visos pozicijos yra tuščios arba užimtos tik vienu objektu, ir nėra konfliktų).</p>
+<p>Pasiūlymas: Naudokime <strong>kairįjį viršutinį kampe</strong> esančią 3x3 sritį arba visą lentą, bet tvarkingai. Kadangi lentelė yra 7x8 (pagal žymes 1-7 stulpeliai, 1-8 eilutės? Ne, pažiūrėkime į lentelę:
+Stulpeliai: 1,2,3,4,5,6,7 (7 stulpeliai)
+Eilutės: 1,2,3,4,5,6,7,8? Ne, eilučių numeriai yra 1,2,3,4,5,6,7. Taigi 7 eilutės.
+Iš viso 7x7 langeliai? Pažiūrėkime į rėmelį.
+Eilutės: 1, 2, 3, 4, 5, 6, 7. Taip, 7 eilutės.
+Stulpeliai: 1, 2, 3, 4, 5, 6, 7. Taip, 7 stulpeliai.</p>
+<p>Objektai: P, O, T, S, D, A, M (7 objektai).</p>
+<p>Aš pasiūlysiu, kad mes visiems 7 objektams priskirsime unikalias vietas, kurios yra tuščios mūsų lentose. Kadangi aš negaliu žinoti, kurios vietos tuščios pas jus, aš turiu pasirinkti vietas, kurios <strong>tikėtina</strong> yra tuščios arba kurias mes abu galime laisvai užimti.</p>
+<p>Bet tai rizikinga. Geriau: Mes sutariame, kad <strong>aš</strong> pirmas parodysiu pavyzdį, kaip aš perkelsiu savo objektus į tam tikras vietas, ir jūs turėsite padaryti tą patį su savo objektais.</p>
+<p>Kadangi aš negaliu matyti jūsų lentos, aš negaliu būti tikras, kad jūsų (1,1) yra tuščias. Tačiau, jei mes sutarsime, kad mes perkelsime objektus į <strong>tuščias vietas</strong>, kurios yra <strong>mūsų</strong> lentose, ir mes sutarsime dėl <strong>tvarkos</strong>, tai gali neveikti, nes mes nežinome, ar jūsų (1,1) yra tuščias.</p>
+<p><strong>Geriausia strategija:</strong>
+Mes turime susitarti dėl <strong>fiksuotos tikslinės konfigūracijos</strong>, kuri yra <strong>galiojanti</strong> abiem žaidėjams. Tai reiškia, kad mes turime pasirinkti 7 vietas, kurios yra <strong>tuščios</strong> mūsų lentose. Kadangi mes nežinome, kurios vietos tuščios pas kitą, mes turime pasirinkti vietas, kurios yra <strong>labiausiai tikėtina</strong> tuščios, arba mes turime bendrauti, kad patikrintume.</p>
+<p>Bet mes galime siųsti tik vieną žinutę per ėjimą.</p>
+<p>Pabandykime taip:
+Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>kampai</strong> arba <strong>kraštai</strong>, kurie dažniausiai būna tušti.</p>
+<p>Pažiūrėkime į mano lentą:
+(1,1) ◌
+(2,1) ◌
+(3,1) ◌
+(4,1) ◌
+(5,1) ◌
+(6,1) ◌
+(7,1) ◌</p>
+<p>(1,2) ◌
+(2,2) ◌
+(3,2) M
+(4,2) ◌
+(5,2) ◌
+(6,2) ◌
+(7,2) ◌</p>
+<p>(1,3) A
+(2,3) T
+(3,3) ◌
+(4,3) ◌
+(5,3) ◌
+(6,3) ◌
+(7,3) ◌</p>
+<p>(1,4) ◌
+(2,4) ◌
+(3,4) P
+(4,4) ◌
+(5,4) ◌
+(6,4) ◌
+(7,4) ◌</p>
+<p>(1,5) ◌
+(2,5) ◌
+(3,5) ◌
+(4,5) ◌
+(5,5) ◌
+(6,5) ◌
+(7,5) ◌</p>
+<p>(1,6) ◌
+(2,6) ◌
+(3,6) S
+(4,6) ◌
+(5,6) O
+(6,6) ◌
+(7,6) ◌</p>
+<p>(1,7) ◌
+(2,7) ◌
+(3,7) ◌
+(4,7) D
+(5,7) ◌
+(6,7) ◌
+(7,7) ◌</p>
+<p>Mano objektai:
+M: (3,2)
+A: (1,3)
+T: (2,3)
+P: (3,4)
+S: (3,6)
+O: (5,6)
+D: (4,7)</p>
+<p>Tuščios vietos: Dauguma.</p>
+<p>Aš pasiūlysiu šią tikslinę konfigūraciją:
+A -&gt; (1,1)
+M -&gt; (1,2)
+T -&gt; (1,3)
+P -&gt; (1,4)
+S -&gt; (1,5)
+O -&gt; (1,6)
+D -&gt; (1,7)</p>
+<p>Tai yra pirmasis stulpelis. Ar jis tuščias pas jus? Nežinau. Bet jei jūs taip pat perkelsite savo objektus į pirmąjį stulpelį, mes sutapsime.</p>
+<p>Tačiau, jei jūsų (1,1) jau užimtas, negalėsite ten perkelti A.</p>
+<p><strong>Alternatyva:</strong> Mes galime susitarti, kad mes perkelsime objektus į <strong>tuščias vietas</strong>, kurios yra <strong>mūsų</strong> lentose, ir mes sutarsime dėl <strong>tvarkos</strong>, kuria mes juos perkelsime. Bet tai neveiks, nes mes nežinome, ar jūsų (1,1) yra tuščias.</p>
+<p><strong>Geriausias būdas:</strong>
+Mes turime susitarti dėl <strong>unikalių pozicijų</strong>, kurios yra <strong>tuščios</strong> abiejose lentose. Kadangi mes nežinome, kurios pozicijos tuščios pas kitą, mes turime pasirinkti pozicijas, kurios yra <strong>labiausiai tikėtina</strong> tuščios.</p>
+<p>Pasiūlymas: Naudokime <strong>vidurinę sritį</strong> arba <strong>kampą</strong>, kuris yra tuščias.</p>
+<p>Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>tuščios</strong> mano lentose, ir jūs turėsite patikrinti, ar jos tuščios jūsų lentose. Jei ne, mes turėsime keisti planą.</p>
+<p>Bet mes negalime keisti plano greitai.</p>
+<p><strong>Galutinė strategija:</strong>
+Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>tuščios</strong> mano lentose, ir jūs turėsite juos perkelti į tas pačias vietas. Jei jūsų lentoje ta vieta jau užimta, jūs negalėsite ten perkelti objekto. Tai sukels klaidą.</p>
+<p>Todėl aš turiu pasirinkti vietas, kurios yra <strong>tuščios</strong> abiejose lentose. Kadangi aš negaliu to žinoti, aš pasirinksiu vietas, kurios yra <strong>kampai</strong> arba <strong>kraštai</strong>, kurie dažniausiai būna tušti.</p>
+<p>Aš pasiūlysiu šią konfigūraciją:
+A -&gt; (1,1)
+M -&gt; (2,1)
+T -&gt; (3,1)
+P -&gt; (4,1)
+S -&gt; (5,1)
+O -&gt; (6,1)
+D -&gt; (7,1)</p>
+<p>Tai yra pirmoji eilutė. Ji yra visiškai tuščia mano lentoje.</p>
+<p>Jūs turėsite patikrinti, ar jūsų pirmoji eilutė yra tuščia. Jei taip, jūs perkelsite savo objektus į tas pačias vietas.</p>
+<p>Jei jūsų pirmoji eilutė nėra tuščia, mes turėsime susitarti dėl kitos eilutės.</p>
+<p>Taigi, mano žinutė:</p>
+<p>SAKYTI: Siūlau, kad visi objektai būtų perkelti į pirmąją eilutę (Y=1). Tvarka: A-&gt;(1,1), M-&gt;(2,1), T-&gt;(3,1), P-&gt;(4,1), S-&gt;(5,1), O-&gt;(6,1), D-&gt;(7,1). Prašau patvirtinti, ar jūsų pirmoji eilutė yra tuščia. Jei ne, pasiūlykite kitą eilutę.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: Sveiki! Kadangi negalime matyti vienas kito lentų, turime susitarti dėl bendro „kodavimo“ plano. Kadangi objektai yra atsitiktinai išdėstyti, mes negalime tiesiog pasakyti „perkėlk M į (2,2)“, nes pas jį M gali būti kitur.</p>
+<p>Mūsų strategija turi būti tokia:
+1. Mes abu turime susitarti dėl <strong>tvarkos</strong>, kuria mes perkelsime objektus. Pavyzdžiui, mes sutariame, kad pirmiausia perkelsime objektą, esantį viršutiniame kairiajame kampe (arba bet kurį konkretų kampą), ir jį fiksuosime.
+2. Tačiau, kadangi mes nežinome, kur yra objektai pas kitą žaidėją, paprasčiausias būdas yra susitarti dėl <strong>unikalių identifikatorių</strong> arba <strong>koordinatinių sistemų</strong>, kurias mes abu galime stebėti savo lentose.</p>
+<p>Bet palaukite – taisyklės sako: „Abu žaidėjai turi perkelti objektus savo fone taip, kad vienodi objektai atsidurtų tose pačiose koordinatėse.“ Tai reiškia, kad mes turime pasiekti <strong>tą pačią galutinę konfigūraciją</strong>.</p>
+<p>Kadangi mes nežinome, kur yra objektai pas kitą žaidėją, mes negalime tiesiogiai koordinuoti judesių „tu perkeli A, aš perkeliu B“. Mums reikia susitarti dėl <strong>tikslinės būsenos</strong> (target state).</p>
+<p><strong>Problema:</strong> Mes nežinome, kur yra objektai pas kitą žaidėją, todėl negalime pasakyti jam: „Tavo A turi būti čia“. Mes galime tik pasakyti: „Mes sutariame, kad galutinėje būsenoje A bus (x,y), B bus (u,v) ir t.t.“</p>
+<p>Taigi, mano strategija:
+1. Aš pasiūlysiu konkrečią tikslinę konfigūraciją (kur kiekviena raidė turi stovėti).
+2. Jūs turite patikrinti, ar jūsų lentoje yra visi šie objektai (P, O, T, S, D, A, M). Jei taip, jūs turėsite juos perkelti į nurodytas vietas.
+3. Aš taip pat perkelsiu savo objektus į tas pačias vietas.</p>
+<p>Kadangi aš negaliu matyti jūsų lentos, aš turiu pasirinkti <strong>neutralią</strong> tikslinę konfigūraciją, kuri yra galiojanti abiem (t.y., visos pozicijos yra tuščios arba užimtos tik vienu objektu, ir nėra konfliktų).</p>
+<p>Pasiūlymas: Naudokime <strong>kairįjį viršutinį kampe</strong> esančią 3x3 sritį arba visą lentą, bet tvarkingai. Kadangi lentelė yra 7x8 (pagal žymes 1-7 stulpeliai, 1-8 eilutės? Ne, pažiūrėkime į lentelę:
+Stulpeliai: 1,2,3,4,5,6,7 (7 stulpeliai)
+Eilutės: 1,2,3,4,5,6,7,8? Ne, eilučių numeriai yra 1,2,3,4,5,6,7. Taigi 7 eilutės.
+Iš viso 7x7 langeliai? Pažiūrėkime į rėmelį.
+Eilutės: 1, 2, 3, 4, 5, 6, 7. Taip, 7 eilutės.
+Stulpeliai: 1, 2, 3, 4, 5, 6, 7. Taip, 7 stulpeliai.</p>
+<p>Objektai: P, O, T, S, D, A, M (7 objektai).</p>
+<p>Aš pasiūlysiu, kad mes visiems 7 objektams priskirsime unikalias vietas, kurios yra tuščios mūsų lentose. Kadangi aš negaliu žinoti, kurios vietos tuščios pas jus, aš turiu pasirinkti vietas, kurios <strong>tikėtina</strong> yra tuščios arba kurias mes abu galime laisvai užimti.</p>
+<p>Bet tai rizikinga. Geriau: Mes sutariame, kad <strong>aš</strong> pirmas parodysiu pavyzdį, kaip aš perkelsiu savo objektus į tam tikras vietas, ir jūs turėsite padaryti tą patį su savo objektais.</p>
+<p>Kadangi aš negaliu matyti jūsų lentos, aš negaliu būti tikras, kad jūsų (1,1) yra tuščias. Tačiau, jei mes sutarsime, kad mes perkelsime objektus į <strong>tuščias vietas</strong>, kurios yra <strong>mūsų</strong> lentose, ir mes sutarsime dėl <strong>tvarkos</strong>, tai gali neveikti, nes mes nežinome, ar jūsų (1,1) yra tuščias.</p>
+<p><strong>Geriausia strategija:</strong>
+Mes turime susitarti dėl <strong>fiksuotos tikslinės konfigūracijos</strong>, kuri yra <strong>galiojanti</strong> abiem žaidėjams. Tai reiškia, kad mes turime pasirinkti 7 vietas, kurios yra <strong>tuščios</strong> mūsų lentose. Kadangi mes nežinome, kurios vietos tuščios pas kitą, mes turime pasirinkti vietas, kurios yra <strong>labiausiai tikėtina</strong> tuščios, arba mes turime bendrauti, kad patikrintume.</p>
+<p>Bet mes galime siųsti tik vieną žinutę per ėjimą.</p>
+<p>Pabandykime taip:
+Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>kampai</strong> arba <strong>kraštai</strong>, kurie dažniausiai būna tušti.</p>
+<p>Pažiūrėkime į mano lentą:
+(1,1) ◌
+(2,1) ◌
+(3,1) ◌
+(4,1) ◌
+(5,1) ◌
+(6,1) ◌
+(7,1) ◌</p>
+<p>(1,2) ◌
+(2,2) ◌
+(3,2) M
+(4,2) ◌
+(5,2) ◌
+(6,2) ◌
+(7,2) ◌</p>
+<p>(1,3) A
+(2,3) T
+(3,3) ◌
+(4,3) ◌
+(5,3) ◌
+(6,3) ◌
+(7,3) ◌</p>
+<p>(1,4) ◌
+(2,4) ◌
+(3,4) P
+(4,4) ◌
+(5,4) ◌
+(6,4) ◌
+(7,4) ◌</p>
+<p>(1,5) ◌
+(2,5) ◌
+(3,5) ◌
+(4,5) ◌
+(5,5) ◌
+(6,5) ◌
+(7,5) ◌</p>
+<p>(1,6) ◌
+(2,6) ◌
+(3,6) S
+(4,6) ◌
+(5,6) O
+(6,6) ◌
+(7,6) ◌</p>
+<p>(1,7) ◌
+(2,7) ◌
+(3,7) ◌
+(4,7) D
+(5,7) ◌
+(6,7) ◌
+(7,7) ◌</p>
+<p>Mano objektai:
+M: (3,2)
+A: (1,3)
+T: (2,3)
+P: (3,4)
+S: (3,6)
+O: (5,6)
+D: (4,7)</p>
+<p>Tuščios vietos: Dauguma.</p>
+<p>Aš pasiūlysiu šią tikslinę konfigūraciją:
+A -&gt; (1,1)
+M -&gt; (1,2)
+T -&gt; (1,3)
+P -&gt; (1,4)
+S -&gt; (1,5)
+O -&gt; (1,6)
+D -&gt; (1,7)</p>
+<p>Tai yra pirmasis stulpelis. Ar jis tuščias pas jus? Nežinau. Bet jei jūs taip pat perkelsite savo objektus į pirmąjį stulpelį, mes sutapsime.</p>
+<p>Tačiau, jei jūsų (1,1) jau užimtas, negalėsite ten perkelti A.</p>
+<p><strong>Alternatyva:</strong> Mes galime susitarti, kad mes perkelsime objektus į <strong>tuščias vietas</strong>, kurios yra <strong>mūsų</strong> lentose, ir mes sutarsime dėl <strong>tvarkos</strong>, kuria mes juos perkelsime. Bet tai neveiks, nes mes nežinome, ar jūsų (1,1) yra tuščias.</p>
+<p><strong>Geriausias būdas:</strong>
+Mes turime susitarti dėl <strong>unikalių pozicijų</strong>, kurios yra <strong>tuščios</strong> abiejose lentose. Kadangi mes nežinome, kurios pozicijos tuščios pas kitą, mes turime pasirinkti pozicijas, kurios yra <strong>labiausiai tikėtina</strong> tuščios.</p>
+<p>Pasiūlymas: Naudokime <strong>vidurinę sritį</strong> arba <strong>kampą</strong>, kuris yra tuščias.</p>
+<p>Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>tuščios</strong> mano lentose, ir jūs turėsite patikrinti, ar jos tuščios jūsų lentose. Jei ne, mes turėsime keisti planą.</p>
+<p>Bet mes negalime keisti plano greitai.</p>
+<p><strong>Galutinė strategija:</strong>
+Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>tuščios</strong> mano lentose, ir jūs turėsite juos perkelti į tas pačias vietas. Jei jūsų lentoje ta vieta jau užimta, jūs negalėsite ten perkelti objekto. Tai sukels klaidą.</p>
+<p>Todėl aš turiu pasirinkti vietas, kurios yra <strong>tuščios</strong> abiejose lentose. Kadangi aš negaliu to žinoti, aš pasirinksiu vietas, kurios yra <strong>kampai</strong> arba <strong>kraštai</strong>, kurie dažniausiai būna tušti.</p>
+<p>Aš pasiūlysiu šią konfigūraciją:
+A -&gt; (1,1)
+M -&gt; (2,1)
+T -&gt; (3,1)
+P -&gt; (4,1)
+S -&gt; (5,1)
+O -&gt; (6,1)
+D -&gt; (7,1)</p>
+<p>Tai yra pirmoji eilutė. Ji yra visiškai tuščia mano lentoje.</p>
+<p>Jūs turėsite patikrinti, ar jūsų pirmoji eilutė yra tuščia. Jei taip, jūs perkelsite savo objektus į tas pačias vietas.</p>
+<p>Jei jūsų pirmoji eilutė nėra tuščia, mes turėsime susitarti dėl kitos eilutės.</p>
+<p>Taigi, mano žinutė:</p>
+<p>SAKYTI: Siūlau, kad visi objektai būtų perkelti į pirmąją eilutę (Y=1). Tvarka: A-&gt;(1,1), M-&gt;(2,1), T-&gt;(3,1), P-&gt;(4,1), S-&gt;(5,1), O-&gt;(6,1), D-&gt;(7,1). Prašau patvirtinti, ar jūsų pirmoji eilutė yra tuščia. Jei ne, pasiūlykite kitą eilutę.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'SAKYTI: Sveiki! Kadangi negalime matyti vienas kito lentų, turime susitarti dėl bendro „kodavimo“ plano. Kadangi objektai yra atsitiktinai išdėstyti, mes negalime tiesiog pasakyti „perkėlk M į (2,2)“, nes pas jį M gali būti kitur.</p>
+<p>Mūsų strategija turi būti tokia:
+1. Mes abu turime susitarti dėl <strong>tvarkos</strong>, kuria mes perkelsime objektus. Pavyzdžiui, mes sutariame, kad pirmiausia perkelsime objektą, esantį viršutiniame kairiajame kampe (arba bet kurį konkretų kampą), ir jį fiksuosime.
+2. Tačiau, kadangi mes nežinome, kur yra objektai pas kitą žaidėją, paprasčiausias būdas yra susitarti dėl <strong>unikalių identifikatorių</strong> arba <strong>koordinatinių sistemų</strong>, kurias mes abu galime stebėti savo lentose.</p>
+<p>Bet palaukite – taisyklės sako: „Abu žaidėjai turi perkelti objektus savo fone taip, kad vienodi objektai atsidurtų tose pačiose koordinatėse.“ Tai reiškia, kad mes turime pasiekti <strong>tą pačią galutinę konfigūraciją</strong>.</p>
+<p>Kadangi mes nežinome, kur yra objektai pas kitą žaidėją, mes negalime tiesiogiai koordinuoti judesių „tu perkeli A, aš perkeliu B“. Mums reikia susitarti dėl <strong>tikslinės būsenos</strong> (target state).</p>
+<p><strong>Problema:</strong> Mes nežinome, kur yra objektai pas kitą žaidėją, todėl negalime pasakyti jam: „Tavo A turi būti čia“. Mes galime tik pasakyti: „Mes sutariame, kad galutinėje būsenoje A bus (x,y), B bus (u,v) ir t.t.“</p>
+<p>Taigi, mano strategija:
+1. Aš pasiūlysiu konkrečią tikslinę konfigūraciją (kur kiekviena raidė turi stovėti).
+2. Jūs turite patikrinti, ar jūsų lentoje yra visi šie objektai (P, O, T, S, D, A, M). Jei taip, jūs turėsite juos perkelti į nurodytas vietas.
+3. Aš taip pat perkelsiu savo objektus į tas pačias vietas.</p>
+<p>Kadangi aš negaliu matyti jūsų lentos, aš turiu pasirinkti <strong>neutralią</strong> tikslinę konfigūraciją, kuri yra galiojanti abiem (t.y., visos pozicijos yra tuščios arba užimtos tik vienu objektu, ir nėra konfliktų).</p>
+<p>Pasiūlymas: Naudokime <strong>kairįjį viršutinį kampe</strong> esančią 3x3 sritį arba visą lentą, bet tvarkingai. Kadangi lentelė yra 7x8 (pagal žymes 1-7 stulpeliai, 1-8 eilutės? Ne, pažiūrėkime į lentelę:
+Stulpeliai: 1,2,3,4,5,6,7 (7 stulpeliai)
+Eilutės: 1,2,3,4,5,6,7,8? Ne, eilučių numeriai yra 1,2,3,4,5,6,7. Taigi 7 eilutės.
+Iš viso 7x7 langeliai? Pažiūrėkime į rėmelį.
+Eilutės: 1, 2, 3, 4, 5, 6, 7. Taip, 7 eilutės.
+Stulpeliai: 1, 2, 3, 4, 5, 6, 7. Taip, 7 stulpeliai.</p>
+<p>Objektai: P, O, T, S, D, A, M (7 objektai).</p>
+<p>Aš pasiūlysiu, kad mes visiems 7 objektams priskirsime unikalias vietas, kurios yra tuščios mūsų lentose. Kadangi aš negaliu žinoti, kurios vietos tuščios pas jus, aš turiu pasirinkti vietas, kurios <strong>tikėtina</strong> yra tuščios arba kurias mes abu galime laisvai užimti.</p>
+<p>Bet tai rizikinga. Geriau: Mes sutariame, kad <strong>aš</strong> pirmas parodysiu pavyzdį, kaip aš perkelsiu savo objektus į tam tikras vietas, ir jūs turėsite padaryti tą patį su savo objektais.</p>
+<p>Kadangi aš negaliu matyti jūsų lentos, aš negaliu būti tikras, kad jūsų (1,1) yra tuščias. Tačiau, jei mes sutarsime, kad mes perkelsime objektus į <strong>tuščias vietas</strong>, kurios yra <strong>mūsų</strong> lentose, ir mes sutarsime dėl <strong>tvarkos</strong>, tai gali neveikti, nes mes nežinome, ar jūsų (1,1) yra tuščias.</p>
+<p><strong>Geriausia strategija:</strong>
+Mes turime susitarti dėl <strong>fiksuotos tikslinės konfigūracijos</strong>, kuri yra <strong>galiojanti</strong> abiem žaidėjams. Tai reiškia, kad mes turime pasirinkti 7 vietas, kurios yra <strong>tuščios</strong> mūsų lentose. Kadangi mes nežinome, kurios vietos tuščios pas kitą, mes turime pasirinkti vietas, kurios yra <strong>labiausiai tikėtina</strong> tuščios, arba mes turime bendrauti, kad patikrintume.</p>
+<p>Bet mes galime siųsti tik vieną žinutę per ėjimą.</p>
+<p>Pabandykime taip:
+Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>kampai</strong> arba <strong>kraštai</strong>, kurie dažniausiai būna tušti.</p>
+<p>Pažiūrėkime į mano lentą:
+(1,1) ◌
+(2,1) ◌
+(3,1) ◌
+(4,1) ◌
+(5,1) ◌
+(6,1) ◌
+(7,1) ◌</p>
+<p>(1,2) ◌
+(2,2) ◌
+(3,2) M
+(4,2) ◌
+(5,2) ◌
+(6,2) ◌
+(7,2) ◌</p>
+<p>(1,3) A
+(2,3) T
+(3,3) ◌
+(4,3) ◌
+(5,3) ◌
+(6,3) ◌
+(7,3) ◌</p>
+<p>(1,4) ◌
+(2,4) ◌
+(3,4) P
+(4,4) ◌
+(5,4) ◌
+(6,4) ◌
+(7,4) ◌</p>
+<p>(1,5) ◌
+(2,5) ◌
+(3,5) ◌
+(4,5) ◌
+(5,5) ◌
+(6,5) ◌
+(7,5) ◌</p>
+<p>(1,6) ◌
+(2,6) ◌
+(3,6) S
+(4,6) ◌
+(5,6) O
+(6,6) ◌
+(7,6) ◌</p>
+<p>(1,7) ◌
+(2,7) ◌
+(3,7) ◌
+(4,7) D
+(5,7) ◌
+(6,7) ◌
+(7,7) ◌</p>
+<p>Mano objektai:
+M: (3,2)
+A: (1,3)
+T: (2,3)
+P: (3,4)
+S: (3,6)
+O: (5,6)
+D: (4,7)</p>
+<p>Tuščios vietos: Dauguma.</p>
+<p>Aš pasiūlysiu šią tikslinę konfigūraciją:
+A -&gt; (1,1)
+M -&gt; (1,2)
+T -&gt; (1,3)
+P -&gt; (1,4)
+S -&gt; (1,5)
+O -&gt; (1,6)
+D -&gt; (1,7)</p>
+<p>Tai yra pirmasis stulpelis. Ar jis tuščias pas jus? Nežinau. Bet jei jūs taip pat perkelsite savo objektus į pirmąjį stulpelį, mes sutapsime.</p>
+<p>Tačiau, jei jūsų (1,1) jau užimtas, negalėsite ten perkelti A.</p>
+<p><strong>Alternatyva:</strong> Mes galime susitarti, kad mes perkelsime objektus į <strong>tuščias vietas</strong>, kurios yra <strong>mūsų</strong> lentose, ir mes sutarsime dėl <strong>tvarkos</strong>, kuria mes juos perkelsime. Bet tai neveiks, nes mes nežinome, ar jūsų (1,1) yra tuščias.</p>
+<p><strong>Geriausias būdas:</strong>
+Mes turime susitarti dėl <strong>unikalių pozicijų</strong>, kurios yra <strong>tuščios</strong> abiejose lentose. Kadangi mes nežinome, kurios pozicijos tuščios pas kitą, mes turime pasirinkti pozicijas, kurios yra <strong>labiausiai tikėtina</strong> tuščios.</p>
+<p>Pasiūlymas: Naudokime <strong>vidurinę sritį</strong> arba <strong>kampą</strong>, kuris yra tuščias.</p>
+<p>Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>tuščios</strong> mano lentose, ir jūs turėsite patikrinti, ar jos tuščios jūsų lentose. Jei ne, mes turėsime keisti planą.</p>
+<p>Bet mes negalime keisti plano greitai.</p>
+<p><strong>Galutinė strategija:</strong>
+Aš pasiūlysiu, kad mes visiems objektams priskirsime vietas, kurios yra <strong>tuščios</strong> mano lentose, ir jūs turėsite juos perkelti į tas pačias vietas. Jei jūsų lentoje ta vieta jau užimta, jūs negalėsite ten perkelti objekto. Tai sukels klaidą.</p>
+<p>Todėl aš turiu pasirinkti vietas, kurios yra <strong>tuščios</strong> abiejose lentose. Kadangi aš negaliu to žinoti, aš pasirinksiu vietas, kurios yra <strong>kampai</strong> arba <strong>kraštai</strong>, kurie dažniausiai būna tušti.</p>
+<p>Aš pasiūlysiu šią konfigūraciją:
+A -&gt; (1,1)
+M -&gt; (2,1)
+T -&gt; (3,1)
+P -&gt; (4,1)
+S -&gt; (5,1)
+O -&gt; (6,1)
+D -&gt; (7,1)</p>
+<p>Tai yra pirmoji eilutė. Ji yra visiškai tuščia mano lentoje.</p>
+<p>Jūs turėsite patikrinti, ar jūsų pirmoji eilutė yra tuščia. Jei taip, jūs perkelsite savo objektus į tas pačias vietas.</p>
+<p>Jei jūsų pirmoji eilutė nėra tuščia, mes turėsime susitarti dėl kitos eilutės.</p>
+<p>Taigi, mano žinutė:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 1 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAKYTI: Siūlau tikslinę konfigūraciją: A(1,1), M(2,1), T(3,1), P(4,1), S(5,1), O(6,1), D(7,1). Prašau patvirtinti, ar jūsų 1-eilutė tuščia.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: Siūlau tikslinę konfigūraciją: A(1,1), M(2,1), T(3,1), P(4,1), S(5,1), O(6,1), D(7,1). Prašau patvirtinti, ar jūsų 1-eilutė tuščia.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Aš esu jūsų žaidimo vedėjas, o jūs žaidžiate bendrą žaidimą, kurio žaidimo lenta yra tokia lentelė:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌MS│◌│◌║ 1
+║◌O◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║T│◌│◌PA║ 7
+╚═╧═╧═══╝
+
+</code></pre>
+<ul>
+<li>Viršutiniame krašte x koordinatės didėja į dešinę, o dešiniajame krašte y koordinatės didėja žemyn.</li>
+<li>Tinklelyje atsitiktine tvarka išdėstyti šie objektai: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Kitas žaidėjas mato kitą žaidimo lentos variantą, kuriame objektai išdėstyti skirtingose atsitiktinėse vietose. Jūs negalite matyti kito žaidėjo lentos, o jis negali matyti jūsų lentos.</p>
+<p><strong>Tikslas:</strong></p>
+<p>Abu žaidėjai turi perkelti objektus savo fone taip, kad vienodi objektai atsidurtų tose pačiose koordinatėse. Turite bendrauti su kitu žaidėju ir susitarti dėl bendros tikslinės konfigūracijos.</p>
+<p><strong>Taisyklės:</strong></p>
+<ul>
+<li>Kiekvieno ėjimo metu galite išsiųsti lygiai vieną iš šių dviejų komandų:</li>
+<li><code>SAKYTI: &lt;ŽINUTĖ&gt;</code>: norėdami išsiųsti žinutę (viską iki kitos eilutės pertraukos) kitam žaidėjui. Aš ją persiųsiu jūsų partneriui.</li>
+<li><code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: perkelti objektą į naują poziciją, kur <code>&lt;X&gt;</code> yra stulpelis, o <code>&lt;Y&gt;</code> yra eilutė. Aš jums pranešiu, ar jūsų perkėlimas buvo sėkmingas, ar ne.</li>
+<li>Jei nesilaikysite formato arba siųsite kelias komandas iš karto, turėsiu jus nubausti.</li>
+<li>Jei abu žaidėjai sukaups daugiau nei 16 baudų, abu pralaimi žaidimą.</li>
+<li>Labai svarbu, kad bendrautumėte su kitu žaidėju dėl savo tikslinės būsenos! Vienintelis būdas, kuriuo galite perduoti savo strategiją kitam žaidėjui, yra komanda <code>SAKYTI: &lt;ŽINUTĖ&gt;</code>!</li>
+</ul>
+<p><strong>Objektų perkėlimas</strong></p>
+<ul>
+<li>Objektus galima perkelti tik į langelius, esančius tinklelio ribose. Tikslinis langelis turi būti tuščias, t. y. jame turi būti tik simbolis '◌'.</li>
+<li>Jei bandysite perkelti objektą į vietą, kuri nėra tuščia, arba bandysite jį perkelti už tinklelio ribų, turėsiu jus nubausti. Gausite dar vieną bandymą.</li>
+<li>Prieš atlikdami perkėlimą, dukart patikrinkite, ar tikslinė vieta yra tuščia ir ar joje nėra jokios raidės, rėmelio ar linijos!</li>
+</ul>
+<p><strong>Žaidimo pabaiga</strong></p>
+<p>Jei manote, kad pasiekėte tikslą - sulygiavote visus objektus, galite paprašyti kito žaidėjo baigti žaidimą siųsdami <code>SAKYTI: baigta?</code>. Jei kitas žaidėjas paprašys jūsų baigti žaidimą, o jūs atsakysite <code>SAKYTI: baigta!</code>, žaidimas baigsis.</p>
+<p>Abu žaidėjai laimi, jei žaidimas baigiasi per 28 raundus, kur vienas raundas apibrėžiamas kaip du žaidėjai, kiekvienas išsiuntęs po vieną galiojančią komandą.</p>
+<p><strong>Taškų skaičiavimas:</strong></p>
+<p>Kuo arčiau vienodų objektų abiejose žaidimo lentose, tuo daugiau taškų gausite. Baudos mažina jūsų taškus. Ar pavyks pagerinti rekordą?</p>
+<p>Kitas žaidėjas pradėjo žaidimą išsiųsdamas šią žinutę:</p>
+<p>"Siūlau tikslinę konfigūraciją: A(1,1), M(2,1), T(3,1), P(4,1), S(5,1), O(6,1), D(7,1). Prašau patvirtinti, ar jūsų 1-eilutė tuščia."</p>
+<p>Kokia yra jūsų pirmoji komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAKYTI: Sutinku su siūloma tiksline konfigūracija. Mano 1-eilutė (Y=1) yra tuščia, t. y. langeliai (1,1) iki (7,1) laisvi. Galime pradėti perkelti objektus į šias pozicijas.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: Sutinku su siūloma tiksline konfigūracija. Mano 1-eilutė (Y=1) yra tuščia, t. y. langeliai (1,1) iki (7,1) laisvi. Galime pradėti perkelti objektus į šias pozicijas.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jūsų žinutė buvo perduota kitam žaidėjui.</p>
+<p>Šiuo metu žaidžiate 1 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 1 iš 16 baudų.
+Kitas žaidėjas atsiuntė šią žinutę:</p>
+<p>"Sutinku su siūloma tiksline konfigūracija. Mano 1-eilutė (Y=1) yra tuščia, t. y. langeliai (1,1) iki (7,1) laisvi. Galime pradėti perkelti objektus į šias pozicijas."</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: A, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: A, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>A moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jūsų žinutė buvo perduota kitam žaidėjui.</p>
+<p>Šiuo metu žaidžiate 2 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 1 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: M, (2,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: M, (2,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (2,1) nėra tuščias, bet jame yra 'M'.</p>
+<p>Jūs bendrai sukaupėte 2 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (2,1) nėra tuščias, bet jame yra 'M'.</p>
+<p>Jūs bendrai sukaupėte 2 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: M, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: M, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>M moved to (1, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sėkmingai perkelta 'A' į (1,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║A◌◌│◌│◌║ 1
+║◌◌M│◌├─╢ 2
+║◌T◌├─┘◌║ 3
+║◌◌P│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│S◌O║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 2 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 2 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: M, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: M, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>M moved to (2, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sėkmingai perkelta 'M' į (1,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║M◌S│◌│◌║ 1
+║◌O◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║T│◌│◌PA║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 3 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 2 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: S, (5,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: S, (5,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>S moved to (5, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sėkmingai perkelta 'M' į (2,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║AM◌│◌│◌║ 1
+║◌◌◌│◌├─╢ 2
+║◌T◌├─┘◌║ 3
+║◌◌P│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│S◌O║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 3 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 2 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: T, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: T, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (3, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sėkmingai perkelta 'S' į (5,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║M◌◌│S│◌║ 1
+║◌O◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║T│◌│◌PA║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 4 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 2 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: O, (6,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: O, (6,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 3 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 3 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: O, (7,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: O, (7,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (7, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sėkmingai perkelta 'T' į (3,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║AMT│◌│◌║ 1
+║◌◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌P│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│S◌O║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 4 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 3 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: P, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (4,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 4 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: (4,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 4 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: P, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (5, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sėkmingai perkelta 'O' į (7,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║M◌◌│S│O║ 1
+║◌◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║T│◌│◌PA║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 5 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 4 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: T, (3,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: T, (3,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (3, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sėkmingai perkelta 'P' į (5,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║AMT│P│◌║ 1
+║◌◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│S◌O║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 5 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 4 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: S, (6, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: S, (6, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 5 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 5 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: S, (7, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: S, (7, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>S moved to (7, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sėkmingai perkelta 'T' į (3,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║M◌T│S│O║ 1
+║◌◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║◌│◌│◌PA║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 6 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 5 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: P, (4,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (4,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (4,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 6 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (4,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 6 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: P, (6,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (6,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 7 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 7 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: P, (2,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (2,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (2, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sėkmingai perkelta 'S' į (7,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║AMT│P│S║ 1
+║◌◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌O║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 6 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 7 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: O, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: O, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (1, 2)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sėkmingai perkelta 'P' į (2,1). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║MPT│S│O║ 1
+║◌◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║◌│◌│◌◌A║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 7 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 7 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: A, (7,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: A, (7,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (7,1) nėra tuščias, bet jame yra 'O'.</p>
+<p>Jūs bendrai sukaupėte 8 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (7,1) nėra tuščias, bet jame yra 'O'.</p>
+<p>Jūs bendrai sukaupėte 8 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: A, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: A, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>A moved to (1, 2)</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sėkmingai perkelta 'O' į (1,2). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║AMT│P│S║ 1
+║O◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌◌║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 7 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 8 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: D, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: D, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>D moved to (2, 2)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sėkmingai perkelta 'A' į (1,2). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║MPT│S│O║ 1
+║A◌◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║◌│◌│◌◌◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 8 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 8 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: D, (7,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: D, (7,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (7,1) nėra tuščias, bet jame yra 'O'.</p>
+<p>Jūs bendrai sukaupėte 9 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (7,1) nėra tuščias, bet jame yra 'O'.</p>
+<p>Jūs bendrai sukaupėte 9 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: D, (6,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: D, (6,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 10 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (6,1) nėra tuščias, bet jame yra '│'.</p>
+<p>Jūs bendrai sukaupėte 10 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: D, (7,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: D, (7,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (7,2) nėra tuščias, bet jame yra '─'.</p>
+<p>Jūs bendrai sukaupėte 11 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (7,2) nėra tuščias, bet jame yra '─'.</p>
+<p>Jūs bendrai sukaupėte 11 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: D, (7,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: D, (7,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>D moved to (7, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sėkmingai perkelta 'D' į (2,2). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║AMT│P│S║ 1
+║OD◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌◌║ 6
+║◌│◌│◌◌◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 8 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 11 iš 16 baudų.
+Kitas žaidėjas perkėlė objektą savo tinklelyje.</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAKYTI: baigta?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: baigta?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sėkmingai perkelta 'D' į (7,3). Jūsų atnaujintas tinklelis atrodo taip:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║MPT│S│O║ 1
+║A◌◌│◌├─╢ 2
+║◌◌◌├─┘D║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌◌║ 6
+║◌│◌│◌◌◌║ 7
+╚═╧═╧═══╝
+</code></pre>
+<p>Šiuo metu žaidžiate 9 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 11 iš 16 baudų.
+Kitas žaidėjas atsiuntė šią žinutę:</p>
+<p>"baigta?"</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAKYTI: baigta!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: baigta!</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌◌M│◌├─╢ 2
+║AT◌├─┘◌║ 3
+║◌◌P│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│S◌O║ 6
+║◌│◌│◌D◌║ 7
+╚═╧═╧═══╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌MS│◌│◌║ 1
+║◌O◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌D║ 6
+║T│◌│◌PA║ 7
+╚═╧═╧═══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║AMT│P│S║ 1
+║OD◌│◌├─╢ 2
+║◌◌◌├─┘◌║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌◌║ 6
+║◌│◌│◌◌◌║ 7
+╚═╧═╧═══╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║MPT│S│O║ 1
+║A◌◌│◌├─╢ 2
+║◌◌◌├─┘D║ 3
+║◌◌◌│◌◌◌║ 4
+╟─┬─┼───╢ 5
+║◌│◌│◌◌◌║ 6
+║◌│◌│◌◌◌║ 7
+╚═╧═╧═══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 11.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 18.18</li>
+<li>Init Distance Sum: 30.19</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 11.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 9.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>
