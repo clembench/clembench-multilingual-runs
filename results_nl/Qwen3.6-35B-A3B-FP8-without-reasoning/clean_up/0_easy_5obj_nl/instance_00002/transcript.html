@@ -1,0 +1,979 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '0_easy_5obj_nl', episode 2 with Qwen3.6-35B-A3B-FP8-without-reasoning.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ik ben uw spelleider, en u speelt een samenwerkingsspel met het volgende raster als speelbord:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌◌◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌TW◌◌┌─╢ 3
+╟──┐◌◌│H║ 4
+║C◌├──┼─╢ 5
+║◌◌│I◌│◌║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+
+</code></pre>
+<ul>
+<li>De bovenrand toont x-coördinaten die naar rechts oplopen, en de rechterrand y-coördinaten die naar beneden oplopen.</li>
+<li>De volgende objecten zijn willekeurig op uw raster geplaatst: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>De andere speler ziet een variatie van het speelbord, waarbij de objecten op verschillende willekeurige locaties zijn geplaatst. U kunt het bord van de andere speler niet zien en zij kunnen het uwe niet zien.</p>
+<p><strong>Doel:</strong></p>
+<p>Beide spelers moeten de objecten op hun respectievelijke achtergrond zo verplaatsen dat identieke objecten op dezelfde coördinaten terechtkomen. U moet communiceren met de andere speler om een gemeenschappelijke doelconfiguratie overeen te komen.</p>
+<p><strong>Regels:</strong></p>
+<ul>
+<li>In elke beurt kunt u precies één van de volgende twee commando's sturen:</li>
+<li><code>ZEG: &lt;BERICHT&gt;</code>: om een bericht (alles tot de volgende regeleinde) naar de andere speler te sturen. Ik zal het doorsturen naar uw partner.</li>
+<li><code>BEWEEG: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: om een object naar een nieuwe positie te verplaatsen, waarbij <code>&lt;X&gt;</code> de kolom is en <code>&lt;Y&gt;</code> de rij. Ik zal u laten weten of uw zet succesvol was of niet.</li>
+<li>Als u zich niet aan het formaat houdt, of meerdere commando's tegelijk verstuurt, moet ik u straffen.</li>
+<li>Als beide spelers meer dan 12 strafpunten verzamelen, verliezen jullie allebei het spel.</li>
+<li>Het is van vitaal belang dat u met de andere speler communiceert over uw doelstatus! De <em>enige</em> manier waarop u uw strategie aan de andere speler kunt overbrengen is door gebruik te maken van het <code>ZEG: &lt;BERICHT&gt;</code> commando!</li>
+</ul>
+<p><strong>Objecten verplaatsen</strong></p>
+<ul>
+<li>U kunt alleen objecten verplaatsen naar cellen binnen de grenzen van het raster. De doelcel moet leeg zijn, d.w.z. deze mag alleen het symbool '◌' bevatten.</li>
+<li>Als u probeert een object te verplaatsen naar een plek die niet leeg is, of als u probeert het buiten het raster te verplaatsen, moet ik u straffen. U krijgt een nieuwe poging.</li>
+<li>Voordat u een zet doet, moet u controleren of de doelplek leeg is, en geen letter, kader of lijn bevat!</li>
+</ul>
+<p><strong>Einde van het spel</strong></p>
+<p>Als u denkt dat u het doel bereikt hebt om alle objecten uit te lijnen, kunt u de andere speler vragen het spel te beëindigen door <code>ZEG: klaar?</code> te sturen. Als de andere speler u vraagt om het spel te beëindigen en u antwoordt met <code>ZEG: klaar!</code>, zal het spel eindigen.</p>
+<p>Beide spelers winnen als het spel eindigt binnen 20 rondes, waarbij één ronde gedefinieerd wordt als twee spelers die elk een geldig commando sturen.</p>
+<p><strong>Score:</strong></p>
+<p>Hoe dichter de identieke objecten bij elkaar liggen op beide speelborden, hoe meer punten u krijgt. Strafpunten verminderen uw punten. Kunt u het record verslaan?</p>
+<p>Stuur een bericht naar de andere speler om het spel te starten!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ZEG: Hallo partner! Laten we beginnen. Ik zie de volgende objecten op mijn bord:
+- T op (3, 3)
+- W op (4, 3)
+- C op (1, 5)
+- H op (5, 4)
+- I op (5, 6)</p>
+<p>Kun je mij vertellen waar jouw objecten staan? Laten we een gemeenschappelijk doelcoördinaten-systeem afspreken. Bijvoorbeeld: laten we proberen alle objecten naar het midden van het bord te bewegen, of een specifieke vorm te vormen. Wat is jouw strategie?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: Hallo partner! Laten we beginnen. Ik zie de volgende objecten op mijn bord:
+- T op (3, 3)
+- W op (4, 3)
+- C op (1, 5)
+- H op (5, 4)
+- I op (5, 6)</p>
+<p>Kun je mij vertellen waar jouw objecten staan? Laten we een gemeenschappelijk doelcoördinaten-systeem afspreken. Bijvoorbeeld: laten we proberen alle objecten naar het midden van het bord te bewegen, of een specifieke vorm te vormen. Wat is jouw strategie?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '
+- T op (3, 3)
+- W op (4, 3)
+- C op (1, 5)
+- H op (5, 4)
+- I op (5, 6)</p>
+<p>Kun je mij vertellen waar jouw objecten staan? Laten we een gemeenschappelijk doelcoördinaten-systeem afspreken. Bijvoorbeeld: laten we proberen alle objecten naar het midden van het bord te bewegen, of een specifieke vorm te vormen. Wat is jouw strategie?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: Je bericht mag niets na het commando bevatten!</p>
+<p>Zorg ervoor dat je antwoord alleen <code>ZEG: &lt;BERICHT&gt;</code> of <code>BEWEEG: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> bevat, en niets anders!</p>
+<p>Jullie hebben gezamenlijk 1 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ZEG: Hallo partner! Ik zie T(3,3), W(4,3), C(1,5), H(5,4), I(5,6). Waar staan jouw objecten? Laten we een doelconfiguratie afspreken.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: Hallo partner! Ik zie T(3,3), W(4,3), C(1,5), H(5,4), I(5,6). Waar staan jouw objecten? Laten we een doelconfiguratie afspreken.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ik ben uw spelleider, en u speelt een samenwerkingsspel met het volgende raster als speelbord:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌TH◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌◌◌◌┌─╢ 3
+╟──┐◌◌│◌║ 4
+║I◌├──┼─╢ 5
+║◌W│◌◌│C║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+
+</code></pre>
+<ul>
+<li>De bovenrand toont x-coördinaten die naar rechts oplopen, en de rechterrand y-coördinaten die naar beneden oplopen.</li>
+<li>De volgende objecten zijn willekeurig op uw raster geplaatst: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>De andere speler ziet een variatie van het speelbord, waarbij de objecten op verschillende willekeurige locaties zijn geplaatst. U kunt het bord van de andere speler niet zien en zij kunnen het uwe niet zien.</p>
+<p><strong>Doel:</strong></p>
+<p>Beide spelers moeten de objecten op hun respectievelijke achtergrond zo verplaatsen dat identieke objecten op dezelfde coördinaten terechtkomen. U moet communiceren met de andere speler om een gemeenschappelijke doelconfiguratie overeen te komen.</p>
+<p><strong>Regels:</strong></p>
+<ul>
+<li>In elke beurt kunt u precies één van de volgende twee commando's sturen:</li>
+<li><code>ZEG: &lt;BERICHT&gt;</code>: om een bericht (alles tot de volgende regeleinde) naar de andere speler te sturen. Ik zal het doorsturen naar uw partner.</li>
+<li><code>BEWEEG: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: om een object naar een nieuwe positie te verplaatsen, waarbij <code>&lt;X&gt;</code> de kolom is en <code>&lt;Y&gt;</code> de rij. Ik zal u laten weten of uw zet succesvol was of niet.</li>
+<li>Als u zich niet aan het formaat houdt, of meerdere commando's tegelijk verstuurt, moet ik u straffen.</li>
+<li>Als beide spelers meer dan 12 strafpunten verzamelen, verliezen jullie allebei het spel.</li>
+<li>Het is van vitaal belang dat u met de andere speler communiceert over uw doelstatus! De <em>enige</em> manier waarop u uw strategie aan de andere speler kunt overbrengen is door gebruik te maken van het <code>ZEG: &lt;BERICHT&gt;</code> commando!</li>
+</ul>
+<p><strong>Objecten verplaatsen</strong></p>
+<ul>
+<li>U kunt alleen objecten verplaatsen naar cellen binnen de grenzen van het raster. De doelcel moet leeg zijn, d.w.z. deze mag alleen het symbool '◌' bevatten.</li>
+<li>Als u probeert een object te verplaatsen naar een plek die niet leeg is, of als u probeert het buiten het raster te verplaatsen, moet ik u straffen. U krijgt een nieuwe poging.</li>
+<li>Voordat u een zet doet, moet u controleren of de doelplek leeg is, en geen letter, kader of lijn bevat!</li>
+</ul>
+<p><strong>Einde van het spel</strong></p>
+<p>Als u denkt dat u het doel bereikt hebt om alle objecten uit te lijnen, kunt u de andere speler vragen het spel te beëindigen door <code>ZEG: klaar?</code> te sturen. Als de andere speler u vraagt om het spel te beëindigen en u antwoordt met <code>ZEG: klaar!</code>, zal het spel eindigen.</p>
+<p>Beide spelers winnen als het spel eindigt binnen 20 rondes, waarbij één ronde gedefinieerd wordt als twee spelers die elk een geldig commando sturen.</p>
+<p><strong>Score:</strong></p>
+<p>Hoe dichter de identieke objecten bij elkaar liggen op beide speelborden, hoe meer punten u krijgt. Strafpunten verminderen uw punten. Kunt u het record verslaan?</p>
+<p>De andere speler begon het spel door dit bericht te sturen:</p>
+<p>"Hallo partner! Ik zie T(3,3), W(4,3), C(1,5), H(5,4), I(5,6). Waar staan jouw objecten? Laten we een doelconfiguratie afspreken."</p>
+<p>Wat is uw eerste opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Om het spel succesvol te voltooien, moeten we eerst onze posities vergelijken met die van de partner en vervolgens een gemeenschappelijk doel afspreken.</p>
+<p><strong>Huidige situatie op mijn bord:</strong>
+*   <strong>T</strong>: (5, 1)
+*   <strong>W</strong>: (2, 6)
+*   <strong>I</strong>: (1, 5)
+*   <strong>C</strong>: (6, 6)
+*   <strong>H</strong>: (5, 4)</p>
+<p><strong>Posities van partner (volgens hun bericht):</strong>
+*   T: (3, 3)
+*   W: (4, 3)
+*   C: (1, 5)
+*   H: (5, 4)
+*   I: (5, 6)</p>
+<p><strong>Analyse:</strong>
+1.  <strong>H</strong> staat bij mij op (5,4) en bij partner op (5,4). Dit object is al op dezelfde positie!
+2.  <strong>C</strong> staat bij mij op (6,6) en bij partner op (1,5). Dit is niet hetzelfde.
+3.  <strong>I</strong> staat bij mij op (1,5) en bij partner op (5,6). Dit is niet hetzelfde.
+4.  <strong>T</strong> staat bij mij op (5,1) en bij partner op (3,3). Dit is niet hetzelfde.
+5.  <strong>W</strong> staat bij mij op (2,6) en bij partner op (4,3). Dit is niet hetzelfde.</p>
+<p>We moeten een doelconfiguratie kiezen. Een goede strategie is om te kiezen voor een positie die voor beide spelers bereikbaar is en waar de objecten niet in de weg staan van elkaar. Laten we proberen om alle objecten naar de positie van <strong>H</strong> (5,4) te bewegen, maar dat is al bezet. We moeten dus een <em>ander</em> punt kiezen.</p>
+<p>Laten we kijken naar een centraal punt of een punt dat relatief dicht bij de huidige posities ligt.
+Een veelgebruikte strategie in dit type spel is om te communiceren over de eigen posities en dan een doel te kiezen.</p>
+<p>Ik zal eerst mijn posities doorgeven en een voorstel doen voor een doelconfiguratie. Laten we bijvoorbeeld kiezen om alle objecten naar de positie <strong>(4, 4)</strong> te bewegen, mits die leeg is.
+Op mijn bord is (4,4) leeg (◌).
+Op het bord van de partner weten we niet zeker of (4,4) leeg is, maar we kunnen het voorstel doen.</p>
+<p>Echter, omdat we niet weten waar de objecten van de partner precies staan ten opzichte van obstakels, is het veiliger om eerst de posities te delen en dan een specifiek doel te kiezen dat voor <em>beide</em> partijen logisch is.</p>
+<p>Laten we kiezen voor <strong>(3, 3)</strong> als doel voor <strong>T</strong>, <strong>(4, 3)</strong> voor <strong>W</strong>, etc.? Nee, dat is hun huidige positie.
+Laten we een nieuw punt kiezen. Bijvoorbeeld:
+*   T -&gt; (3, 3)
+*   W -&gt; (4, 4)
+*   I -&gt; (1, 5)
+*   C -&gt; (6, 6)
+*   H -&gt; (5, 4)</p>
+<p>Dit is willekeurig. Beter is om te vragen of ze akkoord gaan met een specifiek punt.
+Laten we proberen om <strong>T</strong> naar (3,3) te bewegen (hun huidige positie), <strong>W</strong> naar (4,3) (hun huidige positie), etc. Maar dat betekent dat wij moeten bewegen naar hun posities.</p>
+<p>Mijn posities:
+T(5,1), W(2,6), I(1,5), C(6,6), H(5,4).</p>
+<p>Partner posities:
+T(3,3), W(4,3), I(5,6), C(1,5), H(5,4).</p>
+<p>Opmerking: <strong>I</strong> staat bij mij op (1,5) en bij partner op (1,5)? Nee, partner zegt I(5,6). Ik heb I(1,5).
+Wacht, ik zie op mijn bord:
+Rij 5, Kolom 1: I
+Rij 6, Kolom 2: W
+Rij 6, Kolom 6: C
+Rij 4, Kolom 5: H
+Rij 1, Kolom 5: T</p>
+<p>Partner zegt:
+T(3,3)
+W(4,3)
+C(1,5)
+H(5,4)
+I(5,6)</p>
+<p>Laten we een doel kiezen dat voor beide bereikbaar is.
+Stel we kiezen als doel:
+T -&gt; (3,3)
+W -&gt; (4,3)
+I -&gt; (1,5)
+C -&gt; (6,6)
+H -&gt; (5,4)</p>
+<p>Controleer of dit voor mij mogelijk is:
+*   T(5,1) -&gt; (3,3): Pad? (3,3) is leeg op mijn bord? Ja, (3,3) is ◌.
+*   W(2,6) -&gt; (4,3): (4,3) is leeg op mijn bord? Ja.
+*   I(1,5) -&gt; (1,5): Al op doel.
+*   C(6,6) -&gt; (6,6): Al op doel.
+*   H(5,4) -&gt; (5,4): Al op doel.</p>
+<p>Dit lijkt een zeer efficiënt plan. Ik hoef alleen T en W te verplaatsen.
+Ik moet dit eerst met de partner afspreken.</p>
+<p>Mijn eerste opdracht is communiceren.</p>
+<p>ZEG: Ik zie T(5,1), W(2,6), I(1,5), C(6,6), H(5,4). Laten we als doelconfiguratie kiezen: T naar (3,3), W naar (4,3), I naar (1,5), C naar (6,6), H naar (5,4). Ben je akkoord?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Om het spel succesvol te voltooien, moeten we eerst onze posities vergelijken met die van de partner en vervolgens een gemeenschappelijk doel afspreken.</p>
+<p><strong>Huidige situatie op mijn bord:</strong>
+*   <strong>T</strong>: (5, 1)
+*   <strong>W</strong>: (2, 6)
+*   <strong>I</strong>: (1, 5)
+*   <strong>C</strong>: (6, 6)
+*   <strong>H</strong>: (5, 4)</p>
+<p><strong>Posities van partner (volgens hun bericht):</strong>
+*   T: (3, 3)
+*   W: (4, 3)
+*   C: (1, 5)
+*   H: (5, 4)
+*   I: (5, 6)</p>
+<p><strong>Analyse:</strong>
+1.  <strong>H</strong> staat bij mij op (5,4) en bij partner op (5,4). Dit object is al op dezelfde positie!
+2.  <strong>C</strong> staat bij mij op (6,6) en bij partner op (1,5). Dit is niet hetzelfde.
+3.  <strong>I</strong> staat bij mij op (1,5) en bij partner op (5,6). Dit is niet hetzelfde.
+4.  <strong>T</strong> staat bij mij op (5,1) en bij partner op (3,3). Dit is niet hetzelfde.
+5.  <strong>W</strong> staat bij mij op (2,6) en bij partner op (4,3). Dit is niet hetzelfde.</p>
+<p>We moeten een doelconfiguratie kiezen. Een goede strategie is om te kiezen voor een positie die voor beide spelers bereikbaar is en waar de objecten niet in de weg staan van elkaar. Laten we proberen om alle objecten naar de positie van <strong>H</strong> (5,4) te bewegen, maar dat is al bezet. We moeten dus een <em>ander</em> punt kiezen.</p>
+<p>Laten we kijken naar een centraal punt of een punt dat relatief dicht bij de huidige posities ligt.
+Een veelgebruikte strategie in dit type spel is om te communiceren over de eigen posities en dan een doel te kiezen.</p>
+<p>Ik zal eerst mijn posities doorgeven en een voorstel doen voor een doelconfiguratie. Laten we bijvoorbeeld kiezen om alle objecten naar de positie <strong>(4, 4)</strong> te bewegen, mits die leeg is.
+Op mijn bord is (4,4) leeg (◌).
+Op het bord van de partner weten we niet zeker of (4,4) leeg is, maar we kunnen het voorstel doen.</p>
+<p>Echter, omdat we niet weten waar de objecten van de partner precies staan ten opzichte van obstakels, is het veiliger om eerst de posities te delen en dan een specifiek doel te kiezen dat voor <em>beide</em> partijen logisch is.</p>
+<p>Laten we kiezen voor <strong>(3, 3)</strong> als doel voor <strong>T</strong>, <strong>(4, 3)</strong> voor <strong>W</strong>, etc.? Nee, dat is hun huidige positie.
+Laten we een nieuw punt kiezen. Bijvoorbeeld:
+*   T -&gt; (3, 3)
+*   W -&gt; (4, 4)
+*   I -&gt; (1, 5)
+*   C -&gt; (6, 6)
+*   H -&gt; (5, 4)</p>
+<p>Dit is willekeurig. Beter is om te vragen of ze akkoord gaan met een specifiek punt.
+Laten we proberen om <strong>T</strong> naar (3,3) te bewegen (hun huidige positie), <strong>W</strong> naar (4,3) (hun huidige positie), etc. Maar dat betekent dat wij moeten bewegen naar hun posities.</p>
+<p>Mijn posities:
+T(5,1), W(2,6), I(1,5), C(6,6), H(5,4).</p>
+<p>Partner posities:
+T(3,3), W(4,3), I(5,6), C(1,5), H(5,4).</p>
+<p>Opmerking: <strong>I</strong> staat bij mij op (1,5) en bij partner op (1,5)? Nee, partner zegt I(5,6). Ik heb I(1,5).
+Wacht, ik zie op mijn bord:
+Rij 5, Kolom 1: I
+Rij 6, Kolom 2: W
+Rij 6, Kolom 6: C
+Rij 4, Kolom 5: H
+Rij 1, Kolom 5: T</p>
+<p>Partner zegt:
+T(3,3)
+W(4,3)
+C(1,5)
+H(5,4)
+I(5,6)</p>
+<p>Laten we een doel kiezen dat voor beide bereikbaar is.
+Stel we kiezen als doel:
+T -&gt; (3,3)
+W -&gt; (4,3)
+I -&gt; (1,5)
+C -&gt; (6,6)
+H -&gt; (5,4)</p>
+<p>Controleer of dit voor mij mogelijk is:
+*   T(5,1) -&gt; (3,3): Pad? (3,3) is leeg op mijn bord? Ja, (3,3) is ◌.
+*   W(2,6) -&gt; (4,3): (4,3) is leeg op mijn bord? Ja.
+*   I(1,5) -&gt; (1,5): Al op doel.
+*   C(6,6) -&gt; (6,6): Al op doel.
+*   H(5,4) -&gt; (5,4): Al op doel.</p>
+<p>Dit lijkt een zeer efficiënt plan. Ik hoef alleen T en W te verplaatsen.
+Ik moet dit eerst met de partner afspreken.</p>
+<p>Mijn eerste opdracht is communiceren.</p>
+<p>ZEG: Ik zie T(5,1), W(2,6), I(1,5), C(6,6), H(5,4). Laten we als doelconfiguratie kiezen: T naar (3,3), W naar (4,3), I naar (1,5), C naar (6,6), H naar (5,4). Ben je akkoord?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Om het spel succesvol te voltooien, moeten we eerst onze posities vergelijken met die van de partner en vervolgens een gemeenschappelijk doel afspreken.</p>
+<p><strong>Huidige situatie op mijn bord:</strong>
+*   <strong>T</strong>: (5, 1)
+*   <strong>W</strong>: (2, 6)
+*   <strong>I</strong>: (1, 5)
+*   <strong>C</strong>: (6, 6)
+*   <strong>H</strong>: (5, 4)</p>
+<p><strong>Posities van partner (volgens hun bericht):</strong>
+*   T: (3, 3)
+*   W: (4, 3)
+*   C: (1, 5)
+*   H: (5, 4)
+*   I: (5, 6)</p>
+<p><strong>Analyse:</strong>
+1.  <strong>H</strong> staat bij mij op (5,4) en bij partner op (5,4). Dit object is al op dezelfde positie!
+2.  <strong>C</strong> staat bij mij op (6,6) en bij partner op (1,5). Dit is niet hetzelfde.
+3.  <strong>I</strong> staat bij mij op (1,5) en bij partner op (5,6). Dit is niet hetzelfde.
+4.  <strong>T</strong> staat bij mij op (5,1) en bij partner op (3,3). Dit is niet hetzelfde.
+5.  <strong>W</strong> staat bij mij op (2,6) en bij partner op (4,3). Dit is niet hetzelfde.</p>
+<p>We moeten een doelconfiguratie kiezen. Een goede strategie is om te kiezen voor een positie die voor beide spelers bereikbaar is en waar de objecten niet in de weg staan van elkaar. Laten we proberen om alle objecten naar de positie van <strong>H</strong> (5,4) te bewegen, maar dat is al bezet. We moeten dus een <em>ander</em> punt kiezen.</p>
+<p>Laten we kijken naar een centraal punt of een punt dat relatief dicht bij de huidige posities ligt.
+Een veelgebruikte strategie in dit type spel is om te communiceren over de eigen posities en dan een doel te kiezen.</p>
+<p>Ik zal eerst mijn posities doorgeven en een voorstel doen voor een doelconfiguratie. Laten we bijvoorbeeld kiezen om alle objecten naar de positie <strong>(4, 4)</strong> te bewegen, mits die leeg is.
+Op mijn bord is (4,4) leeg (◌).
+Op het bord van de partner weten we niet zeker of (4,4) leeg is, maar we kunnen het voorstel doen.</p>
+<p>Echter, omdat we niet weten waar de objecten van de partner precies staan ten opzichte van obstakels, is het veiliger om eerst de posities te delen en dan een specifiek doel te kiezen dat voor <em>beide</em> partijen logisch is.</p>
+<p>Laten we kiezen voor <strong>(3, 3)</strong> als doel voor <strong>T</strong>, <strong>(4, 3)</strong> voor <strong>W</strong>, etc.? Nee, dat is hun huidige positie.
+Laten we een nieuw punt kiezen. Bijvoorbeeld:
+*   T -&gt; (3, 3)
+*   W -&gt; (4, 4)
+*   I -&gt; (1, 5)
+*   C -&gt; (6, 6)
+*   H -&gt; (5, 4)</p>
+<p>Dit is willekeurig. Beter is om te vragen of ze akkoord gaan met een specifiek punt.
+Laten we proberen om <strong>T</strong> naar (3,3) te bewegen (hun huidige positie), <strong>W</strong> naar (4,3) (hun huidige positie), etc. Maar dat betekent dat wij moeten bewegen naar hun posities.</p>
+<p>Mijn posities:
+T(5,1), W(2,6), I(1,5), C(6,6), H(5,4).</p>
+<p>Partner posities:
+T(3,3), W(4,3), I(5,6), C(1,5), H(5,4).</p>
+<p>Opmerking: <strong>I</strong> staat bij mij op (1,5) en bij partner op (1,5)? Nee, partner zegt I(5,6). Ik heb I(1,5).
+Wacht, ik zie op mijn bord:
+Rij 5, Kolom 1: I
+Rij 6, Kolom 2: W
+Rij 6, Kolom 6: C
+Rij 4, Kolom 5: H
+Rij 1, Kolom 5: T</p>
+<p>Partner zegt:
+T(3,3)
+W(4,3)
+C(1,5)
+H(5,4)
+I(5,6)</p>
+<p>Laten we een doel kiezen dat voor beide bereikbaar is.
+Stel we kiezen als doel:
+T -&gt; (3,3)
+W -&gt; (4,3)
+I -&gt; (1,5)
+C -&gt; (6,6)
+H -&gt; (5,4)</p>
+<p>Controleer of dit voor mij mogelijk is:
+*   T(5,1) -&gt; (3,3): Pad? (3,3) is leeg op mijn bord? Ja, (3,3) is ◌.
+*   W(2,6) -&gt; (4,3): (4,3) is leeg op mijn bord? Ja.
+*   I(1,5) -&gt; (1,5): Al op doel.
+*   C(6,6) -&gt; (6,6): Al op doel.
+*   H(5,4) -&gt; (5,4): Al op doel.</p>
+<p>Dit lijkt een zeer efficiënt plan. Ik hoef alleen T en W te verplaatsen.
+Ik moet dit eerst met de partner afspreken.</p>
+<p>Mijn eerste opdracht is communiceren.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: Je bericht mag niets vóór het commando bevatten!</p>
+<p>Zorg ervoor dat je antwoord alleen <code>ZEG: &lt;BERICHT&gt;</code> of <code>BEWEEG: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> bevat, en niets anders!</p>
+<p>Jullie hebben gezamenlijk 2 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ZEG: Ik zie T(5,1), W(2,6), I(1,5), C(6,6), H(5,4). Laten we als doelconfiguratie kiezen: T naar (3,3), W naar (4,3), I naar (1,5), C naar (6,6), H naar (5,4). Ben je akkoord?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: Ik zie T(5,1), W(2,6), I(1,5), C(6,6), H(5,4). Laten we als doelconfiguratie kiezen: T naar (3,3), W naar (4,3), I naar (1,5), C naar (6,6), H naar (5,4). Ben je akkoord?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Je bericht is doorgestuurd naar de andere speler.</p>
+<p>Je speelt momenteel ronde 1 van maximaal 20.
+Jullie hebben gezamenlijk 2 van 12 straffen verzameld.
+De andere speler stuurde dit bericht:</p>
+<p>"Ik zie T(5,1), W(2,6), I(1,5), C(6,6), H(5,4). Laten we als doelconfiguratie kiezen: T naar (3,3), W naar (4,3), I naar (1,5), C naar (6,6), H naar (5,4). Ben je akkoord?"</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ZEG: Akkoord! Ik beweeg nu mijn objecten naar die posities.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: Akkoord! Ik beweeg nu mijn objecten naar die posities.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Je bericht is doorgestuurd naar de andere speler.</p>
+<p>Je speelt momenteel ronde 2 van maximaal 20.
+Jullie hebben gezamenlijk 2 van 12 straffen verzameld.
+De andere speler stuurde dit bericht:</p>
+<p>"Akkoord! Ik beweeg nu mijn objecten naar die posities."</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>BEWEEG: T, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: T, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (3, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Je bericht is doorgestuurd naar de andere speler.</p>
+<p>Je speelt momenteel ronde 2 van maximaal 20.
+Jullie hebben gezamenlijk 2 van 12 straffen verzameld.
+De andere speler heeft een voorwerp op zijn rooster verplaatst.</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>BEWEEG: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (3,3) is niet leeg, maar bevat 'W'.</p>
+<p>Jullie hebben gezamenlijk 3 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: (3,3) is niet leeg, maar bevat 'W'.</p>
+<p>Jullie hebben gezamenlijk 3 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>BEWEEG: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (3,3) is niet leeg, maar bevat 'W'.</p>
+<p>Jullie hebben gezamenlijk 4 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: (3,3) is niet leeg, maar bevat 'W'.</p>
+<p>Jullie hebben gezamenlijk 4 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ZEG: W staat op (4,3) en T op (3,3). We moeten eerst W verplaatsen. Ik beweeg W naar (4,4).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: W staat op (4,3) en T op (3,3). We moeten eerst W verplaatsen. Ik beweeg W naar (4,4).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Verplaatst 'T' naar (3,3) met succes. Uw bijgewerkte raster ziet er als volgt uit:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌H◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌T◌◌┌─╢ 3
+╟──┐◌◌│◌║ 4
+║I◌├──┼─╢ 5
+║◌W│◌◌│C║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+</code></pre>
+<p>Je speelt momenteel ronde 3 van maximaal 20.
+Jullie hebben gezamenlijk 4 van 12 straffen verzameld.
+De andere speler stuurde dit bericht:</p>
+<p>"W staat op (4,3) en T op (3,3). We moeten eerst W verplaatsen. Ik beweeg W naar (4,4)."</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>BEWEEG: W, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: W, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (4, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Je bericht is doorgestuurd naar de andere speler.</p>
+<p>Je speelt momenteel ronde 3 van maximaal 20.
+Jullie hebben gezamenlijk 4 van 12 straffen verzameld.
+De andere speler heeft een voorwerp op zijn rooster verplaatst.</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>BEWEEG: W, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: W, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (4, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Verplaatst 'W' naar (4,3) met succes. Uw bijgewerkte raster ziet er als volgt uit:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌H◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌TW◌┌─╢ 3
+╟──┐◌◌│◌║ 4
+║I◌├──┼─╢ 5
+║◌◌│◌◌│C║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+</code></pre>
+<p>Je speelt momenteel ronde 4 van maximaal 20.
+Jullie hebben gezamenlijk 4 van 12 straffen verzameld.
+De andere speler heeft een voorwerp op zijn rooster verplaatst.</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>BEWEEG: I, (1,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: I, (1,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (1,5) is niet leeg, maar bevat 'I'.</p>
+<p>Jullie hebben gezamenlijk 5 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: (1,5) is niet leeg, maar bevat 'I'.</p>
+<p>Jullie hebben gezamenlijk 5 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>BEWEEG: C, (6,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: C, (6,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (6,6) is niet leeg, maar bevat '│'.</p>
+<p>Jullie hebben gezamenlijk 6 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: (6,6) is niet leeg, maar bevat '│'.</p>
+<p>Jullie hebben gezamenlijk 6 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>BEWEEG: H, (5,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: H, (5,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (5, 4)</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Verplaatst 'W' naar (4,4) met succes. Uw bijgewerkte raster ziet er als volgt uit:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌◌◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌T◌◌◌┌─╢ 3
+╟──┐W◌│H║ 4
+║C◌├──┼─╢ 5
+║◌◌│I◌│◌║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+</code></pre>
+<p>Je speelt momenteel ronde 4 van maximaal 20.
+Jullie hebben gezamenlijk 6 van 12 straffen verzameld.
+De andere speler heeft een voorwerp op zijn rooster verplaatst.</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>BEWEEG: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (3, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Verplaatst 'H' naar (5,4) met succes. Uw bijgewerkte raster ziet er als volgt uit:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌◌◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌TW◌┌─╢ 3
+╟──┐◌H│◌║ 4
+║I◌├──┼─╢ 5
+║◌◌│◌◌│C║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+</code></pre>
+<p>Je speelt momenteel ronde 5 van maximaal 20.
+Jullie hebben gezamenlijk 6 van 12 straffen verzameld.
+De andere speler heeft een voorwerp op zijn rooster verplaatst.</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>BEWEEG: I, (1,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: I, (1,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (1,5) is niet leeg, maar bevat 'I'.</p>
+<p>Jullie hebben gezamenlijk 7 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: (1,5) is niet leeg, maar bevat 'I'.</p>
+<p>Jullie hebben gezamenlijk 7 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>BEWEEG: C, (1,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>BEWEEG: C, (1,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (1,5) is niet leeg, maar bevat 'I'.</p>
+<p>Jullie hebben gezamenlijk 8 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: (1,5) is niet leeg, maar bevat 'I'.</p>
+<p>Jullie hebben gezamenlijk 8 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ZEG: Ik heb een fout gemaakt. I staat al op (1,5) en C op (6,6). H is op (5,4). T is op (3,3). W is op (4,3). Alle objecten zijn op hun doelpositie. ZEG: klaar?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: Ik heb een fout gemaakt. I staat al op (1,5) en C op (6,6). H is op (5,4). T is op (3,3). W is op (4,3). Alle objecten zijn op hun doelpositie. ZEG: klaar?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'ZEG: Ik heb een fout gemaakt. I staat al op (1,5) en C op (6,6). H is op (5,4). T is op (3,3). W is op (4,3). Alle objecten zijn op hun doelpositie. '</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: Je bericht mag niets vóór het commando bevatten!</p>
+<p>Zorg ervoor dat je antwoord alleen <code>ZEG: &lt;BERICHT&gt;</code> of <code>BEWEEG: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> bevat, en niets anders!</p>
+<p>Jullie hebben gezamenlijk 9 van 12 straffen verzameld.
+Probeer het opnieuw!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ZEG: klaar?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: klaar?</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Verplaatst 'T' naar (3,3) met succes. Uw bijgewerkte raster ziet er als volgt uit:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌◌◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌T◌◌┌─╢ 3
+╟──┐W◌│H║ 4
+║C◌├──┼─╢ 5
+║◌◌│I◌│◌║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+</code></pre>
+<p>Je speelt momenteel ronde 5 van maximaal 20.
+Jullie hebben gezamenlijk 9 van 12 straffen verzameld.
+De andere speler stuurde dit bericht:</p>
+<p>"klaar?"</p>
+<p>Wat is je volgende opdracht?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ZEG: klaar!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ZEG: klaar!</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══════╗
+║◌◌◌◌◌◌◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌TW◌◌┌─╢ 3
+╟──┐◌◌│H║ 4
+║C◌├──┼─╢ 5
+║◌◌│I◌│◌║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+
+
+Player 2:
+ 1234567
+╔═══════╗
+║◌◌◌◌TH◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌◌◌◌┌─╢ 3
+╟──┐◌◌│◌║ 4
+║I◌├──┼─╢ 5
+║◌W│◌◌│C║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══════╗
+║◌◌◌◌◌◌◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌T◌◌┌─╢ 3
+╟──┐W◌│H║ 4
+║C◌├──┼─╢ 5
+║◌◌│I◌│◌║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+
+
+Player 2:
+ 1234567
+╔═══════╗
+║◌◌◌◌◌◌◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌TW◌┌─╢ 3
+╟──┐◌H│◌║ 4
+║I◌├──┼─╢ 5
+║◌◌│◌◌│C║ 6
+║◌◌│◌◌│◌║ 7
+╚══╧══╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 3.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 12.25</li>
+<li>Init Distance Sum: 19.18</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 9.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 5.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>
