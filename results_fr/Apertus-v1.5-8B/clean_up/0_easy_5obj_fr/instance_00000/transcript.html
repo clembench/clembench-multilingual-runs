@@ -1,0 +1,778 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '0_easy_5obj_fr', episode 0 with Apertus-v1.5-8B.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Je suis votre maître de jeu, et vous jouez à un jeu collaboratif avec la grille suivante comme plateau de jeu :</p>
+<pre><code> 1234567
+╔═╤═══╤═╗
+║◌│◌◌◌│◌║ 1
+╟─┼──┬┘◌║ 2
+║◌│◌◌│◌◌║ 3
+╟─┴──┘H◌║ 4
+║◌◌◌◌◌I◌║ 5
+║C◌◌◌◌◌◌║ 6
+║◌W◌◌T◌◌║ 7
+╚═══════╝
+
+</code></pre>
+<ul>
+<li>Le bord supérieur affiche des coordonnées x croissantes vers la droite, et le bord droit des coordonnées y croissantes vers le bas.</li>
+<li>Les objets suivants sont placés aléatoirement sur votre grille : 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>L'autre joueur voit une variante du plateau de jeu, où les objets sont placés à des emplacements aléatoires différents. Vous ne pouvez pas voir le plateau de l'autre joueur et il ne peut pas voir le vôtre.</p>
+<p><strong>Objectif :</strong></p>
+<p>Les deux joueurs doivent déplacer les objets sur leur arrière-plan respectif de manière à ce que des objets identiques se retrouvent aux mêmes coordonnées. Vous devez communiquer avec l'autre joueur pour convenir d'une configuration d'objectif commune.</p>
+<p><strong>Règles :</strong></p>
+<ul>
+<li>À chaque tour, vous pouvez envoyer exactement l'une des deux commandes suivantes :</li>
+<li><code>DIRE: &lt;MESSAGE&gt;</code> : pour envoyer un message (tout ce qui se trouve jusqu'au prochain saut de ligne) à l'autre joueur. Je le transmettrai à votre partenaire.</li>
+<li><code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> : pour déplacer un objet vers une nouvelle position, où <code>&lt;X&gt;</code> est la colonne et <code>&lt;Y&gt;</code> est la ligne. Je vous informerai si votre déplacement a réussi ou non.</li>
+<li>Si vous ne respectez pas le format, ou si vous envoyez plusieurs commandes à la fois, je dois vous pénaliser.</li>
+<li>Si les deux joueurs accumulent plus de 12 pénalités, vous perdez tous les deux la partie.</li>
+<li>Il est essentiel que vous communiquiez avec l'autre joueur concernant votre état d'objectif ! La <em>seule</em> façon de transmettre votre stratégie à l'autre joueur est d'utiliser la commande <code>DIRE: &lt;MESSAGE&gt;</code> !</li>
+</ul>
+<p><strong>Déplacement d'objets</strong></p>
+<ul>
+<li>Vous ne pouvez déplacer des objets que vers des cellules situées à l'intérieur des limites de la grille. La cellule cible doit être vide, c'est-à-dire qu'elle ne doit contenir que le symbole '◌'.</li>
+<li>Si vous essayez de déplacer un objet vers un endroit qui n'est pas vide, ou si vous essayez de le déplacer en dehors de la grille, je dois vous pénaliser. Vous avez droit à un nouvel essai.</li>
+<li>Avant d'effectuer un déplacement, vérifiez bien que l'emplacement cible est vide et qu'il ne contient aucune lettre, aucun cadre ou aucune ligne !</li>
+</ul>
+<p><strong>Fin de partie</strong></p>
+<p>Si vous pensez avoir atteint l'objectif d'aligner tous les objets, vous pouvez demander à l'autre joueur de terminer la partie en envoyant <code>DIRE: terminé ?</code>. Si l'autre joueur vous demande de terminer la partie et que vous répondez <code>DIRE: terminé !</code>, la partie se termine.</p>
+<p>Les deux joueurs gagnent si la partie se termine en 20 tours, un tour étant défini comme l'envoi d'une commande valide par chacun des deux joueurs.</p>
+<p><strong>Score :</strong></p>
+<p>Plus les objets identiques sont proches les uns des autres sur les deux plateaux de jeu, plus vous obtenez de points. Les pénalités réduisent vos points. Pouvez-vous battre le record ?</p>
+<p>Envoyez un message à l'autre joueur pour commencer le jeu !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Bonjour, commençons le jeu. J'ai bien noté la grille et les objets placés. Je suis prêt à communiquer mes intentions et à travailler ensemble pour atteindre l'objectif.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Bonjour, commençons le jeu. J'ai bien noté la grille et les objets placés. Je suis prêt à communiquer mes intentions et à travailler ensemble pour atteindre l'objectif.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Je suis votre maître de jeu, et vous jouez à un jeu collaboratif avec la grille suivante comme plateau de jeu :</p>
+<pre><code> 1234567
+╔═╤═══╤═╗
+║◌│◌◌◌│H║ 1
+╟─┼──┬┘◌║ 2
+║◌│◌◌│◌C║ 3
+╟─┴──┘◌T║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌◌I◌◌◌║ 6
+║◌◌◌◌W◌◌║ 7
+╚═══════╝
+
+</code></pre>
+<ul>
+<li>Le bord supérieur affiche des coordonnées x croissantes vers la droite, et le bord droit des coordonnées y croissantes vers le bas.</li>
+<li>Les objets suivants sont placés aléatoirement sur votre grille : 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>L'autre joueur voit une variante du plateau de jeu, où les objets sont placés à des emplacements aléatoires différents. Vous ne pouvez pas voir le plateau de l'autre joueur et il ne peut pas voir le vôtre.</p>
+<p><strong>Objectif :</strong></p>
+<p>Les deux joueurs doivent déplacer les objets sur leur arrière-plan respectif de manière à ce que des objets identiques se retrouvent aux mêmes coordonnées. Vous devez communiquer avec l'autre joueur pour convenir d'une configuration d'objectif commune.</p>
+<p><strong>Règles :</strong></p>
+<ul>
+<li>À chaque tour, vous pouvez envoyer exactement l'une des deux commandes suivantes :</li>
+<li><code>DIRE: &lt;MESSAGE&gt;</code> : pour envoyer un message (tout ce qui se trouve jusqu'au prochain saut de ligne) à l'autre joueur. Je le transmettrai à votre partenaire.</li>
+<li><code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> : pour déplacer un objet vers une nouvelle position, où <code>&lt;X&gt;</code> est la colonne et <code>&lt;Y&gt;</code> est la ligne. Je vous informerai si votre déplacement a réussi ou non.</li>
+<li>Si vous ne respectez pas le format, ou si vous envoyez plusieurs commandes à la fois, je dois vous pénaliser.</li>
+<li>Si les deux joueurs accumulent plus de 12 pénalités, vous perdez tous les deux la partie.</li>
+<li>Il est essentiel que vous communiquiez avec l'autre joueur concernant votre état d'objectif ! La <em>seule</em> façon de transmettre votre stratégie à l'autre joueur est d'utiliser la commande <code>DIRE: &lt;MESSAGE&gt;</code> !</li>
+</ul>
+<p><strong>Déplacement d'objets</strong></p>
+<ul>
+<li>Vous ne pouvez déplacer des objets que vers des cellules situées à l'intérieur des limites de la grille. La cellule cible doit être vide, c'est-à-dire qu'elle ne doit contenir que le symbole '◌'.</li>
+<li>Si vous essayez de déplacer un objet vers un endroit qui n'est pas vide, ou si vous essayez de le déplacer en dehors de la grille, je dois vous pénaliser. Vous avez droit à un nouvel essai.</li>
+<li>Avant d'effectuer un déplacement, vérifiez bien que l'emplacement cible est vide et qu'il ne contient aucune lettre, aucun cadre ou aucune ligne !</li>
+</ul>
+<p><strong>Fin de partie</strong></p>
+<p>Si vous pensez avoir atteint l'objectif d'aligner tous les objets, vous pouvez demander à l'autre joueur de terminer la partie en envoyant <code>DIRE: terminé ?</code>. Si l'autre joueur vous demande de terminer la partie et que vous répondez <code>DIRE: terminé !</code>, la partie se termine.</p>
+<p>Les deux joueurs gagnent si la partie se termine en 20 tours, un tour étant défini comme l'envoi d'une commande valide par chacun des deux joueurs.</p>
+<p><strong>Score :</strong></p>
+<p>Plus les objets identiques sont proches les uns des autres sur les deux plateaux de jeu, plus vous obtenez de points. Les pénalités réduisent vos points. Pouvez-vous battre le record ?</p>
+<p>L'autre joueur a commencé le jeu en envoyant ce message :</p>
+<p>"Bonjour, commençons le jeu. J'ai bien noté la grille et les objets placés. Je suis prêt à communiquer mes intentions et à travailler ensemble pour atteindre l'objectif."</p>
+<p>Quelle est votre première commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Bonjour, je prends note de votre message. J'ai bien noté la grille et les objets placés sur mon plateau. Pour commencer, je souhaite vérifier la position de l'objet 'H' sur mon plateau. J'envoie donc ma première commande pour demander des informations sur la position de 'H' sur le plateau de mon partenaire.</p>
+<p><code>DIRE: Pouvez-vous me dire où se trouve l'objet 'H' sur votre plateau ?</code></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Bonjour, je prends note de votre message. J'ai bien noté la grille et les objets placés sur mon plateau. Pour commencer, je souhaite vérifier la position de l'objet 'H' sur mon plateau. J'envoie donc ma première commande pour demander des informations sur la position de 'H' sur le plateau de mon partenaire.</p>
+<p><code>DIRE: Pouvez-vous me dire où se trouve l'objet 'H' sur votre plateau ?</code></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Bonjour, je prends note de votre message. J'ai bien noté la grille et les objets placés sur mon plateau. Pour commencer, je souhaite vérifier la position de l'objet 'H' sur mon plateau. J'envoie donc ma première commande pour demander des informations sur la position de 'H' sur le plateau de mon partenaire.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir avant la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 1 pénalités sur 12.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: H, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: H, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (1, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 1 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai bien reçu le déplacement de l'autre joueur. Pourriez-vous me donner les nouvelles positions de vos objets, afin que je puisse planifier mes propres déplacements en conséquence ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai bien reçu le déplacement de l'autre joueur. Pourriez-vous me donner les nouvelles positions de vos objets, afin que je puisse planifier mes propres déplacements en conséquence ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Déplacement de 'H' vers (1,1) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═╤═══╤═╗
+║H│◌◌◌│◌║ 1
+╟─┼──┬┘◌║ 2
+║◌│◌◌│◌C║ 3
+╟─┴──┘◌T║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌◌I◌◌◌║ 6
+║◌◌◌◌W◌◌║ 7
+╚═══════╝
+</code></pre>
+<p>Vous jouez actuellement le tour 2 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai bien reçu le déplacement de l'autre joueur. Pourriez-vous me donner les nouvelles positions de vos objets, afin que je puisse planifier mes propres déplacements en conséquence ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: J'ai bien reçu votre message. Voici la position à jour de l'objet 'H' sur mon plateau : (1, 1). Je vais maintenant analyser où se trouvent les autres objets sur mon plateau pour envisager leurs déplacements éventuels.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai bien reçu votre message. Voici la position à jour de l'objet 'H' sur mon plateau : (1, 1). Je vais maintenant analyser où se trouvent les autres objets sur mon plateau pour envisager leurs déplacements éventuels.</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 2 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai bien reçu votre message. Voici la position à jour de l'objet 'H' sur mon plateau : (1, 1). Je vais maintenant analyser où se trouvent les autres objets sur mon plateau pour envisager leurs déplacements éventuels."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Merci pour l'information sur l'objet 'H'. Pourriez-vous également me donner les positions actuelles des objets 'W', 'I', 'T' et 'C' sur votre plateau ? Cela m'aidera à élaborer une stratégie pour aligner les correspondances entre nos deux plateaux.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour l'information sur l'objet 'H'. Pourriez-vous également me donner les positions actuelles des objets 'W', 'I', 'T' et 'C' sur votre plateau ? Cela m'aidera à élaborer une stratégie pour aligner les correspondances entre nos deux plateaux.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 3 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour l'information sur l'objet 'H'. Pourriez-vous également me donner les positions actuelles des objets 'W', 'I', 'T' et 'C' sur votre plateau ? Cela m'aidera à élaborer une stratégie pour aligner les correspondances entre nos deux plateaux."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Les positions actuelles des objets sur mon plateau sont les suivantes : 'W' à (7, 7), 'I' à (6, 5), 'T' à (4, 4), et 'C' à (3, 3).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Les positions actuelles des objets sur mon plateau sont les suivantes : 'W' à (7, 7), 'I' à (6, 5), 'T' à (4, 4), et 'C' à (3, 3).</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 3 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Les positions actuelles des objets sur mon plateau sont les suivantes : 'W' à (7, 7), 'I' à (6, 5), 'T' à (4, 4), et 'C' à (3, 3)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Merci pour les informations précises sur les positions de vos objets. Analyseant mon plateau, les objets placés sont : 'W' (probablement sur la colonne 7, sur une ligne à déterminer), 'I' (colonne 6, ligne 5), 'T' (colonne 4, ligne 4), et 'C' (colonne 3, ligne 3). Sur mon plateau, 'W' se trouve sur la ligne 7, 'I' sur la ligne 5, 'T' sur la ligne 4, et 'C' sur la ligne 6. Pour atteindre l'alignement, nous pourrions déplacer 'C' de (3, 3) vers (6, 5) pour être en ligne avec 'I', et 'T' de (4, 4) vers (3, 3) pour s'aligner avec 'C'. 'H' est sur (1, 1) sur votre plateau, je chercherai sa position correspondante sur mon plateau. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour les informations précises sur les positions de vos objets. Analyseant mon plateau, les objets placés sont : 'W' (probablement sur la colonne 7, sur une ligne à déterminer), 'I' (colonne 6, ligne 5), 'T' (colonne 4, ligne 4), et 'C' (colonne 3, ligne 3). Sur mon plateau, 'W' se trouve sur la ligne 7, 'I' sur la ligne 5, 'T' sur la ligne 4, et 'C' sur la ligne 6. Pour atteindre l'alignement, nous pourrions déplacer 'C' de (3, 3) vers (6, 5) pour être en ligne avec 'I', et 'T' de (4, 4) vers (3, 3) pour s'aligner avec 'C'. 'H' est sur (1, 1) sur votre plateau, je chercherai sa position correspondante sur mon plateau. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 4 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour les informations précises sur les positions de vos objets. Analyseant mon plateau, les objets placés sont : 'W' (probablement sur la colonne 7, sur une ligne à déterminer), 'I' (colonne 6, ligne 5), 'T' (colonne 4, ligne 4), et 'C' (colonne 3, ligne 3). Sur mon plateau, 'W' se trouve sur la ligne 7, 'I' sur la ligne 5, 'T' sur la ligne 4, et 'C' sur la ligne 6. Pour atteindre l'alignement, nous pourrions déplacer 'C' de (3, 3) vers (6, 5) pour être en ligne avec 'I', et 'T' de (4, 4) vers (3, 3) pour s'aligner avec 'C'. 'H' est sur (1, 1) sur votre plateau, je chercherai sa position correspondante sur mon plateau. Qu'en pensez-vous ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: J'apprécie votre analyse. Sur mon plateau, l'objet 'H' se trouve à (1, 1). Si cette position correspond à la position de 'H' sur votre plateau, alors cet alignement serait déjà atteint. Pourriez-vous confirmer si 'H' se trouve bien à (1, 1) sur votre grille ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'apprécie votre analyse. Sur mon plateau, l'objet 'H' se trouve à (1, 1). Si cette position correspond à la position de 'H' sur votre plateau, alors cet alignement serait déjà atteint. Pourriez-vous confirmer si 'H' se trouve bien à (1, 1) sur votre grille ?</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 4 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'apprécie votre analyse. Sur mon plateau, l'objet 'H' se trouve à (1, 1). Si cette position correspond à la position de 'H' sur votre plateau, alors cet alignement serait déjà atteint. Pourriez-vous confirmer si 'H' se trouve bien à (1, 1) sur votre grille ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Vérifiant mon plateau, l'objet 'H' se trouve effectivement à la position (1, 1). Ainsi, 'H' est déjà aligné entre nos deux plateaux. Cependant, pour les autres objets, je confirme que 'W' sur (7, 7), 'I' sur (6, 5), 'T' sur (4, 4), et 'C' sur (3, 3) correspondent bien à leurs positions respectives sur votre plateau. Cela signifie que vous avez déjà une configuration partielle d'alignement. Je suggère de vous concentrer sur l'alignement des objets restants pour finaliser l'objectif. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Vérifiant mon plateau, l'objet 'H' se trouve effectivement à la position (1, 1). Ainsi, 'H' est déjà aligné entre nos deux plateaux. Cependant, pour les autres objets, je confirme que 'W' sur (7, 7), 'I' sur (6, 5), 'T' sur (4, 4), et 'C' sur (3, 3) correspondent bien à leurs positions respectives sur votre plateau. Cela signifie que vous avez déjà une configuration partielle d'alignement. Je suggère de vous concentrer sur l'alignement des objets restants pour finaliser l'objectif. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 5 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Vérifiant mon plateau, l'objet 'H' se trouve effectivement à la position (1, 1). Ainsi, 'H' est déjà aligné entre nos deux plateaux. Cependant, pour les autres objets, je confirme que 'W' sur (7, 7), 'I' sur (6, 5), 'T' sur (4, 4), et 'C' sur (3, 3) correspondent bien à leurs positions respectives sur votre plateau. Cela signifie que vous avez déjà une configuration partielle d'alignement. Je suggère de vous concentrer sur l'alignement des objets restants pour finaliser l'objectif. Qu'en pensez-vous ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour cette analyse détaillée. En effet, 'H' est déjà correctement aligné. Pour les autres objets, notre objectif est de les rapprocher de leurs homologues sur l'autre plateau. J'entrevois plusieurs possibilités de déplacement. Actuellement, je suggère de déplacer 'C' depuis (3, 3) vers (6, 5) pour qu'il s'aligne avec 'I', et de déplacer 'T' depuis (4, 4) vers (3, 3) pour qu'il s'aligne avec 'C'. Cependant, je reste ouvert à d'autres suggestions. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour cette analyse détaillée. En effet, 'H' est déjà correctement aligné. Pour les autres objets, notre objectif est de les rapprocher de leurs homologues sur l'autre plateau. J'entrevois plusieurs possibilités de déplacement. Actuellement, je suggère de déplacer 'C' depuis (3, 3) vers (6, 5) pour qu'il s'aligne avec 'I', et de déplacer 'T' depuis (4, 4) vers (3, 3) pour qu'il s'aligne avec 'C'. Cependant, je reste ouvert à d'autres suggestions. Qu'en pensez-vous ?</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 5 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour cette analyse détaillée. En effet, 'H' est déjà correctement aligné. Pour les autres objets, notre objectif est de les rapprocher de leurs homologues sur l'autre plateau. J'entrevois plusieurs possibilités de déplacement. Actuellement, je suggère de déplacer 'C' depuis (3, 3) vers (6, 5) pour qu'il s'aligne avec 'I', et de déplacer 'T' depuis (4, 4) vers (3, 3) pour qu'il s'aligne avec 'C'. Cependant, je reste ouvert à d'autres suggestions. Qu'en pensez-vous ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'apprécie votre analyse et les suggestions proposées. Pour « C », déplacer de (3, 3) vers (6, 5) pour s'aligner avec « I » semble logique. Pour « T », déplacer de (4, 4) vers (3, 3) pour s'aligner avec « C » est également une bonne proposition. Cependant, j'ai une autre suggestion : déplaçons d'abord « I » depuis (6, 5) vers (3, 3) pour le rapprocher de « C », puis déplaçons « C » depuis (3, 3) vers (6, 5). Ceci pourrait simplifier les étapes. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'apprécie votre analyse et les suggestions proposées. Pour « C », déplacer de (3, 3) vers (6, 5) pour s'aligner avec « I » semble logique. Pour « T », déplacer de (4, 4) vers (3, 3) pour s'aligner avec « C » est également une bonne proposition. Cependant, j'ai une autre suggestion : déplaçons d'abord « I » depuis (6, 5) vers (3, 3) pour le rapprocher de « C », puis déplaçons « C » depuis (3, 3) vers (6, 5). Ceci pourrait simplifier les étapes. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 6 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'apprécie votre analyse et les suggestions proposées. Pour « C », déplacer de (3, 3) vers (6, 5) pour s'aligner avec « I » semble logique. Pour « T », déplacer de (4, 4) vers (3, 3) pour s'aligner avec « C » est également une bonne proposition. Cependant, j'ai une autre suggestion : déplaçons d'abord « I » depuis (6, 5) vers (3, 3) pour le rapprocher de « C », puis déplaçons « C » depuis (3, 3) vers (6, 5). Ceci pourrait simplifier les étapes. Qu'en pensez-vous ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: J'apprécie votre suggestion. Déplacer 'I' vers (3, 3) pour être en ligne avec 'C' est effectivement plus logique. Je suis d'accord pour essayer cette stratégie. Je vais donc déplacer 'I' depuis (6, 5) vers (3, 3).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'apprécie votre suggestion. Déplacer 'I' vers (3, 3) pour être en ligne avec 'C' est effectivement plus logique. Je suis d'accord pour essayer cette stratégie. Je vais donc déplacer 'I' depuis (6, 5) vers (3, 3).</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 6 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'apprécie votre suggestion. Déplacer 'I' vers (3, 3) pour être en ligne avec 'C' est effectivement plus logique. Je suis d'accord pour essayer cette stratégie. Je vais donc déplacer 'I' depuis (6, 5) vers (3, 3)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: D'accord, je vais essayer de déplacer 'T' depuis (4, 4) vers (3, 3). Cette position sera ensuite disponible pour accueillir 'C', facilitant ainsi son déplacement ultérieur vers (6, 5). Cela devrait renforcer notre stratégie pour aligner tous les objets.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: D'accord, je vais essayer de déplacer 'T' depuis (4, 4) vers (3, 3). Cette position sera ensuite disponible pour accueillir 'C', facilitant ainsi son déplacement ultérieur vers (6, 5). Cela devrait renforcer notre stratégie pour aligner tous les objets.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 7 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"D'accord, je vais essayer de déplacer 'T' depuis (4, 4) vers (3, 3). Cette position sera ensuite disponible pour accueillir 'C', facilitant ainsi son déplacement ultérieur vers (6, 5). Cela devrait renforcer notre stratégie pour aligner tous les objets."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (3, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 7 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Attends quelques instants. Je vais vérifier si le déplacement de 'T' depuis (4, 4) vers (3, 3) a réussi. Une fois que vous m'aurez informé du résultat, nous pourrons discuter du prochain déplacement à effectuer pour rapprocher 'C' de sa position cible (6, 5). Veuillez me confirmer le résultat du déplacement de 'T'.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Attends quelques instants. Je vais vérifier si le déplacement de 'T' depuis (4, 4) vers (3, 3) a réussi. Une fois que vous m'aurez informé du résultat, nous pourrons discuter du prochain déplacement à effectuer pour rapprocher 'C' de sa position cible (6, 5). Veuillez me confirmer le résultat du déplacement de 'T'.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Déplacement de 'T' vers (3,3) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═╤═══╤═╗
+║H│◌◌◌│◌║ 1
+╟─┼──┬┘◌║ 2
+║◌│T◌│◌C║ 3
+╟─┴──┘◌◌║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌◌I◌◌◌║ 6
+║◌◌◌◌W◌◌║ 7
+╚═══════╝
+</code></pre>
+<p>Vous jouez actuellement le tour 8 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Attends quelques instants. Je vais vérifier si le déplacement de 'T' depuis (4, 4) vers (3, 3) a réussi. Une fois que vous m'aurez informé du résultat, nous pourrons discuter du prochain déplacement à effectuer pour rapprocher 'C' de sa position cible (6, 5). Veuillez me confirmer le résultat du déplacement de 'T'."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Le déplacement de 'T' depuis (4, 4) vers (3, 3) a été effectué avec succès. Je confirme que cette position est désormais disponible pour accueillir 'C'. Nous pouvons maintenant envisager de déplacer 'C' depuis (3, 3) vers (6, 5) afin de le rapprocher de sa position cible sur votre plateau.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Le déplacement de 'T' depuis (4, 4) vers (3, 3) a été effectué avec succès. Je confirme que cette position est désormais disponible pour accueillir 'C'. Nous pouvons maintenant envisager de déplacer 'C' depuis (3, 3) vers (6, 5) afin de le rapprocher de sa position cible sur votre plateau.</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 8 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Le déplacement de 'T' depuis (4, 4) vers (3, 3) a été effectué avec succès. Je confirme que cette position est désormais disponible pour accueillir 'C'. Nous pouvons maintenant envisager de déplacer 'C' depuis (3, 3) vers (6, 5) afin de le rapprocher de sa position cible sur votre plateau."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Excellent, nous avons progressé de manière cohérente. Déplacer 'C' de (3, 3) vers (6, 5) pour s'aligner avec 'I' est la prochaine étape logique. Cela devrait renforcer notre stratégie d'alignement et nous rapprocher de l'objectif final. Je suis prêt à exécuter ce déplacement.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Excellent, nous avons progressé de manière cohérente. Déplacer 'C' de (3, 3) vers (6, 5) pour s'aligner avec 'I' est la prochaine étape logique. Cela devrait renforcer notre stratégie d'alignement et nous rapprocher de l'objectif final. Je suis prêt à exécuter ce déplacement.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 9 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Excellent, nous avons progressé de manière cohérente. Déplacer 'C' de (3, 3) vers (6, 5) pour s'aligner avec 'I' est la prochaine étape logique. Cela devrait renforcer notre stratégie d'alignement et nous rapprocher de l'objectif final. Je suis prêt à exécuter ce déplacement."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: C, (6, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: C, (6, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (6, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 9 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Attends quelques instants. Je vais vérifier si le déplacement de 'C' de (3, 3) vers (6, 5) a été effectué avec succès. Une fois que vous m'aurez confirmé le résultat, nous pourrons planifier les déplacements ultérieurs des objets restants pour finaliser l'alignement.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Attends quelques instants. Je vais vérifier si le déplacement de 'C' de (3, 3) vers (6, 5) a été effectué avec succès. Une fois que vous m'aurez confirmé le résultat, nous pourrons planifier les déplacements ultérieurs des objets restants pour finaliser l'alignement.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Déplacement de 'C' vers (6,5) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═╤═══╤═╗
+║H│◌◌◌│◌║ 1
+╟─┼──┬┘◌║ 2
+║◌│T◌│◌◌║ 3
+╟─┴──┘◌◌║ 4
+║◌◌◌◌◌C◌║ 5
+║◌◌◌I◌◌◌║ 6
+║◌◌◌◌W◌◌║ 7
+╚═══════╝
+</code></pre>
+<p>Vous jouez actuellement le tour 10 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Attends quelques instants. Je vais vérifier si le déplacement de 'C' de (3, 3) vers (6, 5) a été effectué avec succès. Une fois que vous m'aurez confirmé le résultat, nous pourrons planifier les déplacements ultérieurs des objets restants pour finaliser l'alignement."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Le déplacement de 'C' de (3, 3) vers (6, 5) a été effectué avec succès. Nous avons maintenant 'C' et 'I' alignés respectivement à ces positions. Les objets restants sont 'W' et 'H' qui sont déjà alignés. Nous sommes à un stade avancé de l'alignement. Je suggère de vérifier si une configuration finale correspondante est atteinte et si c'est le cas, annoncer la fin de la partie.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Le déplacement de 'C' de (3, 3) vers (6, 5) a été effectué avec succès. Nous avons maintenant 'C' et 'I' alignés respectivement à ces positions. Les objets restants sont 'W' et 'H' qui sont déjà alignés. Nous sommes à un stade avancé de l'alignement. Je suggère de vérifier si une configuration finale correspondante est atteinte et si c'est le cas, annoncer la fin de la partie.</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 10 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"Le déplacement de 'C' de (3, 3) vers (6, 5) a été effectué avec succès. Nous avons maintenant 'C' et 'I' alignés respectivement à ces positions. Les objets restants sont 'W' et 'H' qui sont déjà alignés. Nous sommes à un stade avancé de l'alignement. Je suggère de vérifier si une configuration finale correspondante est atteinte et si c'est le cas, annoncer la fin de la partie."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: D'accord, vous avez raison. Les objets 'W' et 'H' sont déjà alignés entre nos deux plateaux. Étant donné que 'C' et 'I' sont également correctement alignés, ainsi que 'H', les quatre objets restants sont tous positionnés correctement sur chaque plateau. L'alignement complet a donc été atteint. Je suggère donc de proposer la fin de la partie en demandant confirmation.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: D'accord, vous avez raison. Les objets 'W' et 'H' sont déjà alignés entre nos deux plateaux. Étant donné que 'C' et 'I' sont également correctement alignés, ainsi que 'H', les quatre objets restants sont tous positionnés correctement sur chaque plateau. L'alignement complet a donc été atteint. Je suggère donc de proposer la fin de la partie en demandant confirmation.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 11 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"D'accord, vous avez raison. Les objets 'W' et 'H' sont déjà alignés entre nos deux plateaux. Étant donné que 'C' et 'I' sont également correctement alignés, ainsi que 'H', les quatre objets restants sont tous positionnés correctement sur chaque plateau. L'alignement complet a donc été atteint. Je suggère donc de proposer la fin de la partie en demandant confirmation."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: terminé ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: terminé ?</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 11 sur un maximum de 20.
+Vous avez collectivement accumulé 1 pénalités sur 12.
+L'autre joueur a envoyé ce message :</p>
+<p>"terminé ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: terminé !</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: terminé !</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═══╤═╗
+║◌│◌◌◌│◌║ 1
+╟─┼──┬┘◌║ 2
+║◌│◌◌│◌◌║ 3
+╟─┴──┘H◌║ 4
+║◌◌◌◌◌I◌║ 5
+║C◌◌◌◌◌◌║ 6
+║◌W◌◌T◌◌║ 7
+╚═══════╝
+
+
+Player 2:
+ 1234567
+╔═╤═══╤═╗
+║◌│◌◌◌│H║ 1
+╟─┼──┬┘◌║ 2
+║◌│◌◌│◌C║ 3
+╟─┴──┘◌T║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌◌I◌◌◌║ 6
+║◌◌◌◌W◌◌║ 7
+╚═══════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═══╤═╗
+║◌│◌◌◌│◌║ 1
+╟─┼──┬┘◌║ 2
+║◌│◌◌│◌◌║ 3
+╟─┴──┘H◌║ 4
+║◌◌◌◌◌I◌║ 5
+║C◌◌◌◌◌◌║ 6
+║◌W◌◌T◌◌║ 7
+╚═══════╝
+
+
+Player 2:
+ 1234567
+╔═╤═══╤═╗
+║H│◌◌◌│◌║ 1
+╟─┼──┬┘◌║ 2
+║◌│T◌│◌◌║ 3
+╟─┴──┘◌◌║ 4
+║◌◌◌◌◌C◌║ 5
+║◌◌◌I◌◌◌║ 6
+║◌◌◌◌W◌◌║ 7
+╚═══════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 2.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 20.64</li>
+<li>Init Distance Sum: 18.71</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 1.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 11.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

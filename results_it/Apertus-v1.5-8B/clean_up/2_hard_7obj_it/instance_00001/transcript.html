@@ -1,0 +1,1691 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_7obj_it', episode 1 with Apertus-v1.5-8B.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sono il tuo maestro di gioco e stai giocando un gioco collaborativo con la seguente griglia come tabellone di gioco:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌O◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Il bordo superiore mostra le coordinate x che aumentano verso destra, e il bordo destro le coordinate y che aumentano verso il basso.</li>
+<li>I seguenti oggetti sono posizionati casualmente sulla tua griglia: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>L'altro giocatore vede una variante del tabellone di gioco, dove gli oggetti sono posizionati in diverse posizioni casuali. Non puoi vedere il tabellone dell'altro giocatore e lui non può vedere il tuo.</p>
+<p><strong>Obiettivo:</strong></p>
+<p>Entrambi i giocatori devono spostare gli oggetti sui rispettivi sfondi in modo che oggetti identici finiscano alle stesse coordinate. Devi comunicare con l'altro giocatore per concordare una configurazione obiettivo comune.</p>
+<p><strong>Regole:</strong></p>
+<ul>
+<li>In ogni turno, puoi inviare esattamente uno dei seguenti due comandi:</li>
+<li><code>DIRE: &lt;MESSAGGIO&gt;</code>: per inviare un messaggio (tutto fino all'interruzione di riga successiva) all'altro giocatore. Lo inoltrerò al tuo partner.</li>
+<li><code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: per spostare un oggetto in una nuova posizione, dove <code>&lt;X&gt;</code> è la colonna e <code>&lt;Y&gt;</code> è la riga. Ti informerò se il tuo spostamento ha avuto successo o meno.</li>
+<li>Se non rispetti il formato o invii più comandi contemporaneamente, devo penalizzarti.</li>
+<li>Se entrambi i giocatori accumulano più di 16 penalità, entrambi perdete la partita.</li>
+<li>È fondamentale che tu comunichi con l'altro giocatore riguardo al tuo stato obiettivo! L'<em>unico</em> modo per trasmettere la tua strategia all'altro giocatore è usare il comando <code>DIRE: &lt;MESSAGGIO&gt;</code>!</li>
+</ul>
+<p><strong>Spostamento degli oggetti</strong></p>
+<ul>
+<li>Puoi spostare gli oggetti solo nelle celle all'interno dei limiti della griglia. La cella di destinazione deve essere vuota, cioè deve contenere solo il simbolo '◌'.</li>
+<li>Se cerchi di spostare un oggetto in un punto che non è vuoto o cerchi di spostarlo al di fuori della griglia, devo penalizzarti. Avrai un altro tentativo.</li>
+<li>Prima di effettuare uno spostamento, controlla due volte che il punto di destinazione sia vuoto e non contenga alcuna lettera, cornice o linea!</li>
+</ul>
+<p><strong>Fine del gioco</strong></p>
+<p>Se pensi di aver raggiunto l'obiettivo di allineare tutti gli oggetti, puoi chiedere all'altro giocatore di terminare il gioco inviando <code>DIRE: finito?</code>. Se l'altro giocatore ti chiede di terminare il gioco e tu rispondi con <code>DIRE: finito!</code>, il gioco terminerà.</p>
+<p>Entrambi i giocatori vincono se il gioco termina entro 28 turni, dove un turno è definito come due giocatori che inviano ciascuno un comando valido.</p>
+<p><strong>Punteggio:</strong></p>
+<p>Più vicini sono gli oggetti identici in entrambi i tabelloni, più punti ottieni. Le penalità riducono i tuoi punti. Riuscirai a battere il record?</p>
+<p>Invia un messaggio all'altro giocatore per iniziare la partita!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Cosa pensi sia il nostro obiettivo iniziale? Vorrei provare a identificare le corrispondenze possibili tra i nostri oggetti.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Cosa pensi sia il nostro obiettivo iniziale? Vorrei provare a identificare le corrispondenze possibili tra i nostri oggetti.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sono il tuo maestro di gioco e stai giocando un gioco collaborativo con la seguente griglia come tabellone di gioco:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Il bordo superiore mostra le coordinate x che aumentano verso destra, e il bordo destro le coordinate y che aumentano verso il basso.</li>
+<li>I seguenti oggetti sono posizionati casualmente sulla tua griglia: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>L'altro giocatore vede una variante del tabellone di gioco, dove gli oggetti sono posizionati in diverse posizioni casuali. Non puoi vedere il tabellone dell'altro giocatore e lui non può vedere il tuo.</p>
+<p><strong>Obiettivo:</strong></p>
+<p>Entrambi i giocatori devono spostare gli oggetti sui rispettivi sfondi in modo che oggetti identici finiscano alle stesse coordinate. Devi comunicare con l'altro giocatore per concordare una configurazione obiettivo comune.</p>
+<p><strong>Regole:</strong></p>
+<ul>
+<li>In ogni turno, puoi inviare esattamente uno dei seguenti due comandi:</li>
+<li><code>DIRE: &lt;MESSAGGIO&gt;</code>: per inviare un messaggio (tutto fino all'interruzione di riga successiva) all'altro giocatore. Lo inoltrerò al tuo partner.</li>
+<li><code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: per spostare un oggetto in una nuova posizione, dove <code>&lt;X&gt;</code> è la colonna e <code>&lt;Y&gt;</code> è la riga. Ti informerò se il tuo spostamento ha avuto successo o meno.</li>
+<li>Se non rispetti il formato o invii più comandi contemporaneamente, devo penalizzarti.</li>
+<li>Se entrambi i giocatori accumulano più di 16 penalità, entrambi perdete la partita.</li>
+<li>È fondamentale che tu comunichi con l'altro giocatore riguardo al tuo stato obiettivo! L'<em>unico</em> modo per trasmettere la tua strategia all'altro giocatore è usare il comando <code>DIRE: &lt;MESSAGGIO&gt;</code>!</li>
+</ul>
+<p><strong>Spostamento degli oggetti</strong></p>
+<ul>
+<li>Puoi spostare gli oggetti solo nelle celle all'interno dei limiti della griglia. La cella di destinazione deve essere vuota, cioè deve contenere solo il simbolo '◌'.</li>
+<li>Se cerchi di spostare un oggetto in un punto che non è vuoto o cerchi di spostarlo al di fuori della griglia, devo penalizzarti. Avrai un altro tentativo.</li>
+<li>Prima di effettuare uno spostamento, controlla due volte che il punto di destinazione sia vuoto e non contenga alcuna lettera, cornice o linea!</li>
+</ul>
+<p><strong>Fine del gioco</strong></p>
+<p>Se pensi di aver raggiunto l'obiettivo di allineare tutti gli oggetti, puoi chiedere all'altro giocatore di terminare il gioco inviando <code>DIRE: finito?</code>. Se l'altro giocatore ti chiede di terminare il gioco e tu rispondi con <code>DIRE: finito!</code>, il gioco terminerà.</p>
+<p>Entrambi i giocatori vincono se il gioco termina entro 28 turni, dove un turno è definito come due giocatori che inviano ciascuno un comando valido.</p>
+<p><strong>Punteggio:</strong></p>
+<p>Più vicini sono gli oggetti identici in entrambi i tabelloni, più punti ottieni. Le penalità riducono i tuoi punti. Riuscirai a battere il record?</p>
+<p>L'altro giocatore ha iniziato la partita inviando questo messaggio:</p>
+<p>"Cosa pensi sia il nostro obiettivo iniziale? Vorrei provare a identificare le corrispondenze possibili tra i nostri oggetti."</p>
+<p>Qual è il tuo primo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Vorrei che analizzassimo prima le corrispondenze possibili tra gli oggetti presenti nei nostri tabelloni. Potresti fornirmi le posizioni degli oggetti sul tuo sfondo? In questo modo potremo identificare quali coppie di oggetti devono essere allineate.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Vorrei che analizzassimo prima le corrispondenze possibili tra gli oggetti presenti nei nostri tabelloni. Potresti fornirmi le posizioni degli oggetti sul tuo sfondo? In questo modo potremo identificare quali coppie di oggetti devono essere allineate.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 1 di un massimo di 28.
+Avete accumulato collettivamente 0 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Vorrei che analizzassimo prima le corrispondenze possibili tra gli oggetti presenti nei nostri tabelloni. Potresti fornirmi le posizioni degli oggetti sul tuo sfondo? In questo modo potremo identificare quali coppie di oggetti devono essere allineate."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto preparando una risposta al messaggio dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto preparando una risposta al messaggio dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 1 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto elaborando la richiesta dell'altro giocatore e preparerò un messaggio con le posizioni degli oggetti sul mio sfondo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto elaborando la richiesta dell'altro giocatore e preparerò un messaggio con le posizioni degli oggetti sul mio sfondo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 2 di un massimo di 28.
+Avete accumulato collettivamente 1 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto elaborando la richiesta dell'altro giocatore e preparerò un messaggio con le posizioni degli oggetti sul mio sfondo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MUOVERE: T, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: T, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (2, 2)</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 2 di un massimo di 28.
+Avete accumulato collettivamente 1 di 16 penalità.
+L'altro giocatore ha spostato un oggetto sulla sua griglia.</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto analizzando la nuova situazione e preparando una risposta coerente.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto analizzando la nuova situazione e preparando una risposta coerente.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 2 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto analizzando attentamente il nuovo stato del tabellone dell'altro giocatore e preparerò il mio prossimo comando per coordinare le mosse verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto analizzando attentamente il nuovo stato del tabellone dell'altro giocatore e preparerò il mio prossimo comando per coordinare le mosse verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Spostato 'T' in (2,2) con successo. La tua griglia aggiornata appare così:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌TM└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Stai giocando il round 3 di un massimo di 28.
+Avete accumulato collettivamente 2 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto analizzando attentamente il nuovo stato del tabellone dell'altro giocatore e preparerò il mio prossimo comando per coordinare le mosse verso l'obiettivo comune."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Sulla mia griglia ho spostato il 'T' in (2,2). Utilizzando questa informazione e confrontando con il tuo tabellone, potresti confermare se il 'T' nel tuo sfondo si trova in una posizione che possiamo allineare come una coppia iniziale? In questo modo potremo coordinare le nostre mosse per aumentare la somiglianza tra i nostri tabelloni.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sulla mia griglia ho spostato il 'T' in (2,2). Utilizzando questa informazione e confrontando con il tuo tabellone, potresti confermare se il 'T' nel tuo sfondo si trova in una posizione che possiamo allineare come una coppia iniziale? In questo modo potremo coordinare le nostre mosse per aumentare la somiglianza tra i nostri tabelloni.</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 3 di un massimo di 28.
+Avete accumulato collettivamente 2 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sulla mia griglia ho spostato il 'T' in (2,2). Utilizzando questa informazione e confrontando con il tuo tabellone, potresti confermare se il 'T' nel tuo sfondo si trova in una posizione che possiamo allineare come una coppia iniziale? In questo modo potremo coordinare le nostre mosse per aumentare la somiglianza tra i nostri tabelloni."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto elaborando l'informazione fornita dall'altro giocatore per confermare la posizione del 'T' nel mio tabellone e pianificare la cooperazione.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto elaborando l'informazione fornita dall'altro giocatore per confermare la posizione del 'T' nel mio tabellone e pianificare la cooperazione.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 3 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Confermo sul mio tabellone che il 'T' si trova in (2,1), quindi possiamo allineare la coppia T in (2,1) come parte iniziale della nostra configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo sul mio tabellone che il 'T' si trova in (2,1), quindi possiamo allineare la coppia T in (2,1) come parte iniziale della nostra configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 4 di un massimo di 28.
+Avete accumulato collettivamente 3 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo sul mio tabellone che il 'T' si trova in (2,1), quindi possiamo allineare la coppia T in (2,1) come parte iniziale della nostra configurazione obiettivo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MUOVERE: T, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: T, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (2, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 4 di un massimo di 28.
+Avete accumulato collettivamente 3 di 16 penalità.
+L'altro giocatore ha spostato un oggetto sulla sua griglia.</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto aspettando l'informazione sull'oggetto spostato dall'altro giocatore per rispondere correttamente.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto aspettando l'informazione sull'oggetto spostato dall'altro giocatore per rispondere correttamente.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 4 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto aspettando con attenzione il messaggio dell'altro giocatore riguardo al nuovo spostamento effettuato sulla sua griglia. Una volta ricevuto, elaborerò le informazioni per coordinare la nostra strategia e invierò il comando appropriato.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto aspettando con attenzione il messaggio dell'altro giocatore riguardo al nuovo spostamento effettuato sulla sua griglia. Una volta ricevuto, elaborerò le informazioni per coordinare la nostra strategia e invierò il comando appropriato.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Spostato 'T' in (2,1) con successo. La tua griglia aggiornata appare così:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌T◌│◌│◌║ 1
+║◌◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Stai giocando il round 5 di un massimo di 28.
+Avete accumulato collettivamente 4 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto aspettando con attenzione il messaggio dell'altro giocatore riguardo al nuovo spostamento effettuato sulla sua griglia. Una volta ricevuto, elaborerò le informazioni per coordinare la nostra strategia e invierò il comando appropriato."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Ho spostato il 'T' in (2,1). Attendo il tuo conferma e le informazioni sulla posizione attuale di 'T' nel tuo sfondo, così possiamo allineare questa coppa (T-T) come parte della configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Ho spostato il 'T' in (2,1). Attendo il tuo conferma e le informazioni sulla posizione attuale di 'T' nel tuo sfondo, così possiamo allineare questa coppa (T-T) come parte della configurazione obiettivo.</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 5 di un massimo di 28.
+Avete accumulato collettivamente 4 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Ho spostato il 'T' in (2,1). Attendo il tuo conferma e le informazioni sulla posizione attuale di 'T' nel tuo sfondo, così possiamo allineare questa coppa (T-T) come parte della configurazione obiettivo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto confermando che il 'T' si trova in (2,1) nel mio tabellone e preparando un messaggio per definire una coppia T-T oltre ad altre corrispondenze da identificare.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto confermando che il 'T' si trova in (2,1) nel mio tabellone e preparando un messaggio per definire una coppia T-T oltre ad altre corrispondenze da identificare.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 5 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Confermo la corrispondenza T-T alle coordinate (2,1) e inizierò ad analizzare ulteriori oggetti per consolidare la configurazione obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo la corrispondenza T-T alle coordinate (2,1) e inizierò ad analizzare ulteriori oggetti per consolidare la configurazione obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 6 di un massimo di 28.
+Avete accumulato collettivamente 5 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo la corrispondenza T-T alle coordinate (2,1) e inizierò ad analizzare ulteriori oggetti per consolidare la configurazione obiettivo comune."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Grazie per la conferma. Per consolidare la configurazione obiettivo, suggerirei di analizzare la posizione di 'M' sul tuo sfondo. Potresti indicarmi le coordinate di 'M' sul tuo tabellone? Questo ci aiuterà a identificare la prossima coppia da allineare.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Grazie per la conferma. Per consolidare la configurazione obiettivo, suggerirei di analizzare la posizione di 'M' sul tuo sfondo. Potresti indicarmi le coordinate di 'M' sul tuo tabellone? Questo ci aiuterà a identificare la prossima coppia da allineare.</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 6 di un massimo di 28.
+Avete accumulato collettivamente 5 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Grazie per la conferma. Per consolidare la configurazione obiettivo, suggerirei di analizzare la posizione di 'M' sul tuo sfondo. Potresti indicarmi le coordinate di 'M' sul tuo tabellone? Questo ci aiuterà a identificare la prossima coppia da allineare."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto cercando la posizione attuale dell'oggetto 'M' nel mio tabellone per rispondere all'altra richiesta dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto cercando la posizione attuale dell'oggetto 'M' nel mio tabellone per rispondere all'altra richiesta dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 6 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto cercando in questo momento la posizione esatta dell'oggetto 'M' nel mio tabellone per rispondere correttamente all'altra richiesta dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto cercando in questo momento la posizione esatta dell'oggetto 'M' nel mio tabellone per rispondere correttamente all'altra richiesta dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 7 di un massimo di 28.
+Avete accumulato collettivamente 6 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto cercando in questo momento la posizione esatta dell'oggetto 'M' nel mio tabellone per rispondere correttamente all'altra richiesta dell'altro giocatore."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Comprendo. Nel frattempo, potresti indicarmi se ci sono altri oggetti che già mostrano corrispondenze evidenti o che potrebbero supportare la configurazione obiettivo, così possiamo priorizzare le mosse successive. Ad esempio, 'P', 'O', 'S', 'D', 'A' sono tutti disponibili e potrebbero avere più possibilità di allineamento.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Comprendo. Nel frattempo, potresti indicarmi se ci sono altri oggetti che già mostrano corrispondenze evidenti o che potrebbero supportare la configurazione obiettivo, così possiamo priorizzare le mosse successive. Ad esempio, 'P', 'O', 'S', 'D', 'A' sono tutti disponibili e potrebbero avere più possibilità di allineamento.</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 7 di un massimo di 28.
+Avete accumulato collettivamente 6 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Comprendo. Nel frattempo, potresti indicarmi se ci sono altri oggetti che già mostrano corrispondenze evidenti o che potrebbero supportare la configurazione obiettivo, così possiamo priorizzare le mosse successive. Ad esempio, 'P', 'O', 'S', 'D', 'A' sono tutti disponibili e potrebbero avere più possibilità di allineamento."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Stanno emergendo alcuni elementi chiave che supporterebbero la configurazione obiettivo, tra cui 'P', 'O' e 'S' hanno posizioni che potrebbero corrispondere. La priorità sarà posizionare 'M', 'T' e 'D' nelle loro corrispondenze più evidenti prima di procedere con le altre coppie.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Stanno emergendo alcuni elementi chiave che supporterebbero la configurazione obiettivo, tra cui 'P', 'O' e 'S' hanno posizioni che potrebbero corrispondere. La priorità sarà posizionare 'M', 'T' e 'D' nelle loro corrispondenze più evidenti prima di procedere con le altre coppie.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 8 di un massimo di 28.
+Avete accumulato collettivamente 6 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Stanno emergendo alcuni elementi chiave che supporterebbero la configurazione obiettivo, tra cui 'P', 'O' e 'S' hanno posizioni che potrebbero corrispondere. La priorità sarà posizionare 'M', 'T' e 'D' nelle loro corrispondenze più evidenti prima di procedere con le altre coppie."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MUOVERE: M, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: M, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>M moved to (2, 2)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 8 di un massimo di 28.
+Avete accumulato collettivamente 6 di 16 penalità.
+L'altro giocatore ha spostato un oggetto sulla sua griglia.</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto analizzando attentamente la nuova configurazione del tabellone dell'altro giocatore dopo lo spostamento e preparando un messaggio rispondente che aggiorni la strategia comune per l'allineamento degli oggetti.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto analizzando attentamente la nuova configurazione del tabellone dell'altro giocatore dopo lo spostamento e preparando un messaggio rispondente che aggiorni la strategia comune per l'allineamento degli oggetti.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 7 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto rivedendo profondamente la nuova disposizione degli oggetti sul tabellone dell'altro giocatore dopo lo spostamento recente. Questo cambiamento impatta significativamente sulla nostra strategia di allineamento e richiede una nuova analisi per coordinare correttamente le nostre mosse successive per raggiungere l'obiettivo condiviso.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto rivedendo profondamente la nuova disposizione degli oggetti sul tabellone dell'altro giocatore dopo lo spostamento recente. Questo cambiamento impatta significativamente sulla nostra strategia di allineamento e richiede una nuova analisi per coordinare correttamente le nostre mosse successive per raggiungere l'obiettivo condiviso.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Spostato 'M' in (2,2) con successo. La tua griglia aggiornata appare così:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌T◌│◌│◌║ 1
+║◌M◌└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Stai giocando il round 9 di un massimo di 28.
+Avete accumulato collettivamente 7 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto rivedendo profondamente la nuova disposizione degli oggetti sul tabellone dell'altro giocatore dopo lo spostamento recente. Questo cambiamento impatta significativamente sulla nostra strategia di allineamento e richiede una nuova analisi per coordinare correttamente le nostre mosse successive per raggiungere l'obiettivo condiviso."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Confermo lo spostamento di 'M' in (2,2). Attendo che mi confermi la posizione attuale di 'D' nel tuo sfondo. Questo è fondamentale per coordinare il nostro prossimo allineamento e pianificare le mosse successive.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo lo spostamento di 'M' in (2,2). Attendo che mi confermi la posizione attuale di 'D' nel tuo sfondo. Questo è fondamentale per coordinare il nostro prossimo allineamento e pianificare le mosse successive.</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 9 di un massimo di 28.
+Avete accumulato collettivamente 7 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo lo spostamento di 'M' in (2,2). Attendo che mi confermi la posizione attuale di 'D' nel tuo sfondo. Questo è fondamentale per coordinare il nostro prossimo allineamento e pianificare le mosse successive."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto recuperando la posizione attuale dell'oggetto 'D' nel mio tabellone per rispondere correttamente all'altra richiesta dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto recuperando la posizione attuale dell'oggetto 'D' nel mio tabellone per rispondere correttamente all'altra richiesta dell'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 8 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto controllando attentamente la mia griglia per identificare la posizione esatta dell'oggetto 'D'. Devo fornire tale informazione per coordinare con l'altro giocatore l'allineamento delle posizioni di 'D' come parte integrante della configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto controllando attentamente la mia griglia per identificare la posizione esatta dell'oggetto 'D'. Devo fornire tale informazione per coordinare con l'altro giocatore l'allineamento delle posizioni di 'D' come parte integrante della configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 10 di un massimo di 28.
+Avete accumulato collettivamente 8 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto controllando attentamente la mia griglia per identificare la posizione esatta dell'oggetto 'D'. Devo fornire tale informazione per coordinare con l'altro giocatore l'allineamento delle posizioni di 'D' come parte integrante della configurazione obiettivo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Attendo il messaggio con la posizione di 'D' nel tuo tabellone. Per procedere con la configurazione obiettivo, inserisco che dobbiamo allineare 'T' in (2,1), 'T' in (2,1), 'M' in (2,2), e infine 'D'. Potresti confermare la posizione di 'D'?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Attendo il messaggio con la posizione di 'D' nel tuo tabellone. Per procedere con la configurazione obiettivo, inserisco che dobbiamo allineare 'T' in (2,1), 'T' in (2,1), 'M' in (2,2), e infine 'D'. Potresti confermare la posizione di 'D'?</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 10 di un massimo di 28.
+Avete accumulato collettivamente 8 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Attendo il messaggio con la posizione di 'D' nel tuo tabellone. Per procedere con la configurazione obiettivo, inserisco che dobbiamo allineare 'T' in (2,1), 'T' in (2,1), 'M' in (2,2), e infine 'D'. Potresti confermare la posizione di 'D'?"</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto elaborando tutte le coordinate proposte nell'ultimo messaggio dell'altro giocatore per confermare immediatamente la posizione di 'D' nel mio tabellone, così possiamo coordinare l'allineamento di 'T' e 'M' con 'D'.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto elaborando tutte le coordinate proposte nell'ultimo messaggio dell'altro giocatore per confermare immediatamente la posizione di 'D' nel mio tabellone, così possiamo coordinare l'allineamento di 'T' e 'M' con 'D'.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 9 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto verificando la mia griglia per confermare la posizione dell'oggetto 'D' e inoltra questo dato all'altro giocatore per completare la coordinazione delle posizioni di 'T', 'M' e 'D' nella configurazione obiettivo, per continuare l'allineamento.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto verificando la mia griglia per confermare la posizione dell'oggetto 'D' e inoltra questo dato all'altro giocatore per completare la coordinazione delle posizioni di 'T', 'M' e 'D' nella configurazione obiettivo, per continuare l'allineamento.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 11 di un massimo di 28.
+Avete accumulato collettivamente 9 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto verificando la mia griglia per confermare la posizione dell'oggetto 'D' e inoltra questo dato all'altro giocatore per completare la coordinazione delle posizioni di 'T', 'M' e 'D' nella configurazione obiettivo, per continuare l'allineamento."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Sto aggiornando attivamente il mio tabellone in base alle informazioni ricevute e al nuovo stato della griglia dell'altra partita. Per confermare l'allineamento di T-T-M-D, attende il messaggio con la posizione corretta di 'D' nel tuo tabellone. Una volta ricevuto, eseguirai il movimento di 'D' nella posizione corrispondente.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto aggiornando attivamente il mio tabellone in base alle informazioni ricevute e al nuovo stato della griglia dell'altra partita. Per confermare l'allineamento di T-T-M-D, attende il messaggio con la posizione corretta di 'D' nel tuo tabellone. Una volta ricevuto, eseguirai il movimento di 'D' nella posizione corrispondente.</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 11 di un massimo di 28.
+Avete accumulato collettivamente 9 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto aggiornando attivamente il mio tabellone in base alle informazioni ricevute e al nuovo stato della griglia dell'altra partita. Per confermare l'allineamento di T-T-M-D, attende il messaggio con la posizione corretta di 'D' nel tuo tabellone. Una volta ricevuto, eseguirai il movimento di 'D' nella posizione corrispondente."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: Nessuno, sto elaborando tutte le informazione ricevute e la posizione della posizione di 'D' nel mio tabellone per effettuare il movimento di 'D' nella nuova posizione concordata.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: Nessuno, sto elaborando tutte le informazione ricevute e la posizione della posizione di 'D' nel mio tabellone per effettuare il movimento di 'D' nella nuova posizione concordata.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non è nel formato previsto!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 10 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto concentrando i miei sforzi sull'analisi finale della posizione di 'D' per inviare il comando MUOVERE con le coordinate validate, concordando così la posizione obiettivo per 'D' nella configurazione condivisa.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto concentrando i miei sforzi sull'analisi finale della posizione di 'D' per inviare il comando MUOVERE con le coordinate validate, concordando così la posizione obiettivo per 'D' nella configurazione condivisa.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 12 di un massimo di 28.
+Avete accumulato collettivamente 10 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto concentrando i miei sforzi sull'analisi finale della posizione di 'D' per inviare il comando MUOVERE con le coordinate validate, concordando così la posizione obiettivo per 'D' nella configurazione condivisa."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Confermo le posizioni concordate per T in (2,1), M in (2,2), e attendo la conferma della posizione di 'D'. Una volta ricevuto il comando MUOVERE con le coordinate per 'D', eseguirai il movimento per completare la configurazione obiettivo su entrambi i tabelloni.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo le posizioni concordate per T in (2,1), M in (2,2), e attendo la conferma della posizione di 'D'. Una volta ricevuto il comando MUOVERE con le coordinate per 'D', eseguirai il movimento per completare la configurazione obiettivo su entrambi i tabelloni.</p></p>
+    </div>
+</div><div class="game-round" data-round="12">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 12 di un massimo di 28.
+Avete accumulato collettivamente 10 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo le posizioni concordate per T in (2,1), M in (2,2), e attendo la conferma della posizione di 'D'. Una volta ricevuto il comando MUOVERE con le coordinate per 'D', eseguirai il movimento per completare la configurazione obiettivo su entrambi i tabelloni."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: D, (5,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: D, (5,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalità: (5,4) non è vuoto, ma contiene '─'.</p>
+<p>Avete accumulato collettivamente 11 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: (5,4) non è vuoto, ma contiene '─'.</p>
+<p>Avete accumulato collettivamente 11 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto rispondendo all'errore precedente: (5,4) non è una posizione valida, poiché contiene la linea '─'. Devo cercare una cella libera per 'D' e inviare nuovamente il comando MUOVERE con le coordinate corrette.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto rispondendo all'errore precedente: (5,4) non è una posizione valida, poiché contiene la linea '─'. Devo cercare una cella libera per 'D' e inviare nuovamente il comando MUOVERE con le coordinate corrette.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 13 di un massimo di 28.
+Avete accumulato collettivamente 11 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto rispondendo all'errore precedente: (5,4) non è una posizione valida, poiché contiene la linea '─'. Devo cercare una cella libera per 'D' e inviare nuovamente il comando MUOVERE con le coordinate corrette."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Comprendo l'errore. Attendo il messaggio con la nuova posizione corretta per 'D' che sia all'interno dei limiti della griglia e vuota. Una volta ricevuto, confermerò e effettuerò il movimento.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Comprendo l'errore. Attendo il messaggio con la nuova posizione corretta per 'D' che sia all'interno dei limiti della griglia e vuota. Una volta ricevuto, confermerò e effettuerò il movimento.</p></p>
+    </div>
+</div><div class="game-round" data-round="13">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 13 di un massimo di 28.
+Avete accumulato collettivamente 11 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Comprendo l'errore. Attendo il messaggio con la nuova posizione corretta per 'D' che sia all'interno dei limiti della griglia e vuota. Una volta ricevuto, confermerò e effettuerò il movimento."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: D, (4,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: D, (4,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalità: (4,5) non è vuoto, ma contiene '│'.</p>
+<p>Avete accumulato collettivamente 12 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: (4,5) non è vuoto, ma contiene '│'.</p>
+<p>Avete accumulato collettivamente 12 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto rivedendo attentamente tutte le celle disponibili per trovare una posizione completamente vuota e all'interno dei limiti della griglia per l'oggetto 'D'. Devo per cercare una cella libera tra le coordinate disponibili per la posizione obiettivo di 'D'.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto rivedendo attentamente tutte le celle disponibili per trovare una posizione completamente vuota e all'interno dei limiti della griglia per l'oggetto 'D'. Devo per cercare una cella libera tra le coordinate disponibili per la posizione obiettivo di 'D'.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 14 di un massimo di 28.
+Avete accumulato collettivamente 12 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto rivedendo attentamente tutte le celle disponibili per trovare una posizione completamente vuota e all'interno dei limiti della griglia per l'oggetto 'D'. Devo per cercare una cella libera tra le coordinate disponibili per la posizione obiettivo di 'D'."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Confermo l'attenzione all'analisi delle celle disponibili. Suggerirei di controllare le celle non ancora occupate per trovare la posizione migliore per 'D'. Ad esempio, le celle sotto 'S' in (3,3) o in (4,3) potrebbero essere opzioni. Una volta identificata, invierò il comando MUOVERE con le coordinate corrette per 'D'.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo l'attenzione all'analisi delle celle disponibili. Suggerirei di controllare le celle non ancora occupate per trovare la posizione migliore per 'D'. Ad esempio, le celle sotto 'S' in (3,3) o in (4,3) potrebbero essere opzioni. Una volta identificata, invierò il comando MUOVERE con le coordinate corrette per 'D'.</p></p>
+    </div>
+</div><div class="game-round" data-round="14">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 14 di un massimo di 28.
+Avete accumulato collettivamente 12 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo l'attenzione all'analisi delle celle disponibili. Suggerirei di controllare le celle non ancora occupate per trovare la posizione migliore per 'D'. Ad esempio, le celle sotto 'S' in (3,3) o in (4,3) potrebbero essere opzioni. Una volta identificata, invierò il comando MUOVERE con le coordinate corrette per 'D'."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: D, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: D, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>D moved to (3, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 15 di un massimo di 28.
+Avete accumulato collettivamente 12 di 16 penalità.
+L'altro giocatore ha spostato un oggetto sulla sua griglia.</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento. Questa informazione è fondamentale per aggiornare il mio stato e pianificare la successiva mossa.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento. Questa informazione è fondamentale per aggiornare il mio stato e pianificare la successiva mossa.</p></p>
+    </div>
+</div><div class="game-round" data-round="15">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Spostato 'D' in (3,3) con successo. La tua griglia aggiornata appare così:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌DO◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Stai giocando il round 15 di un massimo di 28.
+Avete accumulato collettivamente 12 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento. Questa informazione è fondamentale per aggiornare il mio stato e pianificare la successiva mossa."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Ti invio la configurazione aggiornata del mio tabellone dopo il recente spostamento di 'D' in (3,3):</p>
+<pre><code> 1234567
+╔══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌DO◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Ora analizzo attentamente per individuare le prossime corrispondenze da allineare.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Ti invio la configurazione aggiornata del mio tabellone dopo il recente spostamento di 'D' in (3,3):</p>
+<pre><code> 1234567
+╔══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌DO◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Ora analizzo attentamente per individuare le prossime corrispondenze da allineare.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>1234567
+╔══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌DO◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝</p>
+<p>Ora analizzo attentamente per individuare le prossime corrispondenze da allineare.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non deve contenere nulla dopo il comando!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 13 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Confermo la configurazione della mia griglia aggiornata dopo lo spostamento di 'D' in (3,3) e inizierò l'analisi per individuare le prossime corrispondenze da identificare e allineare con l'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo la configurazione della mia griglia aggiornata dopo lo spostamento di 'D' in (3,3) e inizierò l'analisi per individuare le prossime corrispondenze da identificare e allineare con l'altro giocatore.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 16 di un massimo di 28.
+Avete accumulato collettivamente 13 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo la configurazione della mia griglia aggiornata dopo lo spostamento di 'D' in (3,3) e inizierò l'analisi per individuare le prossime corrispondenze da identificare e allineare con l'altro giocatore."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Confermo il spostamento di 'D' in (3,3). Attendo che mi indichi la prossima posizione da identificare tra AS/P/O/S nella configurazione. Suggerirei di iniziare con 'O', poiché potrebbe avere la corrispondenza più immediata, quindi sarai in grado di coordinare i successivi movimenti verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo il spostamento di 'D' in (3,3). Attendo che mi indichi la prossima posizione da identificare tra AS/P/O/S nella configurazione. Suggerirei di iniziare con 'O', poiché potrebbe avere la corrispondenza più immediata, quindi sarai in grado di coordinare i successivi movimenti verso l'obiettivo comune.</p></p>
+    </div>
+</div><div class="game-round" data-round="16">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 16 di un massimo di 28.
+Avete accumulato collettivamente 13 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo il spostamento di 'D' in (3,3). Attendo che mi indichi la prossima posizione da identificare tra AS/P/O/S nella configurazione. Suggerirei di iniziare con 'O', poiché potrebbe avere la corrispondenza più immediata, quindi sarai in grado di coordinare i successivi movimenti verso l'obiettivo comune."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: O, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: O, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalità: (4,3) non è vuoto, ma contiene 'O'.</p>
+<p>Avete accumulato collettivamente 14 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: (4,3) non è vuoto, ma contiene 'O'.</p>
+<p>Avete accumulato collettivamente 14 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto correggendo l'errore: (4,3) contiene l'oggetto 'O', pertanto non è la posizione giusta. Devo rivedere attentamente tutte le celle disponibili e inviare nuovamente un comando MUOVERE con le coordinate corrette per l'oggetto 'O' nella configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto correggendo l'errore: (4,3) contiene l'oggetto 'O', pertanto non è la posizione giusta. Devo rivedere attentamente tutte le celle disponibili e inviare nuovamente un comando MUOVERE con le coordinate corrette per l'oggetto 'O' nella configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 17 di un massimo di 28.
+Avete accumulato collettivamente 14 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto correggendo l'errore: (4,3) contiene l'oggetto 'O', pertanto non è la posizione giusta. Devo rivedere attentamente tutte le celle disponibili e inviare nuovamente un comando MUOVERE con le coordinate corrette per l'oggetto 'O' nella configurazione obiettivo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Comprendo l'errore. Attendo il messaggio con la nuova posizione corretta per 'O', che sia nella griglia e vuota, così che potrò inviare il comando MUOVERE con le coordinate verificato per completare la configurazione obiettivo per questa coppia.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Comprendo l'errore. Attendo il messaggio con la nuova posizione corretta per 'O', che sia nella griglia e vuota, così che potrò inviare il comando MUOVERE con le coordinate verificato per completare la configurazione obiettivo per questa coppia.</p></p>
+    </div>
+</div><div class="game-round" data-round="17">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 17 di un massimo di 28.
+Avete accumulato collettivamente 14 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Comprendo l'errore. Attendo il messaggio con la nuova posizione corretta per 'O', che sia nella griglia e vuota, così che potrò inviare il comando MUOVERE con le coordinate verificato per completare la configurazione obiettivo per questa coppia."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: O, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: O, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (3, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 18 di un massimo di 28.
+Avete accumulato collettivamente 14 di 16 penalità.
+L'altro giocatore ha spostato un oggetto sulla sua griglia.</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento, per poter aggiornare il mio stato e pianificare la mossa seguente.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento, per poter aggiornare il mio stato e pianificare la mossa seguente.</p></p>
+    </div>
+</div><div class="game-round" data-round="18">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Spostato 'O' in (3,4) con successo. La tua griglia aggiornata appare così:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Stai giocando il round 18 di un massimo di 28.
+Avete accumulato collettivamente 14 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento, per poter aggiornare il mio stato e pianificare la mossa seguente."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone dopo lo spostamento di 'O' in (3,4):</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Inizierò l'analisi delle corrispondenze esistenti e delle celle disponibili per pianificare la mossa successiva verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone dopo lo spostamento di 'O' in (3,4):</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Inizierò l'analisi delle corrispondenze esistenti e delle celle disponibili per pianificare la mossa successiva verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝</p>
+<p>Inizierò l'analisi delle corrispondenze esistenti e delle celle disponibili per pianificare la mossa successiva verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non deve contenere nulla dopo il comando!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 15 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone e inizio l'analisi immediata delle corrispondenze esistenti e delle celle disponibili per pianificare correttamente la prossima mossa verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone e inizio l'analisi immediata delle corrispondenze esistenti e delle celle disponibili per pianificare correttamente la prossima mossa verso l'obiettivo comune.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 19 di un massimo di 28.
+Avete accumulato collettivamente 15 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo la configurazione aggiornata del mio tabellone e inizio l'analisi immediata delle corrispondenze esistenti e delle celle disponibili per pianificare correttamente la prossima mossa verso l'obiettivo comune."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Confermo la mia attenzione all'analisi attuale. Suggerirei di concentrarci now sulle coppie P/P e S/S, dato che sono le uniche coppie rimaste senza alcuna corrispondenza attuale e potrebbero offrire la prossima opportunità di allineamento diretto. Una volta identificata una cella vuota per ciascuna di esse, potremo inviare correttamente i comandi MUOVERE per completare la configurazione obiettivo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo la mia attenzione all'analisi attuale. Suggerirei di concentrarci now sulle coppie P/P e S/S, dato che sono le uniche coppie rimaste senza alcuna corrispondenza attuale e potrebbero offrire la prossima opportunità di allineamento diretto. Una volta identificata una cella vuota per ciascuna di esse, potremo inviare correttamente i comandi MUOVERE per completare la configurazione obiettivo.</p></p>
+    </div>
+</div><div class="game-round" data-round="19">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 19 di un massimo di 28.
+Avete accumulato collettivamente 15 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Confermo la mia attenzione all'analisi attuale. Suggerirei di concentrarci now sulle coppie P/P e S/S, dato che sono le uniche coppie rimaste senza alcuna corrispondenza attuale e potrebbero offrire la prossima opportunità di allineamento diretto. Una volta identificata una cella vuota per ciascuna di esse, potremo inviare correttamente i comandi MUOVERE per completare la configurazione obiettivo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: P, (3,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: P, (3,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (3, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 20 di un massimo di 28.
+Avete accumulato collettivamente 15 di 16 penalità.
+L'altro giocatore ha spostato un oggetto sulla sua griglia.</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento per poter aggiornare il mio stato e pianificare la prosieguo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento per poter aggiornare il mio stato e pianificare la prosieguo.</p></p>
+    </div>
+</div><div class="game-round" data-round="20">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Spostato 'P' in (3,5) con successo. La tua griglia aggiornata appare così:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║◌◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Stai giocando il round 20 di un massimo di 28.
+Avete accumulato collettivamente 15 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento per poter aggiornare il mio stato e pianificare la prosieguo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone dopo lo spostamento di 'P' in (3,5):</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║◌◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Inizierò a esaminare ora se esistono posizioni vuote per allineare la coppia 'S' con potenziali corrispondenze sul tuo sfondo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone dopo lo spostamento di 'P' in (3,5):</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║◌◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Inizierò a esaminare ora se esistono posizioni vuote per allineare la coppia 'S' con potenziali corrispondenze sul tuo sfondo.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║◌◌D◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝</p>
+<p>Inizierò a esaminare ora se esistono posizioni vuote per allineare la coppia 'S' con potenziali corrispondenze sul tuo sfondo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: Il tuo messaggio non deve contenere nulla dopo il comando!</p>
+<p>Assicurati che la tua risposta contenga solo <code>DIRE: &lt;MESSAGGIO&gt;</code> o <code>MUOVERE: &lt;OGGETTO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nient'altro!</p>
+<p>Avete accumulato collettivamente 16 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto analizzando attivamente le posizioni vuote disponibili nella mia griglia per poter allineare la coppia 'S' in una corrispondenza evidente sul tuo sfondo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto analizzando attivamente le posizioni vuote disponibili nella mia griglia per poter allineare la coppia 'S' in una corrispondenza evidente sul tuo sfondo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 21 di un massimo di 28.
+Avete accumulato collettivamente 16 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto analizzando attivamente le posizioni vuote disponibili nella mia griglia per poter allineare la coppia 'S' in una corrispondenza evidente sul tuo sfondo."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Suggerisco di verificare la posizione di 'S' in (3,3) nel tuo sfondo. Se questa cella è vuota, potremmo attivare un comando MUOVERE per spostare 'S' sul tuo sfondo in (3,3) per consolidare la coppia. Fornisci la conferma sulla disponibilità di questa cella?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Suggerisco di verificare la posizione di 'S' in (3,3) nel tuo sfondo. Se questa cella è vuota, potremmo attivare un comando MUOVERE per spostare 'S' sul tuo sfondo in (3,3) per consolidare la coppia. Fornisci la conferma sulla disponibilità di questa cella?</p></p>
+    </div>
+</div><div class="game-round" data-round="21">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 21 di un massimo di 28.
+Avete accumulato collettivamente 16 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Suggerisco di verificare la posizione di 'S' in (3,3) nel tuo sfondo. Se questa cella è vuota, potremmo attivare un comando MUOVERE per spostare 'S' sul tuo sfondo in (3,3) per consolidare la coppia. Fornisci la conferma sulla disponibilità di questa cella?"</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: S, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: S, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalità: (3,3) non è vuoto, ma contiene 'D'.</p>
+<p>Avete accumulato collettivamente 17 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalità: (3,3) non è vuoto, ma contiene 'D'.</p>
+<p>Avete accumulato collettivamente 17 di 16 penalità.
+Per favore riprova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sto correggendo l'errore: (3,3) contiene attualmente l'oggetto 'D', quindi non è la cella corretta per 'S'. Devo trovare una cella vuota all'interno dei limiti della griglia e inviare nuovamente un comando MUOVERE con le coordinate appropriate per 'S'.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sto correggendo l'errore: (3,3) contiene attualmente l'oggetto 'D', quindi non è la cella corretta per 'S'. Devo trovare una cella vuota all'interno dei limiti della griglia e inviare nuovamente un comando MUOVERE con le coordinate appropriate per 'S'.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 22 di un massimo di 28.
+Avete accumulato collettivamente 17 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Sto correggendo l'errore: (3,3) contiene attualmente l'oggetto 'D', quindi non è la cella corretta per 'S'. Devo trovare una cella vuota all'interno dei limiti della griglia e inviare nuovamente un comando MUOVERE con le coordinate appropriate per 'S'."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Comprendo l'errore. Attendo il messaggio con le coordinate corrette per 'S' che devono essere all'interno della griglia in una cella completamente vuota. Una volta ricevute, invierò il comando MUOVERE con le coordinate per completare la configurazione obiettivo per questa coppia.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Comprendo l'errore. Attendo il messaggio con le coordinate corrette per 'S' che devono essere all'interno della griglia in una cella completamente vuota. Una volta ricevute, invierò il comando MUOVERE con le coordinate per completare la configurazione obiettivo per questa coppia.</p></p>
+    </div>
+</div><div class="game-round" data-round="22">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 22 di un massimo di 28.
+Avete accumulato collettivamente 17 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Comprendo l'errore. Attendo il messaggio con le coordinate corrette per 'S' che devono essere all'interno della griglia in una cella completamente vuota. Una volta ricevute, invierò il comando MUOVERE con le coordinate per completare la configurazione obiettivo per questa coppia."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MUOVERE: S, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MUOVERE: S, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>S moved to (4, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Il tuo messaggio è stato trasmesso all'altro giocatore.</p>
+<p>Stai giocando il round 23 di un massimo di 28.
+Avete accumulato collettivamente 17 di 16 penalità.
+L'altro giocatore ha spostato un oggetto sulla sua griglia.</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento per poter aggiornare il mio stato e pianificare la prossima mossa.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento per poter aggiornare il mio stato e pianificare la prossima mossa.</p></p>
+    </div>
+</div><div class="game-round" data-round="23">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Spostato 'S' in (4,3) con successo. La tua griglia aggiornata appare così:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤◌║ 2
+║◌◌DS◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Stai giocando il round 23 di un massimo di 28.
+Avete accumulato collettivamente 17 di 16 penalità.
+L'altro giocatore ha inviato questo messaggio:</p>
+<p>"Attendo il messaggio che indica la nuova configurazione della griglia dell'altro giocatore dopo il suo recente spostamento per poter aggiornare il mio stato e pianificare la prossima mossa."</p>
+<p>Qual è il tuo prossimo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone dopo lo spostamento di 'S' in (4,3):</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤◌║ 2
+║◌◌DS◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Inizierò la pianificazione immediata della prossima mossa per supportare la configurazione obiettivo secondo lo stato aggiornato.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Confermo la configurazione aggiornata del mio tabellone dopo lo spostamento di 'S' in (4,3):</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤◌║ 2
+║◌◌DS◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Inizierò la pianificazione immediata della prossima mossa per supportare la configurazione obiettivo secondo lo stato aggiornato.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤◌║ 2
+║◌◌DS◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝</p>
+<p>Inizierò la pianificazione immediata della prossima mossa per supportare la configurazione obiettivo secondo lo stato aggiornato.</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌O◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤◌║ 2
+║◌◌DS◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│P│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌T◌│◌│◌║ 1
+║◌M◌└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 5.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 15.89</li>
+<li>Init Distance Sum: 19.62</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 18.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 23.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

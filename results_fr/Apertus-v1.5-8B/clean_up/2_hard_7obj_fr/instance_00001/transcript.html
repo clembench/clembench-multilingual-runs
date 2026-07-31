@@ -1,0 +1,1839 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_7obj_fr', episode 1 with Apertus-v1.5-8B.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Je suis votre maître de jeu, et vous jouez à un jeu collaboratif avec la grille suivante comme plateau de jeu :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌O◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Le bord supérieur affiche des coordonnées x croissantes vers la droite, et le bord droit des coordonnées y croissantes vers le bas.</li>
+<li>Les objets suivants sont placés aléatoirement sur votre grille : 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>L'autre joueur voit une variante du plateau de jeu, où les objets sont placés à des emplacements aléatoires différents. Vous ne pouvez pas voir le plateau de l'autre joueur et il ne peut pas voir le vôtre.</p>
+<p><strong>Objectif :</strong></p>
+<p>Les deux joueurs doivent déplacer les objets sur leur arrière-plan respectif de manière à ce que des objets identiques se retrouvent aux mêmes coordonnées. Vous devez communiquer avec l'autre joueur pour convenir d'une configuration d'objectif commune.</p>
+<p><strong>Règles :</strong></p>
+<ul>
+<li>À chaque tour, vous pouvez envoyer exactement l'une des deux commandes suivantes :</li>
+<li><code>DIRE: &lt;MESSAGE&gt;</code> : pour envoyer un message (tout ce qui se trouve jusqu'au prochain saut de ligne) à l'autre joueur. Je le transmettrai à votre partenaire.</li>
+<li><code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> : pour déplacer un objet vers une nouvelle position, où <code>&lt;X&gt;</code> est la colonne et <code>&lt;Y&gt;</code> est la ligne. Je vous informerai si votre déplacement a réussi ou non.</li>
+<li>Si vous ne respectez pas le format, ou si vous envoyez plusieurs commandes à la fois, je dois vous pénaliser.</li>
+<li>Si les deux joueurs accumulent plus de 16 pénalités, vous perdez tous les deux la partie.</li>
+<li>Il est essentiel que vous communiquiez avec l'autre joueur concernant votre état d'objectif ! La <em>seule</em> façon de transmettre votre stratégie à l'autre joueur est d'utiliser la commande <code>DIRE: &lt;MESSAGE&gt;</code> !</li>
+</ul>
+<p><strong>Déplacement d'objets</strong></p>
+<ul>
+<li>Vous ne pouvez déplacer des objets que vers des cellules situées à l'intérieur des limites de la grille. La cellule cible doit être vide, c'est-à-dire qu'elle ne doit contenir que le symbole '◌'.</li>
+<li>Si vous essayez de déplacer un objet vers un endroit qui n'est pas vide, ou si vous essayez de le déplacer en dehors de la grille, je dois vous pénaliser. Vous avez droit à un nouvel essai.</li>
+<li>Avant d'effectuer un déplacement, vérifiez bien que l'emplacement cible est vide et qu'il ne contient aucune lettre, aucun cadre ou aucune ligne !</li>
+</ul>
+<p><strong>Fin de partie</strong></p>
+<p>Si vous pensez avoir atteint l'objectif d'aligner tous les objets, vous pouvez demander à l'autre joueur de terminer la partie en envoyant <code>DIRE: terminé ?</code>. Si l'autre joueur vous demande de terminer la partie et que vous répondez <code>DIRE: terminé !</code>, la partie se termine.</p>
+<p>Les deux joueurs gagnent si la partie se termine en 28 tours, un tour étant défini comme l'envoi d'une commande valide par chacun des deux joueurs.</p>
+<p><strong>Score :</strong></p>
+<p>Plus les objets identiques sont proches les uns des autres sur les deux plateaux de jeu, plus vous obtenez de points. Les pénalités réduisent vos points. Pouvez-vous battre le record ?</p>
+<p>Envoyez un message à l'autre joueur pour commencer le jeu !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Bonjour, commençons le jeu. Je suis prêt à travailler ensemble pour aligner tous les objets.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Bonjour, commençons le jeu. Je suis prêt à travailler ensemble pour aligner tous les objets.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Je suis votre maître de jeu, et vous jouez à un jeu collaboratif avec la grille suivante comme plateau de jeu :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Le bord supérieur affiche des coordonnées x croissantes vers la droite, et le bord droit des coordonnées y croissantes vers le bas.</li>
+<li>Les objets suivants sont placés aléatoirement sur votre grille : 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>L'autre joueur voit une variante du plateau de jeu, où les objets sont placés à des emplacements aléatoires différents. Vous ne pouvez pas voir le plateau de l'autre joueur et il ne peut pas voir le vôtre.</p>
+<p><strong>Objectif :</strong></p>
+<p>Les deux joueurs doivent déplacer les objets sur leur arrière-plan respectif de manière à ce que des objets identiques se retrouvent aux mêmes coordonnées. Vous devez communiquer avec l'autre joueur pour convenir d'une configuration d'objectif commune.</p>
+<p><strong>Règles :</strong></p>
+<ul>
+<li>À chaque tour, vous pouvez envoyer exactement l'une des deux commandes suivantes :</li>
+<li><code>DIRE: &lt;MESSAGE&gt;</code> : pour envoyer un message (tout ce qui se trouve jusqu'au prochain saut de ligne) à l'autre joueur. Je le transmettrai à votre partenaire.</li>
+<li><code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> : pour déplacer un objet vers une nouvelle position, où <code>&lt;X&gt;</code> est la colonne et <code>&lt;Y&gt;</code> est la ligne. Je vous informerai si votre déplacement a réussi ou non.</li>
+<li>Si vous ne respectez pas le format, ou si vous envoyez plusieurs commandes à la fois, je dois vous pénaliser.</li>
+<li>Si les deux joueurs accumulent plus de 16 pénalités, vous perdez tous les deux la partie.</li>
+<li>Il est essentiel que vous communiquiez avec l'autre joueur concernant votre état d'objectif ! La <em>seule</em> façon de transmettre votre stratégie à l'autre joueur est d'utiliser la commande <code>DIRE: &lt;MESSAGE&gt;</code> !</li>
+</ul>
+<p><strong>Déplacement d'objets</strong></p>
+<ul>
+<li>Vous ne pouvez déplacer des objets que vers des cellules situées à l'intérieur des limites de la grille. La cellule cible doit être vide, c'est-à-dire qu'elle ne doit contenir que le symbole '◌'.</li>
+<li>Si vous essayez de déplacer un objet vers un endroit qui n'est pas vide, ou si vous essayez de le déplacer en dehors de la grille, je dois vous pénaliser. Vous avez droit à un nouvel essai.</li>
+<li>Avant d'effectuer un déplacement, vérifiez bien que l'emplacement cible est vide et qu'il ne contient aucune lettre, aucun cadre ou aucune ligne !</li>
+</ul>
+<p><strong>Fin de partie</strong></p>
+<p>Si vous pensez avoir atteint l'objectif d'aligner tous les objets, vous pouvez demander à l'autre joueur de terminer la partie en envoyant <code>DIRE: terminé ?</code>. Si l'autre joueur vous demande de terminer la partie et que vous répondez <code>DIRE: terminé !</code>, la partie se termine.</p>
+<p>Les deux joueurs gagnent si la partie se termine en 28 tours, un tour étant défini comme l'envoi d'une commande valide par chacun des deux joueurs.</p>
+<p><strong>Score :</strong></p>
+<p>Plus les objets identiques sont proches les uns des autres sur les deux plateaux de jeu, plus vous obtenez de points. Les pénalités réduisent vos points. Pouvez-vous battre le record ?</p>
+<p>L'autre joueur a commencé le jeu en envoyant ce message :</p>
+<p>"Bonjour, commençons le jeu. Je suis prêt à travailler ensemble pour aligner tous les objets."</p>
+<p>Quelle est votre première commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Bonjour, merci de l'accueil. Je suis prêt à commencer et à travailler ensemble pour aligner tous les objets. Comment voyez-vous la situation initiale sur votre plateau ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Bonjour, merci de l'accueil. Je suis prêt à commencer et à travailler ensemble pour aligner tous les objets. Comment voyez-vous la situation initiale sur votre plateau ?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 1 sur un maximum de 28.
+Vous avez collectivement accumulé 0 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Bonjour, merci de l'accueil. Je suis prêt à commencer et à travailler ensemble pour aligner tous les objets. Comment voyez-vous la situation initiale sur votre plateau ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Merci pour le message. Sur mon plateau, les objets sont placés comme suit : M à (1,3), T à (1,5), A à (2,4), S à (2,6), P à (3,1), O à (3,2), D à (4,3), et il reste des cellules vides (◌). Je vais demander à l'autre joueur d'envoyer ses informations pour que nous puissions élaborer une stratégie.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le message. Sur mon plateau, les objets sont placés comme suit : M à (1,3), T à (1,5), A à (2,4), S à (2,6), P à (3,1), O à (3,2), D à (4,3), et il reste des cellules vides (◌). Je vais demander à l'autre joueur d'envoyer ses informations pour que nous puissions élaborer une stratégie.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 2 sur un maximum de 28.
+Vous avez collectivement accumulé 0 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le message. Sur mon plateau, les objets sont placés comme suit : M à (1,3), T à (1,5), A à (2,4), S à (2,6), P à (3,1), O à (3,2), D à (4,3), et il reste des cellules vides (◌). Je vais demander à l'autre joueur d'envoyer ses informations pour que nous puissions élaborer une stratégie."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour ces informations. Sur mon plateau, les objets sont placés comme suit : T à (1,2), M à (1,4), D à (2,5), O à (3,4), S à (2,3), A à (4,1), P à (4,5), et il reste des cellules vides (◌). Je vous suggère de commencer par aligner les objets similaires comme O et O, P et P, T et T, etc. Proposez-vous un premier déplacement à tester ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour ces informations. Sur mon plateau, les objets sont placés comme suit : T à (1,2), M à (1,4), D à (2,5), O à (3,4), S à (2,3), A à (4,1), P à (4,5), et il reste des cellules vides (◌). Je vous suggère de commencer par aligner les objets similaires comme O et O, P et P, T et T, etc. Proposez-vous un premier déplacement à tester ?</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 2 sur un maximum de 28.
+Vous avez collectivement accumulé 0 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour ces informations. Sur mon plateau, les objets sont placés comme suit : T à (1,2), M à (1,4), D à (2,5), O à (3,4), S à (2,3), A à (4,1), P à (4,5), et il reste des cellules vides (◌). Je vous suggère de commencer par aligner les objets similaires comme O et O, P et P, T et T, etc. Proposez-vous un premier déplacement à tester ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: O, (3,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: O, (3,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (3,2) n'est pas vide, mais contient 'A'.</p>
+<p>Vous avez collectivement accumulé 1 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (3,2) n'est pas vide, mais contient 'A'.</p>
+<p>Vous avez collectivement accumulé 1 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: O, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: O, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (3, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 3 sur un maximum de 28.
+Vous avez collectivement accumulé 1 pénalités sur 16.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Excellent, merci pour le déplacement effectué. Pour continuer la stratégie, je suggère de vérifier les positions actuelles de chaque paire d'objets identiques. Par exemple, pour O et O, P et P, T et T, etc. Sur ma grille, les O sont à (3,4) et (3,2), les P sont à (4,5) et (4,1), et les T sont à (1,2) et (1,5). Proposez-vous une action spécifique pour rapprocher ces paires, ou préférez-vous déplacer un objet vers une position plus proche d'un autre objet de même type ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Excellent, merci pour le déplacement effectué. Pour continuer la stratégie, je suggère de vérifier les positions actuelles de chaque paire d'objets identiques. Par exemple, pour O et O, P et P, T et T, etc. Sur ma grille, les O sont à (3,4) et (3,2), les P sont à (4,5) et (4,1), et les T sont à (1,2) et (1,5). Proposez-vous une action spécifique pour rapprocher ces paires, ou préférez-vous déplacer un objet vers une position plus proche d'un autre objet de même type ?</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Déplacement de 'O' vers (3,4) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌◌◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Vous jouez actuellement le tour 3 sur un maximum de 28.
+Vous avez collectivement accumulé 1 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Excellent, merci pour le déplacement effectué. Pour continuer la stratégie, je suggère de vérifier les positions actuelles de chaque paire d'objets identiques. Par exemple, pour O et O, P et P, T et T, etc. Sur ma grille, les O sont à (3,4) et (3,2), les P sont à (4,5) et (4,1), et les T sont à (1,2) et (1,5). Proposez-vous une action spécifique pour rapprocher ces paires, ou préférez-vous déplacer un objet vers une position plus proche d'un autre objet de même type ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sur ma grille, les O sont à (3,4) et (3,2), ce qui est déjà proche, les P sont à (4,5) et (4,1) qui pourraient être rapprochés, et les T sont à (1,2) et (1,5). Je pense que le déplacement de P à (4,5) vers (3,4) pourrait être une bonne idée pour les rapprocher. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sur ma grille, les O sont à (3,4) et (3,2), ce qui est déjà proche, les P sont à (4,5) et (4,1) qui pourraient être rapprochés, et les T sont à (1,2) et (1,5). Je pense que le déplacement de P à (4,5) vers (3,4) pourrait être une bonne idée pour les rapprocher. Qu'en pensez-vous ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 4 sur un maximum de 28.
+Vous avez collectivement accumulé 1 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Sur ma grille, les O sont à (3,4) et (3,2), ce qui est déjà proche, les P sont à (4,5) et (4,1) qui pourraient être rapprochés, et les T sont à (1,2) et (1,5). Je pense que le déplacement de P à (4,5) vers (3,4) pourrait être une bonne idée pour les rapprocher. Qu'en pensez-vous ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Cette idée est intéressante pour rapprocher les paires P. Sur ma grille, P est à (4,5) et (4,1). Si nous déplaçons l'objet P de (4,5) à (3,4), cela créerait une paire P à (3,4) et (4,1) qui sont plus proches que leurs positions actuelles. Cependant, avant de confirmer ce déplacement, il faut vérifier que la cellule cible (3,4) est vide sur mon plateau. Pouvez-vous vérifier cette cellule pour moi ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Cette idée est intéressante pour rapprocher les paires P. Sur ma grille, P est à (4,5) et (4,1). Si nous déplaçons l'objet P de (4,5) à (3,4), cela créerait une paire P à (3,4) et (4,1) qui sont plus proches que leurs positions actuelles. Cependant, avant de confirmer ce déplacement, il faut vérifier que la cellule cible (3,4) est vide sur mon plateau. Pouvez-vous vérifier cette cellule pour moi ?</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 4 sur un maximum de 28.
+Vous avez collectivement accumulé 1 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Cette idée est intéressante pour rapprocher les paires P. Sur ma grille, P est à (4,5) et (4,1). Si nous déplaçons l'objet P de (4,5) à (3,4), cela créerait une paire P à (3,4) et (4,1) qui sont plus proches que leurs positions actuelles. Cependant, avant de confirmer ce déplacement, il faut vérifier que la cellule cible (3,4) est vide sur mon plateau. Pouvez-vous vérifier cette cellule pour moi ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: P, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (3,4) n'est pas vide, mais contient 'O'.</p>
+<p>Vous avez collectivement accumulé 2 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (3,4) n'est pas vide, mais contient 'O'.</p>
+<p>Vous avez collectivement accumulé 2 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: P, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (4,4) n'est pas vide, mais contient '┌'.</p>
+<p>Vous avez collectivement accumulé 3 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (4,4) n'est pas vide, mais contient '┌'.</p>
+<p>Vous avez collectivement accumulé 3 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: P, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (4, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 5 sur un maximum de 28.
+Vous avez collectivement accumulé 3 pénalités sur 16.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour l'information. Si la cellule (3,4) est vide, je suis d'accord pour déplacer l'objet P de (4,5) vers (3,4). Cependant, je propose également de vérifier si le déplacement de T de (1,5) vers (1,2) pourrait également aider à rapprocher les deux T. Pourriez-vous vérifier la cellule (1,2) sur mon plateau, s'il vous plaît ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour l'information. Si la cellule (3,4) est vide, je suis d'accord pour déplacer l'objet P de (4,5) vers (3,4). Cependant, je propose également de vérifier si le déplacement de T de (1,5) vers (1,2) pourrait également aider à rapprocher les deux T. Pourriez-vous vérifier la cellule (1,2) sur mon plateau, s'il vous plaît ?</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Déplacement de 'P' vers (4,3) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║◌◌◌P◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Vous jouez actuellement le tour 5 sur un maximum de 28.
+Vous avez collectivement accumulé 3 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour l'information. Si la cellule (3,4) est vide, je suis d'accord pour déplacer l'objet P de (4,5) vers (3,4). Cependant, je propose également de vérifier si le déplacement de T de (1,5) vers (1,2) pourrait également aider à rapprocher les deux T. Pourriez-vous vérifier la cellule (1,2) sur mon plateau, s'il vous plaît ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai vérifié et la cellule (1,2) est vide sur mon plateau. Je suis d'accord pour déplacer le T de (1,5) vers (1,2). Je vais envoyer la commande pour déplacer le T de (1,5) à (1,2) maintenant.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai vérifié et la cellule (1,2) est vide sur mon plateau. Je suis d'accord pour déplacer le T de (1,5) vers (1,2). Je vais envoyer la commande pour déplacer le T de (1,5) à (1,2) maintenant.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 6 sur un maximum de 28.
+Vous avez collectivement accumulé 3 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai vérifié et la cellule (1,2) est vide sur mon plateau. Je suis d'accord pour déplacer le T de (1,5) vers (1,2). Je vais envoyer la commande pour déplacer le T de (1,5) à (1,2) maintenant."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: T, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,2) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 4 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (1,2) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 4 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Désolé pour l'erreur. J'ai mal compris votre message. Sur mon plateau, la cellule (1,2) contient actuellement 'T', ce qui correspond à l'objet que nous essayons de déplacer. Je vais vérifier une autre cellule disponible pour le déplacement du T. Pourriez-vous vérifier une autre cellule vide disponible pour déplacer le T de (1,5) sur votre plateau, par exemple (1,3) ou (1,4), afin que nous puissions déplacer le T vers cette nouvelle position ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Désolé pour l'erreur. J'ai mal compris votre message. Sur mon plateau, la cellule (1,2) contient actuellement 'T', ce qui correspond à l'objet que nous essayons de déplacer. Je vais vérifier une autre cellule disponible pour le déplacement du T. Pourriez-vous vérifier une autre cellule vide disponible pour déplacer le T de (1,5) sur votre plateau, par exemple (1,3) ou (1,4), afin que nous puissions déplacer le T vers cette nouvelle position ?</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 6 sur un maximum de 28.
+Vous avez collectivement accumulé 4 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Désolé pour l'erreur. J'ai mal compris votre message. Sur mon plateau, la cellule (1,2) contient actuellement 'T', ce qui correspond à l'objet que nous essayons de déplacer. Je vais vérifier une autre cellule disponible pour le déplacement du T. Pourriez-vous vérifier une autre cellule vide disponible pour déplacer le T de (1,5) sur votre plateau, par exemple (1,3) ou (1,4), afin que nous puissions déplacer le T vers cette nouvelle position ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (1, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 7 sur un maximum de 28.
+Vous avez collectivement accumulé 4 pénalités sur 16.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le message. Pour déplacer le T de (1,5) vers une nouvelle cellule vide, veuillez vérifier la cellule (1,3). Si elle est vide, nous pourrons déplacer le T vers (1,3). Si elle n'est pas vide, je suggère d'essayer la cellule (1,4). Pourriez-vous vérifier la cellule (1,3) sur votre plateau, s'il vous plaît ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le message. Pour déplacer le T de (1,5) vers une nouvelle cellule vide, veuillez vérifier la cellule (1,3). Si elle est vide, nous pourrons déplacer le T vers (1,3). Si elle n'est pas vide, je suggère d'essayer la cellule (1,4). Pourriez-vous vérifier la cellule (1,3) sur votre plateau, s'il vous plaît ?</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Déplacement de 'T' vers (1,3) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│◌│◌║ 1
+║◌◌A└─┤S║ 2
+║T◌◌P◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Vous jouez actuellement le tour 7 sur un maximum de 28.
+Vous avez collectivement accumulé 4 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le message. Pour déplacer le T de (1,5) vers une nouvelle cellule vide, veuillez vérifier la cellule (1,3). Si elle est vide, nous pourrons déplacer le T vers (1,3). Si elle n'est pas vide, je suggère d'essayer la cellule (1,4). Pourriez-vous vérifier la cellule (1,3) sur votre plateau, s'il vous plaît ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 5 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (1,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 5 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 6 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (1,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 6 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (1,4) et cela n'a pas fonctionné car la cellule n'était pas vide. Je vais vérifier une autre cellule vide disponible pour déplacer le T de (1,5). Qu'en pensez-vous ? Je suggère d'essayer (1,2) ou (1,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (1,4) et cela n'a pas fonctionné car la cellule n'était pas vide. Je vais vérifier une autre cellule vide disponible pour déplacer le T de (1,5). Qu'en pensez-vous ? Je suggère d'essayer (1,2) ou (1,6).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 8 sur un maximum de 28.
+Vous avez collectivement accumulé 6 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (1,4) et cela n'a pas fonctionné car la cellule n'était pas vide. Je vais vérifier une autre cellule vide disponible pour déplacer le T de (1,5). Qu'en pensez-vous ? Je suggère d'essayer (1,2) ou (1,6)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Je comprends. La cellule (1,6) semble être une option viable pour déplacer le T de (1,5). Sur mon plateau, la cellule (1,6) est-elle vide ou contient-elle un autre objet ? Si elle est vide, je suggère de déplacer le T de (1,5) vers (1,6). Sinon, pourrions-nous essayer (1,2) ou (1,3) ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Je comprends. La cellule (1,6) semble être une option viable pour déplacer le T de (1,5). Sur mon plateau, la cellule (1,6) est-elle vide ou contient-elle un autre objet ? Si elle est vide, je suggère de déplacer le T de (1,5) vers (1,6). Sinon, pourrions-nous essayer (1,2) ou (1,3) ?</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 8 sur un maximum de 28.
+Vous avez collectivement accumulé 6 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Je comprends. La cellule (1,6) semble être une option viable pour déplacer le T de (1,5). Sur mon plateau, la cellule (1,6) est-elle vide ou contient-elle un autre objet ? Si elle est vide, je suggère de déplacer le T de (1,5) vers (1,6). Sinon, pourrions-nous essayer (1,2) ou (1,3) ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,6) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 7 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (1,6) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 7 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: La cellule (1,6) n'est pas vide et je suis bloqué pour déplacer T de (1,5) vers (1,6). Je vais vérifier d'autres cellules vides pour déplacer T de (1,5). Qu'en est-il de (1,2) ? Je vais envoyer une commande pour déplacer T de (1,5) vers (1,2) comme alternative.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: La cellule (1,6) n'est pas vide et je suis bloqué pour déplacer T de (1,5) vers (1,6). Je vais vérifier d'autres cellules vides pour déplacer T de (1,5). Qu'en est-il de (1,2) ? Je vais envoyer une commande pour déplacer T de (1,5) vers (1,2) comme alternative.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 9 sur un maximum de 28.
+Vous avez collectivement accumulé 7 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"La cellule (1,6) n'est pas vide et je suis bloqué pour déplacer T de (1,5) vers (1,6). Je vais vérifier d'autres cellules vides pour déplacer T de (1,5). Qu'en est-il de (1,2) ? Je vais envoyer une commande pour déplacer T de (1,5) vers (1,2) comme alternative."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: T, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,2) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 8 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (1,2) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 8 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Désolé pour la pénalité, (1,2) contient déjà un T. Sur mon plateau, y a-t-il une autre cellule vide disponible pour déplacer le T de (1,5) ? Je suggère d'essayer (1,1), (1,3), (1,4), ou (1,6) à nouveau en cas de disponibilité. Pouvez-vous vérifier rapidement l'une de ces cellules vides sur votre plateau ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Désolé pour la pénalité, (1,2) contient déjà un T. Sur mon plateau, y a-t-il une autre cellule vide disponible pour déplacer le T de (1,5) ? Je suggère d'essayer (1,1), (1,3), (1,4), ou (1,6) à nouveau en cas de disponibilité. Pouvez-vous vérifier rapidement l'une de ces cellules vides sur votre plateau ?</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 9 sur un maximum de 28.
+Vous avez collectivement accumulé 8 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Désolé pour la pénalité, (1,2) contient déjà un T. Sur mon plateau, y a-t-il une autre cellule vide disponible pour déplacer le T de (1,5) ? Je suggère d'essayer (1,1), (1,3), (1,4), ou (1,6) à nouveau en cas de disponibilité. Pouvez-vous vérifier rapidement l'une de ces cellules vides sur votre plateau ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 9 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (1,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 9 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: (1,3) n'est pas une cellule vide et je ne peux pas déplacer T vers (1,3). J'ai essayé plusieurs cellules pour déplacer T de (1,5) et je rencontre des obstacles. Qu'en est-il de déplacer T de (1,5) vers (1,4) ? Je vais envoyer la commande pour déplacer T de (1,5) vers (1,4).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: (1,3) n'est pas une cellule vide et je ne peux pas déplacer T vers (1,3). J'ai essayé plusieurs cellules pour déplacer T de (1,5) et je rencontre des obstacles. Qu'en est-il de déplacer T de (1,5) vers (1,4) ? Je vais envoyer la commande pour déplacer T de (1,5) vers (1,4).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 10 sur un maximum de 28.
+Vous avez collectivement accumulé 9 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"(1,3) n'est pas une cellule vide et je ne peux pas déplacer T vers (1,3). J'ai essayé plusieurs cellules pour déplacer T de (1,5) et je rencontre des obstacles. Qu'en est-il de déplacer T de (1,5) vers (1,4) ? Je vais envoyer la commande pour déplacer T de (1,5) vers (1,4)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: T, (1,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 10 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (1,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 10 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Désolé pour l'erreur, (1,4) ne semble pas être une cellule vide. Sur mon plateau, y a-t-il une autre cellule disponible pour déplacer T de (1,5) ? Je suggère d'essayer (1,1), (1,2), (1,3) ou (1,6) encore une fois. Pourriez-vous vérifier l'une de ces cellules sur votre plateau ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Désolé pour l'erreur, (1,4) ne semble pas être une cellule vide. Sur mon plateau, y a-t-il une autre cellule disponible pour déplacer T de (1,5) ? Je suggère d'essayer (1,1), (1,2), (1,3) ou (1,6) encore une fois. Pourriez-vous vérifier l'une de ces cellules sur votre plateau ?</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 10 sur un maximum de 28.
+Vous avez collectivement accumulé 10 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Désolé pour l'erreur, (1,4) ne semble pas être une cellule vide. Sur mon plateau, y a-t-il une autre cellule disponible pour déplacer T de (1,5) ? Je suggère d'essayer (1,1), (1,2), (1,3) ou (1,6) encore une fois. Pourriez-vous vérifier l'une de ces cellules sur votre plateau ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 11 sur un maximum de 28.
+Vous avez collectivement accumulé 10 pénalités sur 16.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement effectué. Pour poursuivre la stratégie de rapprochement des objets identiques, je suggère de continuer à adapter les déplacements en fonction des cellules vides disponibles sur nos deux plateaux. Sur mon plateau, les objets T sont à (1,2) et (1,5). J'aimerais vérifier s'il est possible de déplacer l'un d'entre eux vers une autre position pour les rapprocher. Pourriez-vous vérifier les cellules vides disponibles pour déplacer le T à partir de votre plateau, spécialement les lignes 1 ou 3 où se trouvent déjà des T, afin que nous puissions ajuster leurs positions ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement effectué. Pour poursuivre la stratégie de rapprochement des objets identiques, je suggère de continuer à adapter les déplacements en fonction des cellules vides disponibles sur nos deux plateaux. Sur mon plateau, les objets T sont à (1,2) et (1,5). J'aimerais vérifier s'il est possible de déplacer l'un d'entre eux vers une autre position pour les rapprocher. Pourriez-vous vérifier les cellules vides disponibles pour déplacer le T à partir de votre plateau, spécialement les lignes 1 ou 3 où se trouvent déjà des T, afin que nous puissions ajuster leurs positions ?</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Déplacement de 'T' vers (1,1) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║T◌M│◌│◌║ 1
+║◌◌A└─┤S║ 2
+║◌◌◌P◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Vous jouez actuellement le tour 11 sur un maximum de 28.
+Vous avez collectivement accumulé 10 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement effectué. Pour poursuivre la stratégie de rapprochement des objets identiques, je suggère de continuer à adapter les déplacements en fonction des cellules vides disponibles sur nos deux plateaux. Sur mon plateau, les objets T sont à (1,2) et (1,5). J'aimerais vérifier s'il est possible de déplacer l'un d'entre eux vers une autre position pour les rapprocher. Pourriez-vous vérifier les cellules vides disponibles pour déplacer le T à partir de votre plateau, spécialement les lignes 1 ou 3 où se trouvent déjà des T, afin que nous puissions ajuster leurs positions ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sur mon plateau, les T sont à (1,1) et (1,5). La cellule (1,5) est vide sur mon plateau actuellement. J'aimerais déplacer le T de (1,5) vers (1,2) pour le rapprocher de l'autre T de (1,1). Je vais envoyer la commande pour déplacer T de (1,5) vers (1,2) maintenant.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sur mon plateau, les T sont à (1,1) et (1,5). La cellule (1,5) est vide sur mon plateau actuellement. J'aimerais déplacer le T de (1,5) vers (1,2) pour le rapprocher de l'autre T de (1,1). Je vais envoyer la commande pour déplacer T de (1,5) vers (1,2) maintenant.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 12 sur un maximum de 28.
+Vous avez collectivement accumulé 10 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Sur mon plateau, les T sont à (1,1) et (1,5). La cellule (1,5) est vide sur mon plateau actuellement. J'aimerais déplacer le T de (1,5) vers (1,2) pour le rapprocher de l'autre T de (1,1). Je vais envoyer la commande pour déplacer T de (1,5) vers (1,2) maintenant."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: T, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,2) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 11 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (1,2) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 11 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Désolé pour la pénalité, (1,2) contient déjà un T. Sur mon plateau, y a-t-il une autre cellule vide disponible pour déplacer le T de (1,5) ? J'aimerais vérifier les cellules vides disponibles dans la ligne 1, peut-être vers (1,3), (1,4), etc. pour permettre le déplacement. Pourriez-vous vérifier la disponibilité de (1,3) ou (1,4) sur votre plateau ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Désolé pour la pénalité, (1,2) contient déjà un T. Sur mon plateau, y a-t-il une autre cellule vide disponible pour déplacer le T de (1,5) ? J'aimerais vérifier les cellules vides disponibles dans la ligne 1, peut-être vers (1,3), (1,4), etc. pour permettre le déplacement. Pourriez-vous vérifier la disponibilité de (1,3) ou (1,4) sur votre plateau ?</p></p>
+    </div>
+</div><div class="game-round" data-round="12">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 12 sur un maximum de 28.
+Vous avez collectivement accumulé 11 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Désolé pour la pénalité, (1,2) contient déjà un T. Sur mon plateau, y a-t-il une autre cellule vide disponible pour déplacer le T de (1,5) ? J'aimerais vérifier les cellules vides disponibles dans la ligne 1, peut-être vers (1,3), (1,4), etc. pour permettre le déplacement. Pourriez-vous vérifier la disponibilité de (1,3) ou (1,4) sur votre plateau ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (1, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 13 sur un maximum de 28.
+Vous avez collectivement accumulé 11 pénalités sur 16.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement effectué. Sur mon plateau, pour déplacer le T de (1,5), nous devrions vérifier les cellules vides disponibles dans la ligne 1. Pourriez-vous vérifier rapidement la disponibilité des cellules (1,3) et (1,4) sur votre plateau ? Cela nous aiderait à choisir une position appropriée pour le T et à tenter un nouveau déplacement.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement effectué. Sur mon plateau, pour déplacer le T de (1,5), nous devrions vérifier les cellules vides disponibles dans la ligne 1. Pourriez-vous vérifier rapidement la disponibilité des cellules (1,3) et (1,4) sur votre plateau ? Cela nous aiderait à choisir une position appropriée pour le T et à tenter un nouveau déplacement.</p></p>
+    </div>
+</div><div class="game-round" data-round="13">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Déplacement de 'T' vers (1,3) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│◌│◌║ 1
+║◌◌A└─┤S║ 2
+║T◌◌P◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Vous jouez actuellement le tour 13 sur un maximum de 28.
+Vous avez collectivement accumulé 11 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement effectué. Sur mon plateau, pour déplacer le T de (1,5), nous devrions vérifier les cellules vides disponibles dans la ligne 1. Pourriez-vous vérifier rapidement la disponibilité des cellules (1,3) et (1,4) sur votre plateau ? Cela nous aiderait à choisir une position appropriée pour le T et à tenter un nouveau déplacement."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai vérifié officiellement et la cellule (1,3) est vide sur mon plateau après le dernier déplacement. Je vais déplacer le T de (1,5) vers (1,3) pour compléter le rapprochement des deux T sur la ligne 1. Je vais exécuter cette commande maintenant.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai vérifié officiellement et la cellule (1,3) est vide sur mon plateau après le dernier déplacement. Je vais déplacer le T de (1,5) vers (1,3) pour compléter le rapprochement des deux T sur la ligne 1. Je vais exécuter cette commande maintenant.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 14 sur un maximum de 28.
+Vous avez collectivement accumulé 11 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai vérifié officiellement et la cellule (1,3) est vide sur mon plateau après le dernier déplacement. Je vais déplacer le T de (1,5) vers (1,3) pour compléter le rapprochement des deux T sur la ligne 1. Je vais exécuter cette commande maintenant."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,3) n'est pas vide, mais contient 'A'.</p>
+<p>Vous avez collectivement accumulé 12 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (1,3) n'est pas vide, mais contient 'A'.</p>
+<p>Vous avez collectivement accumulé 12 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Désolé pour cette pénalité, (1,3) contient actuellement 'A'. Sur mon plateau, pour déplacer le T de (1,5), recherchons d'autres cellules vides dans la ligne 1, comme (1,4) ou (1,6). Pourriez-vous vérifier la disponibilité de (1,4) ou (1,6) sur votre plateau ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Désolé pour cette pénalité, (1,3) contient actuellement 'A'. Sur mon plateau, pour déplacer le T de (1,5), recherchons d'autres cellules vides dans la ligne 1, comme (1,4) ou (1,6). Pourriez-vous vérifier la disponibilité de (1,4) ou (1,6) sur votre plateau ?</p></p>
+    </div>
+</div><div class="game-round" data-round="14">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 14 sur un maximum de 28.
+Vous avez collectivement accumulé 12 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Désolé pour cette pénalité, (1,3) contient actuellement 'A'. Sur mon plateau, pour déplacer le T de (1,5), recherchons d'autres cellules vides dans la ligne 1, comme (1,4) ou (1,6). Pourriez-vous vérifier la disponibilité de (1,4) ou (1,6) sur votre plateau ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (1,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 13 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (1,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 13 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: (1,4) n'est pas vide et je ne peux pas déplacer le T vers (1,4). Je vais vérifier (1,6) en premier. Je vais déplacer le T de (1,5) vers (1,6) maintenant.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: (1,4) n'est pas vide et je ne peux pas déplacer le T vers (1,4). Je vais vérifier (1,6) en premier. Je vais déplacer le T de (1,5) vers (1,6) maintenant.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 15 sur un maximum de 28.
+Vous avez collectivement accumulé 13 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"(1,4) n'est pas vide et je ne peux pas déplacer le T vers (1,4). Je vais vérifier (1,6) en premier. Je vais déplacer le T de (1,5) vers (1,6) maintenant."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: T, (1,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (1,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (1,6) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 14 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (1,6) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 14 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Désolé pour cette pénalité, (1,6) contient un ligne séparatrice. Sur mon plateau, pour déplacer le T de (1,5), il est essentiel de vérifier et de choisir une cellule vide dans la ligne 1. Y a-t-il d'autres cellules vides dans la ligne 1 que nous pouvons vérifier, comme (1,1) ou (1,2) qui pourraient être vides ? Pourriez-vous vérifier la disponibilité de (1,1) ou (1,2) sur votre plateau pour permettre le déplacement du T ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Désolé pour cette pénalité, (1,6) contient un ligne séparatrice. Sur mon plateau, pour déplacer le T de (1,5), il est essentiel de vérifier et de choisir une cellule vide dans la ligne 1. Y a-t-il d'autres cellules vides dans la ligne 1 que nous pouvons vérifier, comme (1,1) ou (1,2) qui pourraient être vides ? Pourriez-vous vérifier la disponibilité de (1,1) ou (1,2) sur votre plateau pour permettre le déplacement du T ?</p></p>
+    </div>
+</div><div class="game-round" data-round="15">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 15 sur un maximum de 28.
+Vous avez collectivement accumulé 14 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Désolé pour cette pénalité, (1,6) contient un ligne séparatrice. Sur mon plateau, pour déplacer le T de (1,5), il est essentiel de vérifier et de choisir une cellule vide dans la ligne 1. Y a-t-il d'autres cellules vides dans la ligne 1 que nous pouvons vérifier, comme (1,1) ou (1,2) qui pourraient être vides ? Pourriez-vous vérifier la disponibilité de (1,1) ou (1,2) sur votre plateau pour permettre le déplacement du T ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai vérifié (1,1) et (1,2) et aucune de ces cellules ne sont vides. La seule cellule vide restante pour déplacer T de (1,5) serait (1,3), et je l'ai déjà déplacé vers (1,3) précédemment qui est maintenant occupée par T dû à une pénalité précédente. Je suggère de réévaluer notre stratégie et de vérifier la disponibilité d'autres lignes pour déplacer T.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai vérifié (1,1) et (1,2) et aucune de ces cellules ne sont vides. La seule cellule vide restante pour déplacer T de (1,5) serait (1,3), et je l'ai déjà déplacé vers (1,3) précédemment qui est maintenant occupée par T dû à une pénalité précédente. Je suggère de réévaluer notre stratégie et de vérifier la disponibilité d'autres lignes pour déplacer T.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 16 sur un maximum de 28.
+Vous avez collectivement accumulé 14 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai vérifié (1,1) et (1,2) et aucune de ces cellules ne sont vides. La seule cellule vide restante pour déplacer T de (1,5) serait (1,3), et je l'ai déjà déplacé vers (1,3) précédemment qui est maintenant occupée par T dû à une pénalité précédente. Je suggère de réévaluer notre stratégie et de vérifier la disponibilité d'autres lignes pour déplacer T."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Cette situation est complexe. Pour réévaluer notre stratégie, nous devons vérifier les cellules vides disponibles sur l'ensemble de la grille, car le déplacement des objets sur la ligne 1 semble problématique. Sur mon plateau, pourriez-vous vérifier les cellules vides disponibles dans d'autres lignes, comme la ligne 2 ou la ligne 4, où il pourrait y avoir des opportunités pour déplacer des objets similaires ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Cette situation est complexe. Pour réévaluer notre stratégie, nous devons vérifier les cellules vides disponibles sur l'ensemble de la grille, car le déplacement des objets sur la ligne 1 semble problématique. Sur mon plateau, pourriez-vous vérifier les cellules vides disponibles dans d'autres lignes, comme la ligne 2 ou la ligne 4, où il pourrait y avoir des opportunités pour déplacer des objets similaires ?</p></p>
+    </div>
+</div><div class="game-round" data-round="16">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 16 sur un maximum de 28.
+Vous avez collectivement accumulé 14 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Cette situation est complexe. Pour réévaluer notre stratégie, nous devons vérifier les cellules vides disponibles sur l'ensemble de la grille, car le déplacement des objets sur la ligne 1 semble problématique. Sur mon plateau, pourriez-vous vérifier les cellules vides disponibles dans d'autres lignes, comme la ligne 2 ou la ligne 4, où il pourrait y avoir des opportunités pour déplacer des objets similaires ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Sur mon plateau, la ligne 2 (y = 2) a des cellules vides (◌) aux coordonnées (2,3), (2,4), (2,5), (2,6), excepté (2,1) où se trouve 'A' et (2,7) où se trouve 'S'. La ligne 4 (y = 4) est entièrement vide excepté à la cellule (4,2) où se trouve 'P'. La ligne 3 (y = 3) a des cellules vides (◌) entre les objets 'P', 'O', 'S'. Je pense qu'il serait judicieux de déplacer le 'T' de la ligne 1 vers une ligne avec des cellules vides comme la ligne 3 ou la ligne 2. Que pensez-vous, devrions-nous déplacer 'T' vers la ligne 3 pour qu'il le rejoigne les autres 'T' si possible ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Sur mon plateau, la ligne 2 (y = 2) a des cellules vides (◌) aux coordonnées (2,3), (2,4), (2,5), (2,6), excepté (2,1) où se trouve 'A' et (2,7) où se trouve 'S'. La ligne 4 (y = 4) est entièrement vide excepté à la cellule (4,2) où se trouve 'P'. La ligne 3 (y = 3) a des cellules vides (◌) entre les objets 'P', 'O', 'S'. Je pense qu'il serait judicieux de déplacer le 'T' de la ligne 1 vers une ligne avec des cellules vides comme la ligne 3 ou la ligne 2. Que pensez-vous, devrions-nous déplacer 'T' vers la ligne 3 pour qu'il le rejoigne les autres 'T' si possible ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 17 sur un maximum de 28.
+Vous avez collectivement accumulé 14 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Sur mon plateau, la ligne 2 (y = 2) a des cellules vides (◌) aux coordonnées (2,3), (2,4), (2,5), (2,6), excepté (2,1) où se trouve 'A' et (2,7) où se trouve 'S'. La ligne 4 (y = 4) est entièrement vide excepté à la cellule (4,2) où se trouve 'P'. La ligne 3 (y = 3) a des cellules vides (◌) entre les objets 'P', 'O', 'S'. Je pense qu'il serait judicieux de déplacer le 'T' de la ligne 1 vers une ligne avec des cellules vides comme la ligne 3 ou la ligne 2. Que pensez-vous, devrions-nous déplacer 'T' vers la ligne 3 pour qu'il le rejoigne les autres 'T' si possible ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Cette analyse est précieuse. Sur mon plateau, la ligne 3 contient déjà deux T (aux coordonnées (1,2) et (1,5)), donc le déplacer dans la ligne 3 n'est pas une bonne idée. Cependant, si nous déplaçons le T dans la ligne 2, il se rapprocherait des autres T potentiels si une autre paire se forme. Proposez-vous de déplacer le T de (1,5) vers une cellule vide sur la ligne 2 (comme (2,3), (2,4), (2,5) ou (2,6)) pour renforcer la configuration sur la ligne 2 ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Cette analyse est précieuse. Sur mon plateau, la ligne 3 contient déjà deux T (aux coordonnées (1,2) et (1,5)), donc le déplacer dans la ligne 3 n'est pas une bonne idée. Cependant, si nous déplaçons le T dans la ligne 2, il se rapprocherait des autres T potentiels si une autre paire se forme. Proposez-vous de déplacer le T de (1,5) vers une cellule vide sur la ligne 2 (comme (2,3), (2,4), (2,5) ou (2,6)) pour renforcer la configuration sur la ligne 2 ?</p></p>
+    </div>
+</div><div class="game-round" data-round="17">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 17 sur un maximum de 28.
+Vous avez collectivement accumulé 14 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Cette analyse est précieuse. Sur mon plateau, la ligne 3 contient déjà deux T (aux coordonnées (1,2) et (1,5)), donc le déplacer dans la ligne 3 n'est pas une bonne idée. Cependant, si nous déplaçons le T dans la ligne 2, il se rapprocherait des autres T potentiels si une autre paire se forme. Proposez-vous de déplacer le T de (1,5) vers une cellule vide sur la ligne 2 (comme (2,3), (2,4), (2,5) ou (2,6)) pour renforcer la configuration sur la ligne 2 ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (2, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 18 sur un maximum de 28.
+Vous avez collectivement accumulé 14 pénalités sur 16.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le message. En me basant sur votre analyse, déplacer le T de (1,5) vers (2,3) sur la ligne 2 semble être une bonne stratégie pour rapprocher les T. Sur mon plateau, la cellule (2,3) est-elle vide ? Si oui, je confirme le déplacement du T de (1,5) vers (2,3). Sinon, pourriez-vous vérifier d'autres cellules vides disponibles sur la ligne 2 (comme (2,4), (2,5) ou (2,6)) et me les indiquer ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le message. En me basant sur votre analyse, déplacer le T de (1,5) vers (2,3) sur la ligne 2 semble être une bonne stratégie pour rapprocher les T. Sur mon plateau, la cellule (2,3) est-elle vide ? Si oui, je confirme le déplacement du T de (1,5) vers (2,3). Sinon, pourriez-vous vérifier d'autres cellules vides disponibles sur la ligne 2 (comme (2,4), (2,5) ou (2,6)) et me les indiquer ?</p></p>
+    </div>
+</div><div class="game-round" data-round="18">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Déplacement de 'T' vers (2,3) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│◌│◌║ 1
+║◌◌A└─┤S║ 2
+║◌T◌P◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Vous jouez actuellement le tour 18 sur un maximum de 28.
+Vous avez collectivement accumulé 14 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le message. En me basant sur votre analyse, déplacer le T de (1,5) vers (2,3) sur la ligne 2 semble être une bonne stratégie pour rapprocher les T. Sur mon plateau, la cellule (2,3) est-elle vide ? Si oui, je confirme le déplacement du T de (1,5) vers (2,3). Sinon, pourriez-vous vérifier d'autres cellules vides disponibles sur la ligne 2 (comme (2,4), (2,5) ou (2,6)) et me les indiquer ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 15 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 15 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai déplacé le T vers (2,3) et cela a échoué car cette cellule n'était pas vide. Je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4), (2,5), ou (2,6). Veuillez m'indiquer une cellule vide dans la ligne 2 pour que je puisse déplacer T de (1,5) vers cette nouvelle cellule.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai déplacé le T vers (2,3) et cela a échoué car cette cellule n'était pas vide. Je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4), (2,5), ou (2,6). Veuillez m'indiquer une cellule vide dans la ligne 2 pour que je puisse déplacer T de (1,5) vers cette nouvelle cellule.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 19 sur un maximum de 28.
+Vous avez collectivement accumulé 15 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai déplacé le T vers (2,3) et cela a échoué car cette cellule n'était pas vide. Je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4), (2,5), ou (2,6). Veuillez m'indiquer une cellule vide dans la ligne 2 pour que je puisse déplacer T de (1,5) vers cette nouvelle cellule."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour l'information. Sur mon plateau, pourriez-vous vérifier la cellule (2,4) dans la ligne 2 (y = 2) ? Si elle est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les T sur cette ligne. Si (2,4) n'est pas vide, pourriez-vous vérifier (2,5) ou (2,6) ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour l'information. Sur mon plateau, pourriez-vous vérifier la cellule (2,4) dans la ligne 2 (y = 2) ? Si elle est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les T sur cette ligne. Si (2,4) n'est pas vide, pourriez-vous vérifier (2,5) ou (2,6) ?</p></p>
+    </div>
+</div><div class="game-round" data-round="19">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 19 sur un maximum de 28.
+Vous avez collectivement accumulé 15 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour l'information. Sur mon plateau, pourriez-vous vérifier la cellule (2,4) dans la ligne 2 (y = 2) ? Si elle est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les T sur cette ligne. Si (2,4) n'est pas vide, pourriez-vous vérifier (2,5) ou (2,6) ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┐'.</p>
+<p>Vous avez collectivement accumulé 16 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┐'.</p>
+<p>Vous avez collectivement accumulé 16 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,4) et rencontré une pénalité car la cellule était occupée. Sur mon plateau, je vais vérifier les autres cellules vides dans la ligne 2, comme (2,5) et (2,6). J'aimerais déplacer T de (1,5) vers (2,5). Veuillez vérifier si cette cellule est vide pour que je puisse procéder au déplacement.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,4) et rencontré une pénalité car la cellule était occupée. Sur mon plateau, je vais vérifier les autres cellules vides dans la ligne 2, comme (2,5) et (2,6). J'aimerais déplacer T de (1,5) vers (2,5). Veuillez vérifier si cette cellule est vide pour que je puisse procéder au déplacement.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 20 sur un maximum de 28.
+Vous avez collectivement accumulé 16 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,4) et rencontré une pénalité car la cellule était occupée. Sur mon plateau, je vais vérifier les autres cellules vides dans la ligne 2, comme (2,5) et (2,6). J'aimerais déplacer T de (1,5) vers (2,5). Veuillez vérifier si cette cellule est vide pour que je puisse procéder au déplacement."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le message. Sur mon plateau, pourriez-vous vérifier si la cellule (2,5) dans la ligne 2 (y = 2) est vide ? Si la cellule (2,5) est vide, je suggère de déplacer l'objet T de (1,5) vers (2,5) pour tenter d'aligner les T sur cette ligne. Sinon, vérifieriez la cellule (2,6) ou d'autres cellules vides dans la même ligne.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le message. Sur mon plateau, pourriez-vous vérifier si la cellule (2,5) dans la ligne 2 (y = 2) est vide ? Si la cellule (2,5) est vide, je suggère de déplacer l'objet T de (1,5) vers (2,5) pour tenter d'aligner les T sur cette ligne. Sinon, vérifieriez la cellule (2,6) ou d'autres cellules vides dans la même ligne.</p></p>
+    </div>
+</div><div class="game-round" data-round="20">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 20 sur un maximum de 28.
+Vous avez collectivement accumulé 16 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le message. Sur mon plateau, pourriez-vous vérifier si la cellule (2,5) dans la ligne 2 (y = 2) est vide ? Si la cellule (2,5) est vide, je suggère de déplacer l'objet T de (1,5) vers (2,5) pour tenter d'aligner les T sur cette ligne. Sinon, vérifieriez la cellule (2,6) ou d'autres cellules vides dans la même ligne."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,5) n'est pas vide, mais contient '│'.</p>
+<p>Vous avez collectivement accumulé 17 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,5) n'est pas vide, mais contient '│'.</p>
+<p>Vous avez collectivement accumulé 17 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,5) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier les cellules vides restantes dans la ligne 2 (y = 2) comme (2,6). J'aimerais déplacer T de (1,5) vers (2,6). Veuillez vérifier si cette cellule est vide pour que je puisse procéder au déplacement.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,5) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier les cellules vides restantes dans la ligne 2 (y = 2) comme (2,6). J'aimerais déplacer T de (1,5) vers (2,6). Veuillez vérifier si cette cellule est vide pour que je puisse procéder au déplacement.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 21 sur un maximum de 28.
+Vous avez collectivement accumulé 17 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,5) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier les cellules vides restantes dans la ligne 2 (y = 2) comme (2,6). J'aimerais déplacer T de (1,5) vers (2,6). Veuillez vérifier si cette cellule est vide pour que je puisse procéder au déplacement."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier si la cellule (2,6) dans la ligne 2 (y = 2) est vide ? Si la cellule (2,6) est vide, je propose de déplacer l'objet T de (1,5) vers (2,6) pour aligner les deux T dans la ligne 2. Sinon, veuillez vérifier si d'autres cellules vides dans la ligne 2 sont disponibles.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier si la cellule (2,6) dans la ligne 2 (y = 2) est vide ? Si la cellule (2,6) est vide, je propose de déplacer l'objet T de (1,5) vers (2,6) pour aligner les deux T dans la ligne 2. Sinon, veuillez vérifier si d'autres cellules vides dans la ligne 2 sont disponibles.</p></p>
+    </div>
+</div><div class="game-round" data-round="21">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 21 sur un maximum de 28.
+Vous avez collectivement accumulé 17 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier si la cellule (2,6) dans la ligne 2 (y = 2) est vide ? Si la cellule (2,6) est vide, je propose de déplacer l'objet T de (1,5) vers (2,6) pour aligner les deux T dans la ligne 2. Sinon, veuillez vérifier si d'autres cellules vides dans la ligne 2 sont disponibles."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,6) n'est pas vide, mais contient '┼'.</p>
+<p>Vous avez collectivement accumulé 18 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,6) n'est pas vide, mais contient '┼'.</p>
+<p>Vous avez collectivement accumulé 18 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,6) et reçu une pénalité car cette cellule était occupée par '┼'. Sur mon plateau, je vais vérifier les cellules vides disponibles dans la ligne 2 (y = 2) comme (2,3), (2,4), (2,5), ou (2,7) pour pouvoir déplacer T de (1,5). J'aimerais déplacer T de (1,5) vers (2,3) si elle est libre. Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,6) et reçu une pénalité car cette cellule était occupée par '┼'. Sur mon plateau, je vais vérifier les cellules vides disponibles dans la ligne 2 (y = 2) comme (2,3), (2,4), (2,5), ou (2,7) pour pouvoir déplacer T de (1,5). J'aimerais déplacer T de (1,5) vers (2,3) si elle est libre. Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 22 sur un maximum de 28.
+Vous avez collectivement accumulé 18 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,6) et reçu une pénalité car cette cellule était occupée par '┼'. Sur mon plateau, je vais vérifier les cellules vides disponibles dans la ligne 2 (y = 2) comme (2,3), (2,4), (2,5), ou (2,7) pour pouvoir déplacer T de (1,5). J'aimerais déplacer T de (1,5) vers (2,3) si elle est libre. Veuillez vérifier si cette cellule est vide."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier la cellule (2,3) dans la ligne 2 (y = 2) ? Si la cellule (2,3) est vide, je propose de déplacer le T de (1,5) vers (2,3) pour tenter d'aligner les T dans la ligne 2. Sinon, vérifieriez si (2,4), (2,5) ou (2,7) sont vides.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier la cellule (2,3) dans la ligne 2 (y = 2) ? Si la cellule (2,3) est vide, je propose de déplacer le T de (1,5) vers (2,3) pour tenter d'aligner les T dans la ligne 2. Sinon, vérifieriez si (2,4), (2,5) ou (2,7) sont vides.</p></p>
+    </div>
+</div><div class="game-round" data-round="22">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 22 sur un maximum de 28.
+Vous avez collectivement accumulé 18 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier la cellule (2,3) dans la ligne 2 (y = 2) ? Si la cellule (2,3) est vide, je propose de déplacer le T de (1,5) vers (2,3) pour tenter d'aligner les T dans la ligne 2. Sinon, vérifieriez si (2,4), (2,5) ou (2,7) sont vides."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 19 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 19 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,3) et reçu une pénalité car cette cellule était occupée par 'T', comme nous l'avons constaté plus tôt. Sur mon plateau, je vais vérifier d'autres cellules vides dans la ligne 2 (y = 2) comme (2,7). J'aimerais déplacer T de (1,5) vers (2,7). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,3) et reçu une pénalité car cette cellule était occupée par 'T', comme nous l'avons constaté plus tôt. Sur mon plateau, je vais vérifier d'autres cellules vides dans la ligne 2 (y = 2) comme (2,7). J'aimerais déplacer T de (1,5) vers (2,7). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 23 sur un maximum de 28.
+Vous avez collectivement accumulé 19 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,3) et reçu une pénalité car cette cellule était occupée par 'T', comme nous l'avons constaté plus tôt. Sur mon plateau, je vais vérifier d'autres cellules vides dans la ligne 2 (y = 2) comme (2,7). J'aimerais déplacer T de (1,5) vers (2,7). Veuillez vérifier si cette cellule est vide."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,7) dans la ligne 2 (y = 2) ? Si la cellule (2,7) est vide, je propose de déplacer le T de (1,5) vers (2,7) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,5).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,7) dans la ligne 2 (y = 2) ? Si la cellule (2,7) est vide, je propose de déplacer le T de (1,5) vers (2,7) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,5).</p></p>
+    </div>
+</div><div class="game-round" data-round="23">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 23 sur un maximum de 28.
+Vous avez collectivement accumulé 19 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,7) dans la ligne 2 (y = 2) ? Si la cellule (2,7) est vide, je propose de déplacer le T de (1,5) vers (2,7) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,5)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,7) n'est pas vide, mais contient '│'.</p>
+<p>Vous avez collectivement accumulé 20 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,7) n'est pas vide, mais contient '│'.</p>
+<p>Vous avez collectivement accumulé 20 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,7) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4). J'aimerais déplacer T de (1,5) vers (2,4). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,7) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4). J'aimerais déplacer T de (1,5) vers (2,4). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 24 sur un maximum de 28.
+Vous avez collectivement accumulé 20 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,7) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4). J'aimerais déplacer T de (1,5) vers (2,4). Veuillez vérifier si cette cellule est vide."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,4) dans la ligne 2 (y = 2) ? Si la cellule (2,4) est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,5) ou (2,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,4) dans la ligne 2 (y = 2) ? Si la cellule (2,4) est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,5) ou (2,6).</p></p>
+    </div>
+</div><div class="game-round" data-round="24">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 24 sur un maximum de 28.
+Vous avez collectivement accumulé 20 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,4) dans la ligne 2 (y = 2) ? Si la cellule (2,4) est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,5) ou (2,6)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┐'.</p>
+<p>Vous avez collectivement accumulé 21 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┐'.</p>
+<p>Vous avez collectivement accumulé 21 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,4) et reçu une pénalité car cette cellule était occupée par '┐'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,5). J'aimerais déplacer T de (1,5) vers (2,5). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,4) et reçu une pénalité car cette cellule était occupée par '┐'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,5). J'aimerais déplacer T de (1,5) vers (2,5). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 25 sur un maximum de 28.
+Vous avez collectivement accumulé 21 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,4) et reçu une pénalité car cette cellule était occupée par '┐'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,5). J'aimerais déplacer T de (1,5) vers (2,5). Veuillez vérifier si cette cellule est vide."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,5) dans la ligne 2 (y = 2) ? Si la cellule (2,5) est vide, je propose de déplacer le T de (1,5) vers (2,5) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,5) dans la ligne 2 (y = 2) ? Si la cellule (2,5) est vide, je propose de déplacer le T de (1,5) vers (2,5) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,6).</p></p>
+    </div>
+</div><div class="game-round" data-round="25">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 25 sur un maximum de 28.
+Vous avez collectivement accumulé 21 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,5) dans la ligne 2 (y = 2) ? Si la cellule (2,5) est vide, je propose de déplacer le T de (1,5) vers (2,5) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,6)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,5) n'est pas vide, mais contient '│'.</p>
+<p>Vous avez collectivement accumulé 22 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,5) n'est pas vide, mais contient '│'.</p>
+<p>Vous avez collectivement accumulé 22 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,5) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,6). J'aimerais déplacer T de (1,5) vers (2,6). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,5) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,6). J'aimerais déplacer T de (1,5) vers (2,6). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 26 sur un maximum de 28.
+Vous avez collectivement accumulé 22 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,5) et reçu une pénalité car cette cellule était occupée par '│'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,6). J'aimerais déplacer T de (1,5) vers (2,6). Veuillez vérifier si cette cellule est vide."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,6) dans la ligne 2 (y = 2) ? Si la cellule (2,6) est vide, je propose de déplacer le T de (1,5) vers (2,6) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,5).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,6) dans la ligne 2 (y = 2) ? Si la cellule (2,6) est vide, je propose de déplacer le T de (1,5) vers (2,6) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,5).</p></p>
+    </div>
+</div><div class="game-round" data-round="26">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 26 sur un maximum de 28.
+Vous avez collectivement accumulé 22 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,6) dans la ligne 2 (y = 2) ? Si la cellule (2,6) est vide, je propose de déplacer le T de (1,5) vers (2,6) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,4) ou (2,5)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,6) n'est pas vide, mais contient '┼'.</p>
+<p>Vous avez collectivement accumulé 23 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,6) n'est pas vide, mais contient '┼'.</p>
+<p>Vous avez collectivement accumulé 23 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,6) et reçu une pénalité car cette cellule était occupée par '┼'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,3). J'aimerais déplacer T de (1,5) vers (2,3). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,6) et reçu une pénalité car cette cellule était occupée par '┼'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,3). J'aimerais déplacer T de (1,5) vers (2,3). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 27 sur un maximum de 28.
+Vous avez collectivement accumulé 23 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,6) et reçu une pénalité car cette cellule était occupée par '┼'. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,3). J'aimerais déplacer T de (1,5) vers (2,3). Veuillez vérifier si cette cellule est vide."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,3) dans la ligne 2 (y = 2) ? Si la cellule (2,3) est vide, je propose de déplacer le T de (1,5) vers (2,3) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,4), (2,5) ou (2,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,3) dans la ligne 2 (y = 2) ? Si la cellule (2,3) est vide, je propose de déplacer le T de (1,5) vers (2,3) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,4), (2,5) ou (2,6).</p></p>
+    </div>
+</div><div class="game-round" data-round="27">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 27 sur un maximum de 28.
+Vous avez collectivement accumulé 23 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,3) dans la ligne 2 (y = 2) ? Si la cellule (2,3) est vide, je propose de déplacer le T de (1,5) vers (2,3) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,4), (2,5) ou (2,6)."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: T, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 24 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,3) n'est pas vide, mais contient 'T'.</p>
+<p>Vous avez collectivement accumulé 24 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,3) et reçu une pénalité car cette cellule était occupée par 'T', comme nous l'avons constaté plus tôt. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4). J'aimerais déplacer T de (1,5) vers (2,4). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: J'ai essayé de déplacer T vers (2,3) et reçu une pénalité car cette cellule était occupée par 'T', comme nous l'avons constaté plus tôt. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4). J'aimerais déplacer T de (1,5) vers (2,4). Veuillez vérifier si cette cellule est vide.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 28 sur un maximum de 28.
+Vous avez collectivement accumulé 24 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"J'ai essayé de déplacer T vers (2,3) et reçu une pénalité car cette cellule était occupée par 'T', comme nous l'avons constaté plus tôt. Sur mon plateau, je vais vérifier une autre cellule vide dans la ligne 2 (y = 2) comme (2,4). J'aimerais déplacer T de (1,5) vers (2,4). Veuillez vérifier si cette cellule est vide."</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,4) dans la ligne 2 (y = 2) ? Si la cellule (2,4) est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,5) ou (2,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Merci pour le déplacement proposé. Sur mon plateau, pourriez-vous vérifier rapidement la cellule (2,4) dans la ligne 2 (y = 2) ? Si la cellule (2,4) est vide, je propose de déplacer le T de (1,5) vers (2,4) pour essayer d'aligner les deux T dans la ligne 2. Sinon, veuillez vérifier les autres cellules vides dans cette ligne, comme (2,3), (2,5) ou (2,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of rounds reached</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌O◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌M│◌│◌║ 1
+║◌◌A└─┤S║ 2
+║◌T◌P◌├─╢ 3
+╟─┐O┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 2.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 14.75</li>
+<li>Init Distance Sum: 19.62</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 24.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 28.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

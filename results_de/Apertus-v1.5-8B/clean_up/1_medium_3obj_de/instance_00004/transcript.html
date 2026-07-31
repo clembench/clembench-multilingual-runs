@@ -1,0 +1,903 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_3obj_de', episode 4 with Apertus-v1.5-8B.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ich bin der Spielleiter, und du spielst ein kooperatives Spiel mit dem folgenden Raster als Spielbrett:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘C◌│◌◌║ 4
+║◌◌◌◌│◌◌║ 5
+║◌L┌─┼──╢ 6
+║◌◌│◌│P◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Am oberen Rand sind die x-Koordinaten angegeben, die nach rechts hin zunehmen, und am rechten Rand die y-Koordinaten, die nach unten zunehmen.</li>
+<li>Die folgenden Objekte sind zufällig auf deinem Raster platziert: 'C', 'L', 'P'.</li>
+</ul>
+<p>Dein Mitspieler sieht eine Variation des Spielbretts, auf dem dieselben Objekte an anderen zufälligen Positionen platziert sind. Du kannst das Spielbrett des anderen Spielers nicht sehen, und er kann deins nicht sehen.</p>
+<p><strong>Ziel des Spiels:</strong></p>
+<p>Beide Spieler müssen die Objekte auf ihrem jeweiligen Spielbrett so bewegen, dass identische Objekte am Ende an denselben Koordinaten liegen. Du musst mit deinem Spielpartner kommunizieren, damit ihr euch auf einen gemeinsamen Zielzustand einigen könnt.</p>
+<p><strong>Spielregeln:</strong></p>
+<ul>
+<li>In jedem Spielzug kannst du genau eine der folgenden zwei Aktionen ausführen:</li>
+<li><code>SPRICH: &lt;NACHRICHT&gt;</code>: um eine Nachricht zu schicken, die ich dann an deinen Spielpartner weiterleite. Als Nachricht gilt alles bis zum nächsten Zeilenumbruch.</li>
+<li><code>VERSCHIEBE: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: um ein Objekt an eine andere Position zu bewegen, wobei <code>&lt;X&gt;</code> die Spalte und <code>&lt;Y&gt;</code> die Zeile bezeichnet. Ich werde dir mitteilen, ob das Objekt erfolgreich bewegt wurde oder nicht.</li>
+<li>Wenn du irgendein anderes Format verwendest oder mehrere Befehle gleichzeitig abschickst, muss ich euch einen Strafpunkt geben.</li>
+<li>Wenn ihr gemeinsam mehr als 8 Strafpunkte ansammelt, verliert ihr das Spiel.</li>
+<li>Es ist essenziell, dass du dich mit deinem Mitspieler auf eine gemeinsame Zielanordnung einigst! Du kannst deinem Mitspieler deine Strategie ausschließlich mithilfe des Befehls <code>SPRICH: &lt;NACHRICHT&gt;</code> mitteilen!</li>
+</ul>
+<p><strong>Objekte bewegen</strong></p>
+<ul>
+<li>Du kannst Objekte nur innerhalb des Rasters und in leere Zellen bewegen. Leere Zellen erkennst am Zeichen '◌'.</li>
+<li>Solltest du versuchen, ein Objekt an eine Stelle zu bewegen, die entweder nicht leer ist oder sich außerhalb des Rasters befindet, muss ich euch einen Strafpunkt geben und du bekommst einen weiteren Versuch.</li>
+<li>Wenn du ein Objekt bewegen willst, solltest du dich erst vergewissern, ob die Zielposition auch wirklich leer ist und weder Buchstaben noch Rahmenteile noch Linien enthält!</li>
+</ul>
+<p><strong>Spielende:</strong></p>
+<p>Wenn du glaubst, dass ihr das Ziel erreicht habt, kannst du deinem Mitspieler die Nachricht <code>SPRICH: fertig?</code> schicken. Wenn dein Spielpartner dich fragt, ob ihr fertig seid, kannst du das Spiel beenden, indem du mit <code>SPRICH: fertig!</code> antwortest.</p>
+<p>Ihr gewinnt gemeinsam, wenn ihr das Spiel innerhalb von #max_rounds Runden beendet. Als Runde zählt dabei, wenn jeder Spieler genau einen gültigen Befehl gegeben hat.</p>
+<p><strong>Punkte:</strong></p>
+<p>Je näher sich die jeweils gleichen Objekte auf beiden Rastern sind, desto mehr Punkte bekommt ihr. Für Strafpunkte gibt es Punktabzug. Könnt ihr den Rekord brechen?</p>
+<p>Schicke eine Nachricht an deinen Mitspieler um das Spiel zu starten!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Hallo! Lass uns die Positionen der Objekte 'C', 'L' und 'P' herausfinden, um eine gemeinsame Zielanordnung zu vereinbaren. Wie möchten wir vorgehen?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Hallo! Lass uns die Positionen der Objekte 'C', 'L' und 'P' herausfinden, um eine gemeinsame Zielanordnung zu vereinbaren. Wie möchten wir vorgehen?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ich bin der Spielleiter, und du spielst ein kooperatives Spiel mit dem folgenden Raster als Spielbrett:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│L◌├──╢ 3
+╟─┘◌◌│◌C║ 4
+║P◌◌◌│◌◌║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Am oberen Rand sind die x-Koordinaten angegeben, die nach rechts hin zunehmen, und am rechten Rand die y-Koordinaten, die nach unten zunehmen.</li>
+<li>Die folgenden Objekte sind zufällig auf deinem Raster platziert: 'C', 'L', 'P'.</li>
+</ul>
+<p>Dein Mitspieler sieht eine Variation des Spielbretts, auf dem dieselben Objekte an anderen zufälligen Positionen platziert sind. Du kannst das Spielbrett des anderen Spielers nicht sehen, und er kann deins nicht sehen.</p>
+<p><strong>Ziel des Spiels:</strong></p>
+<p>Beide Spieler müssen die Objekte auf ihrem jeweiligen Spielbrett so bewegen, dass identische Objekte am Ende an denselben Koordinaten liegen. Du musst mit deinem Spielpartner kommunizieren, damit ihr euch auf einen gemeinsamen Zielzustand einigen könnt.</p>
+<p><strong>Spielregeln:</strong></p>
+<ul>
+<li>In jedem Spielzug kannst du genau eine der folgenden zwei Aktionen ausführen:</li>
+<li><code>SPRICH: &lt;NACHRICHT&gt;</code>: um eine Nachricht zu schicken, die ich dann an deinen Spielpartner weiterleite. Als Nachricht gilt alles bis zum nächsten Zeilenumbruch.</li>
+<li><code>VERSCHIEBE: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: um ein Objekt an eine andere Position zu bewegen, wobei <code>&lt;X&gt;</code> die Spalte und <code>&lt;Y&gt;</code> die Zeile bezeichnet. Ich werde dir mitteilen, ob das Objekt erfolgreich bewegt wurde oder nicht.</li>
+<li>Wenn du irgendein anderes Format verwendest oder mehrere Befehle gleichzeitig abschickst, muss ich euch einen Strafpunkt geben.</li>
+<li>Wenn ihr gemeinsam mehr als 8 Strafpunkte ansammelt, verliert ihr das Spiel.</li>
+<li>Es ist essenziell, dass du dich mit deinem Mitspieler auf eine gemeinsame Zielanordnung einigst! Du kannst deinem Mitspieler deine Strategie ausschließlich mithilfe des Befehls <code>SPRICH: &lt;NACHRICHT&gt;</code> mitteilen!</li>
+</ul>
+<p><strong>Objekte bewegen</strong></p>
+<ul>
+<li>Du kannst Objekte nur innerhalb des Rasters und in leere Zellen bewegen. Leere Zellen erkennst am Zeichen '◌'.</li>
+<li>Solltest du versuchen, ein Objekt an eine Stelle zu bewegen, die entweder nicht leer ist oder sich außerhalb des Rasters befindet, muss ich euch einen Strafpunkt geben und du bekommst einen weiteren Versuch.</li>
+<li>Wenn du ein Objekt bewegen willst, solltest du dich erst vergewissern, ob die Zielposition auch wirklich leer ist und weder Buchstaben noch Rahmenteile noch Linien enthält!</li>
+</ul>
+<p><strong>Spielende:</strong></p>
+<p>Wenn du glaubst, dass ihr das Ziel erreicht habt, kannst du deinem Mitspieler die Nachricht <code>SPRICH: fertig?</code> schicken. Wenn dein Spielpartner dich fragt, ob ihr fertig seid, kannst du das Spiel beenden, indem du mit <code>SPRICH: fertig!</code> antwortest.</p>
+<p>Ihr gewinnt gemeinsam, wenn ihr das Spiel innerhalb von #max_rounds Runden beendet. Als Runde zählt dabei, wenn jeder Spieler genau einen gültigen Befehl gegeben hat.</p>
+<p><strong>Punkte:</strong></p>
+<p>Je näher sich die jeweils gleichen Objekte auf beiden Rastern sind, desto mehr Punkte bekommt ihr. Für Strafpunkte gibt es Punktabzug. Könnt ihr den Rekord brechen?</p>
+<p>Dein Mitspieler hat das Spiel mit dieser Nachricht begonnen:</p>
+<p>"Hallo! Lass uns die Positionen der Objekte 'C', 'L' und 'P' herausfinden, um eine gemeinsame Zielanordnung zu vereinbaren. Wie möchten wir vorgehen?"</p>
+<p>Wie lautet dein erster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir zunächst die Positionen aller Objekte auf meinem Raster notieren und diese dann mit deinem Spieler abgleichen. Nimm die Positionen von 'C', 'L' und 'P' auf deinem Raster wahr und teile mir mit, wo sie sich jeweils befinden. Dann können wir gemeinsam eine Zielanordnung festlegen.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir zunächst die Positionen aller Objekte auf meinem Raster notieren und diese dann mit deinem Spieler abgleichen. Nimm die Positionen von 'C', 'L' und 'P' auf deinem Raster wahr und teile mir mit, wo sie sich jeweils befinden. Dann können wir gemeinsam eine Zielanordnung festlegen.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 1 von maximal 12.
+Ihr habt gemeinsam 0 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Ich schlage vor, dass wir zunächst die Positionen aller Objekte auf meinem Raster notieren und diese dann mit deinem Spieler abgleichen. Nimm die Positionen von 'C', 'L' und 'P' auf deinem Raster wahr und teile mir mit, wo sie sich jeweils befinden. Dann können wir gemeinsam eine Zielanordnung festlegen."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>VERSCHIEBE: C, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: C, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (4, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 2 von maximal 12.
+Ihr habt gemeinsam 0 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>VERSCHIEBE: P, (3, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: P, (3, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (3, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>'C' erfolgreich nach (4,3) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌C├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌◌◌│◌◌║ 5
+║◌L┌─┼──╢ 6
+║◌◌│◌│P◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 2 von maximal 12.
+Ihr habt gemeinsam 0 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Auf meinem Raster befindet sich 'C' momentan an Position (3, 4). Lass uns prüfen, ob 'C' auf deinem aktuellen Raster an der gleichen Koordinate liegt, an die wir 'C' verschieben wollen, nämlich (4, 3). Bitte bestätige, ob diese Position bei dir leer ist, damit wir sicherstellen können, dass der Zug gültig ist.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Auf meinem Raster befindet sich 'C' momentan an Position (3, 4). Lass uns prüfen, ob 'C' auf deinem aktuellen Raster an der gleichen Koordinate liegt, an die wir 'C' verschieben wollen, nämlich (4, 3). Bitte bestätige, ob diese Position bei dir leer ist, damit wir sicherstellen können, dass der Zug gültig ist.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>'P' erfolgreich nach (3,5) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│L◌├──╢ 3
+╟─┘◌◌│◌C║ 4
+║◌◌P◌│◌◌║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 3 von maximal 12.
+Ihr habt gemeinsam 0 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Auf meinem Raster befindet sich 'C' momentan an Position (3, 4). Lass uns prüfen, ob 'C' auf deinem aktuellen Raster an der gleichen Koordinate liegt, an die wir 'C' verschieben wollen, nämlich (4, 3). Bitte bestätige, ob diese Position bei dir leer ist, damit wir sicherstellen können, dass der Zug gültig ist."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Die Position (4, 3) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug gültig und 'C' kann sicher dorthin verschoben werden.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Die Position (4, 3) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug gültig und 'C' kann sicher dorthin verschoben werden.</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 3 von maximal 12.
+Ihr habt gemeinsam 0 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Die Position (4, 3) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug gültig und 'C' kann sicher dorthin verschoben werden."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>VERSCHIEBE: C, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: C, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Strafpunkt: (4,3) ist nicht leer, sondern enthält 'C'.</p>
+<p>Ihr habt gemeinsam 1 von maximal 8 Strafpunkten angesammelt.
+Bitte versuche es noch mal!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Strafpunkt: (4,3) ist nicht leer, sondern enthält 'C'.</p>
+<p>Ihr habt gemeinsam 1 von maximal 8 Strafpunkten angesammelt.
+Bitte versuche es noch mal!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Es scheint ein Missverständnis aufgetreten zu sein. Da (4, 3) bereits belegt ist und kein 'C' bewegt werden kann, benötigen wir eine neue Zielkoordinate für 'C'. Lass uns eine alternative, leere Position suchen, möglicherweise an einer anderen Stelle im Raster. Kannst du mir eine alternative Position nennen, die leer ist und zum Ziel für 'C' passen würde?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Es scheint ein Missverständnis aufgetreten zu sein. Da (4, 3) bereits belegt ist und kein 'C' bewegt werden kann, benötigen wir eine neue Zielkoordinate für 'C'. Lass uns eine alternative, leere Position suchen, möglicherweise an einer anderen Stelle im Raster. Kannst du mir eine alternative Position nennen, die leer ist und zum Ziel für 'C' passen würde?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 4 von maximal 12.
+Ihr habt gemeinsam 1 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Es scheint ein Missverständnis aufgetreten zu sein. Da (4, 3) bereits belegt ist und kein 'C' bewegt werden kann, benötigen wir eine neue Zielkoordinate für 'C'. Lass uns eine alternative, leere Position suchen, möglicherweise an einer anderen Stelle im Raster. Kannst du mir eine alternative Position nennen, die leer ist und zum Ziel für 'C' passen würde?"</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir 'C' an Position (4, 6) verschieben, da diese Position auf meinem aktuellen Raster leer ist. Bitte überprüfe, ob diese Position auf deinem Raster ebenfalls leer ist, damit wir den Zug durchführen können.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir 'C' an Position (4, 6) verschieben, da diese Position auf meinem aktuellen Raster leer ist. Bitte überprüfe, ob diese Position auf deinem Raster ebenfalls leer ist, damit wir den Zug durchführen können.</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 4 von maximal 12.
+Ihr habt gemeinsam 1 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Ich schlage vor, dass wir 'C' an Position (4, 6) verschieben, da diese Position auf meinem aktuellen Raster leer ist. Bitte überprüfe, ob diese Position auf deinem Raster ebenfalls leer ist, damit wir den Zug durchführen können."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>VERSCHIEBE: C, (4, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: C, (4, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Strafpunkt: (4,6) ist nicht leer, sondern enthält '─'.</p>
+<p>Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Bitte versuche es noch mal!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Strafpunkt: (4,6) ist nicht leer, sondern enthält '─'.</p>
+<p>Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Bitte versuche es noch mal!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Es scheint Schwierigkeiten zu geben, eine gültige neue Position für 'C' zu finden. Da (4, 6) nicht leer ist und kein gültiger Zug durchgeführt werden kann, benötigen wir eine andere Position. Lass uns gemeinsam nach einer leeren Position suchen, die sowohl auf deinem als auch auf meinem aktuellen Raster verfügbar ist. Kannst du eine andere, eindeutig leere Position vorschlagen, an die wir 'C' bewegen könnten? Ich werde diese Position prüfen, um sicherzustellen, dass sie gültig ist.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Es scheint Schwierigkeiten zu geben, eine gültige neue Position für 'C' zu finden. Da (4, 6) nicht leer ist und kein gültiger Zug durchgeführt werden kann, benötigen wir eine andere Position. Lass uns gemeinsam nach einer leeren Position suchen, die sowohl auf deinem als auch auf meinem aktuellen Raster verfügbar ist. Kannst du eine andere, eindeutig leere Position vorschlagen, an die wir 'C' bewegen könnten? Ich werde diese Position prüfen, um sicherzustellen, dass sie gültig ist.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 5 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Es scheint Schwierigkeiten zu geben, eine gültige neue Position für 'C' zu finden. Da (4, 6) nicht leer ist und kein gültiger Zug durchgeführt werden kann, benötigen wir eine andere Position. Lass uns gemeinsam nach einer leeren Position suchen, die sowohl auf deinem als auch auf meinem aktuellen Raster verfügbar ist. Kannst du eine andere, eindeutig leere Position vorschlagen, an die wir 'C' bewegen könnten? Ich werde diese Position prüfen, um sicherzustellen, dass sie gültig ist."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir 'C' an Position (4, 7) verschieben, da diese Position auf meinem aktuellen Raster leer ist und ich vermute, dass sie auch auf deinem Raster leer sein könnte. Bitte überprüfe diese Position auf deinem Raster, um sicherzustellen, dass sie gültig und leer ist, bevor wir den Zug durchführen.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir 'C' an Position (4, 7) verschieben, da diese Position auf meinem aktuellen Raster leer ist und ich vermute, dass sie auch auf deinem Raster leer sein könnte. Bitte überprüfe diese Position auf deinem Raster, um sicherzustellen, dass sie gültig und leer ist, bevor wir den Zug durchführen.</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 5 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Ich schlage vor, dass wir 'C' an Position (4, 7) verschieben, da diese Position auf meinem aktuellen Raster leer ist und ich vermute, dass sie auch auf deinem Raster leer sein könnte. Bitte überprüfe diese Position auf deinem Raster, um sicherzustellen, dass sie gültig und leer ist, bevor wir den Zug durchführen."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>VERSCHIEBE: C, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: C, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (4, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 6 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>VERSCHIEBE: C, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: C, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (4, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>'C' erfolgreich nach (4,7) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌◌◌│◌◌║ 5
+║◌L┌─┼──╢ 6
+║◌◌│C│P◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 6 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Auf meinem aktuellen Raster befindet sich 'C' nun an Position (4, 7). Lassen Sie uns mit der Position von 'L' fortfahren. Auf meinem Raster ist 'L' an Position (6, 1) zu finden. Lassen Sie uns diese Position bestätigen, ob sie auch auf Ihrem aktuellen Raster leer ist, damit wir einen gültigen Zug für 'L' durchführen können.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Auf meinem aktuellen Raster befindet sich 'C' nun an Position (4, 7). Lassen Sie uns mit der Position von 'L' fortfahren. Auf meinem Raster ist 'L' an Position (6, 1) zu finden. Lassen Sie uns diese Position bestätigen, ob sie auch auf Ihrem aktuellen Raster leer ist, damit wir einen gültigen Zug für 'L' durchführen können.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>'C' erfolgreich nach (4,7) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│L◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌P◌│◌◌║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 7 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Auf meinem aktuellen Raster befindet sich 'C' nun an Position (4, 7). Lassen Sie uns mit der Position von 'L' fortfahren. Auf meinem Raster ist 'L' an Position (6, 1) zu finden. Lassen Sie uns diese Position bestätigen, ob sie auch auf Ihrem aktuellen Raster leer ist, damit wir einen gültigen Zug für 'L' durchführen können."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Die Position (6, 1) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug für 'L' an Position (6, 1) gültig und kann durchgeführt werden, wenn er auf deinem Raster ebenfalls leer ist.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Die Position (6, 1) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug für 'L' an Position (6, 1) gültig und kann durchgeführt werden, wenn er auf deinem Raster ebenfalls leer ist.</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 7 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Die Position (6, 1) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug für 'L' an Position (6, 1) gültig und kann durchgeführt werden, wenn er auf deinem Raster ebenfalls leer ist."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>VERSCHIEBE: L, (6, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: L, (6, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (6, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 8 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>VERSCHIEBE: L, (6, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: L, (6, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (6, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>'L' erfolgreich nach (6,1) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│L◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌◌◌│◌◌║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│C│P◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 8 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Auf meinem aktuellen Raster befindet sich 'L' nun an Position (6, 1). Lassen Sie uns mit der Position von 'P' fortfahren. Auf meinem aktuellen Raster ist 'P' an Position (7, 3) zu finden. Lassen Sie uns diese Position bestätigen, ob sie auch auf Ihrem aktuellen Raster leer ist, damit wir einen gültigen Zug für 'P' durchführen können.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Auf meinem aktuellen Raster befindet sich 'L' nun an Position (6, 1). Lassen Sie uns mit der Position von 'P' fortfahren. Auf meinem aktuellen Raster ist 'P' an Position (7, 3) zu finden. Lassen Sie uns diese Position bestätigen, ob sie auch auf Ihrem aktuellen Raster leer ist, damit wir einen gültigen Zug für 'P' durchführen können.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>'L' erfolgreich nach (6,1) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│L◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌P◌│◌◌║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 9 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Auf meinem aktuellen Raster befindet sich 'L' nun an Position (6, 1). Lassen Sie uns mit der Position von 'P' fortfahren. Auf meinem aktuellen Raster ist 'P' an Position (7, 3) zu finden. Lassen Sie uns diese Position bestätigen, ob sie auch auf Ihrem aktuellen Raster leer ist, damit wir einen gültigen Zug für 'P' durchführen können."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Die Position (7, 3) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug für 'P' an Position (7, 3) gültig und kann durchgeführt werden, wenn er auf deinem Raster ebenfalls leer ist.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Die Position (7, 3) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug für 'P' an Position (7, 3) gültig und kann durchgeführt werden, wenn er auf deinem Raster ebenfalls leer ist.</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 9 von maximal 12.
+Ihr habt gemeinsam 2 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Die Position (7, 3) auf meinem aktuellen Raster ist leer. Daher ist der geplante Zug für 'P' an Position (7, 3) gültig und kann durchgeführt werden, wenn er auf deinem Raster ebenfalls leer ist."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>VERSCHIEBE: P, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: P, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Strafpunkt: (7,3) ist nicht leer, sondern enthält '─'.</p>
+<p>Ihr habt gemeinsam 3 von maximal 8 Strafpunkten angesammelt.
+Bitte versuche es noch mal!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Strafpunkt: (7,3) ist nicht leer, sondern enthält '─'.</p>
+<p>Ihr habt gemeinsam 3 von maximal 8 Strafpunkten angesammelt.
+Bitte versuche es noch mal!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Es scheint Schwierigkeiten zu geben, eine gültige neue Position für 'P' zu finden. Da (7, 3) bereits belegt ist und kein gültiger Zug durchgeführt werden kann, benötigen wir eine andere Position. Lass uns gemeinsam nach einer leeren Position suchen, die sowohl auf deinem als auch auf meinem aktuellen Raster verfügbar ist. Kannst du eine andere, eindeutig leere Position vorschlagen, an die wir 'P' bewegen könnten? Ich werde diese Position prüfen, um sicherzustellen, dass sie gültig ist.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Es scheint Schwierigkeiten zu geben, eine gültige neue Position für 'P' zu finden. Da (7, 3) bereits belegt ist und kein gültiger Zug durchgeführt werden kann, benötigen wir eine andere Position. Lass uns gemeinsam nach einer leeren Position suchen, die sowohl auf deinem als auch auf meinem aktuellen Raster verfügbar ist. Kannst du eine andere, eindeutig leere Position vorschlagen, an die wir 'P' bewegen könnten? Ich werde diese Position prüfen, um sicherzustellen, dass sie gültig ist.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 10 von maximal 12.
+Ihr habt gemeinsam 3 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Es scheint Schwierigkeiten zu geben, eine gültige neue Position für 'P' zu finden. Da (7, 3) bereits belegt ist und kein gültiger Zug durchgeführt werden kann, benötigen wir eine andere Position. Lass uns gemeinsam nach einer leeren Position suchen, die sowohl auf deinem als auch auf meinem aktuellen Raster verfügbar ist. Kannst du eine andere, eindeutig leere Position vorschlagen, an die wir 'P' bewegen könnten? Ich werde diese Position prüfen, um sicherzustellen, dass sie gültig ist."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir 'P' an Position (7, 5) verschieben, da diese Position auf meinem aktuellen Raster leer ist und ich vermute, dass sie auch auf deinem Raster leer sein könnte. Bitte überprüfe diese Position auf deinem Raster, um sicherzustellen, dass sie gültig und leer ist, bevor wir den Zug durchführen.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Ich schlage vor, dass wir 'P' an Position (7, 5) verschieben, da diese Position auf meinem aktuellen Raster leer ist und ich vermute, dass sie auch auf deinem Raster leer sein könnte. Bitte überprüfe diese Position auf deinem Raster, um sicherzustellen, dass sie gültig und leer ist, bevor wir den Zug durchführen.</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 10 von maximal 12.
+Ihr habt gemeinsam 3 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Ich schlage vor, dass wir 'P' an Position (7, 5) verschieben, da diese Position auf meinem aktuellen Raster leer ist und ich vermute, dass sie auch auf deinem Raster leer sein könnte. Bitte überprüfe diese Position auf deinem Raster, um sicherzustellen, dass sie gültig und leer ist, bevor wir den Zug durchführen."</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>VERSCHIEBE: P, (7, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: P, (7, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (7, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Deine Nachricht wurde an deinen Mitspieler übermittelt.</p>
+<p>Ihr seid gerade bei Runde 11 von maximal 12.
+Ihr habt gemeinsam 3 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>VERSCHIEBE: P, (7, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>VERSCHIEBE: P, (7, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (7, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>'P' erfolgreich nach (7,5) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│L◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌◌◌│◌P║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 11 von maximal 12.
+Ihr habt gemeinsam 3 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat ein Objekt auf seinem Raster bewegt.</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SPRICH: Auf meinem aktuellen Raster befinden sich die Objekte nun an den Positionen: 'L' an (6, 1), 'C' an (4, 7) und 'P' an (7, 5). Damit wir das Spiel beenden können, sollten wir uns sicherstellen, dass dieselben Objekte auf beiden Spielbretts an denselben Koordinaten liegen. Lassen Sie uns diese Zielpositionen bestätigen, ob sie bereits übereinstimmen, oder ob wir Anpassungen vornehmen müssen, um ein gemeinsames Raster zu erreichen. Können wir eine gemeinsame Zielanordnung vereinbaren, um das Spiel erfolgreich zu beenden?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Auf meinem aktuellen Raster befinden sich die Objekte nun an den Positionen: 'L' an (6, 1), 'C' an (4, 7) und 'P' an (7, 5). Damit wir das Spiel beenden können, sollten wir uns sicherstellen, dass dieselben Objekte auf beiden Spielbretts an denselben Koordinaten liegen. Lassen Sie uns diese Zielpositionen bestätigen, ob sie bereits übereinstimmen, oder ob wir Anpassungen vornehmen müssen, um ein gemeinsames Raster zu erreichen. Können wir eine gemeinsame Zielanordnung vereinbaren, um das Spiel erfolgreich zu beenden?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>'P' erfolgreich nach (7,5) verschoben. Dein Raster sieht jetzt so aus:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌◌│L◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌◌◌│◌P║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Ihr seid gerade bei Runde 12 von maximal 12.
+Ihr habt gemeinsam 3 von maximal 8 Strafpunkten angesammelt.
+Dein Mitspieler hat dir diese Nachricht geschickt:</p>
+<p>"Auf meinem aktuellen Raster befinden sich die Objekte nun an den Positionen: 'L' an (6, 1), 'C' an (4, 7) und 'P' an (7, 5). Damit wir das Spiel beenden können, sollten wir uns sicherstellen, dass dieselben Objekte auf beiden Spielbretts an denselben Koordinaten liegen. Lassen Sie uns diese Zielpositionen bestätigen, ob sie bereits übereinstimmen, oder ob wir Anpassungen vornehmen müssen, um ein gemeinsames Raster zu erreichen. Können wir eine gemeinsame Zielanordnung vereinbaren, um das Spiel erfolgreich zu beenden?"</p>
+<p>Wie lautet dein nächster Befehl?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SPRICH: Unsere bisherige gemeinsame Zielanordnung für die Objekte sieht wie folgt aus: 'L' an (6, 1), 'C' an (4, 7) und 'P' an (7, 5). Da diese Positionen bereits auf meinem aktuellen Raster übereinstimmen und ich annehme, dass sie auf Ihrem Raster ebenfalls korrekt sind, schlage ich vor, dass wir diese Anordnung als finale gemeinsame Zielanordnung akzeptieren, um das Spiel zu beenden. Bitte bestätige, ob dies für dich akzeptabel ist, und wir können das Spiel mit <code>SPRECH: fertig!</code> beenden.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SPRICH: Unsere bisherige gemeinsame Zielanordnung für die Objekte sieht wie folgt aus: 'L' an (6, 1), 'C' an (4, 7) und 'P' an (7, 5). Da diese Positionen bereits auf meinem aktuellen Raster übereinstimmen und ich annehme, dass sie auf Ihrem Raster ebenfalls korrekt sind, schlage ich vor, dass wir diese Anordnung als finale gemeinsame Zielanordnung akzeptieren, um das Spiel zu beenden. Bitte bestätige, ob dies für dich akzeptabel ist, und wir können das Spiel mit <code>SPRECH: fertig!</code> beenden.</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of rounds reached</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘C◌│◌◌║ 4
+║◌◌◌◌│◌◌║ 5
+║◌L┌─┼──╢ 6
+║◌◌│◌│P◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔═╤══╤══╗
+║◌│◌◌│◌◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│L◌├──╢ 3
+╟─┘◌◌│◌C║ 4
+║P◌◌◌│◌◌║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤══╤══╗
+║◌│◌◌│L◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌◌◌│◌P║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔═╤══╤══╗
+║◌│◌◌│L◌║ 1
+╟─┤◌◌│◌◌║ 2
+║◌│◌◌├──╢ 3
+╟─┘◌◌│◌◌║ 4
+║◌◌◌◌│◌P║ 5
+║◌◌┌─┼──╢ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 4.00</li>
+<li>Max Shifts: 4.00</li>
+<li>Min Shifts: 2.00</li>
+<li>End Distance Sum: 0.00</li>
+<li>Init Distance Sum: 12.55</li>
+<li>Expected Distance Sum: 12.57</li>
+<li>Penalties: 3.00</li>
+<li>Max Penalties: 8.00</li>
+<li>Rounds: 12.00</li>
+<li>Max Rounds: 12.00</li>
+<li>Object Count: 3.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>
