@@ -1,0 +1,988 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_5obj_ru', episode 0 with mistral-large-3-azure.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Я твой ведущий, и ты играешь в совместную игру, где игровым полем служит следующая сетка:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌ITW│◌◌║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│H◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║C◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>По верхнему краю показаны x-координаты, увеличивающиеся вправо, а по правому краю — y-координаты, увеличивающиеся вниз.</li>
+<li>На твоей сетке случайным образом размещены следующие объекты: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Другой игрок видит вариант игрового поля, где объекты размещены в других случайных местах. Ты не видишь поле другого игрока, и он не видит твоё.</p>
+<p><strong>Цель:</strong></p>
+<p>Оба игрока должны перемещать объекты на своём фоне так, чтобы одинаковые объекты оказались в одних и тех же координатах. Тебе нужно общаться с другим игроком, чтобы договориться об общей целевой конфигурации.</p>
+<p><strong>Правила:</strong></p>
+<ul>
+<li>В каждом ходе ты можешь отправить ровно одну из следующих двух команд:</li>
+<li><code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code>: чтобы отправить сообщение (всё до следующего перевода строки) другому игроку. Я перешлю его твоему партнёру.</li>
+<li><code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: чтобы переместить объект на новую позицию, где <code>&lt;X&gt;</code> — это столбец, а <code>&lt;Y&gt;</code> — строка. Я сообщу тебе, был ли ход успешным или нет.</li>
+<li>Если ты не придерживаешься формата или отправляешь несколько команд сразу, я должен назначить тебе штраф.</li>
+<li>Если оба игрока наберут больше чем 12 штрафов, вы оба проиграете.</li>
+<li>Крайне важно, чтобы ты общался(лась) с другим игроком о вашей целевой конфигурации! <em>Единственный</em> способ передать другому игроку свою стратегию — использовать команду <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code>!</li>
+</ul>
+<p><strong>Перемещение объектов</strong></p>
+<ul>
+<li>Ты можешь перемещать объекты только в клетки внутри границ сетки. Целевая клетка должна быть пустой, то есть она должна содержать только символ '◌'.</li>
+<li>Если ты попытаешься переместить объект в место, которое не пустое, или попытаешься переместить его за пределы сетки, я должен назначить тебе штраф. У тебя будет ещё одна попытка.</li>
+<li>Перед тем как сделать ход, дважды проверь, что целевое место пустое и что в нём нет никакой буквы, рамки или линии!</li>
+</ul>
+<p><strong>Конец игры</strong></p>
+<p>Если ты считаешь, что достиг(ла) цели и выровнял(а) все объекты, ты можешь попросить другого игрока завершить игру, отправив <code>СКАЗАТЬ: готово?</code>. Если другой игрок просит тебя завершить игру, и ты отвечаешь <code>СКАЗАТЬ: готово!</code>, игра завершится.</p>
+<p>Оба игрока выигрывают, если игра закончится в пределах 20 раундов, где один раунд определяется как то, что оба игрока отправили по одной корректной команде.</p>
+<p><strong>Подсчёт очков:</strong></p>
+<p>Чем ближе одинаковые объекты расположены на обоих игровых полях, тем больше очков ты получаешь. Штрафы уменьшают твои очки. Сможешь побить рекорд?</p>
+<p>Пожалуйста, отправь сообщение другому игроку, чтобы начать игру!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Начнём игру! Давай договоримся о целевой конфигурации объектов. Вот мои текущие позиции:</p>
+<ul>
+<li>W: (5, 1)</li>
+<li>I: (2, 1)</li>
+<li>T: (3, 1)</li>
+<li>C: (1, 7)</li>
+<li>H: (3, 5)</li>
+</ul>
+<p>Предлагаю разместить все объекты в нижней части поля, чтобы упростить синхронизацию. Например:
+- W: (3, 7)
+- I: (4, 7)
+- T: (5, 7)
+- C: (2, 7)
+- H: (6, 7)</p>
+<p>Как тебе такой план? Если согласен, давай начнём с перемещения объектов.</p>
+<p><strong>СКАЗАТЬ: Предлагаю цель: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Ты согласен?</strong></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Начнём игру! Давай договоримся о целевой конфигурации объектов. Вот мои текущие позиции:</p>
+<ul>
+<li>W: (5, 1)</li>
+<li>I: (2, 1)</li>
+<li>T: (3, 1)</li>
+<li>C: (1, 7)</li>
+<li>H: (3, 5)</li>
+</ul>
+<p>Предлагаю разместить все объекты в нижней части поля, чтобы упростить синхронизацию. Например:
+- W: (3, 7)
+- I: (4, 7)
+- T: (5, 7)
+- C: (2, 7)
+- H: (6, 7)</p>
+<p>Как тебе такой план? Если согласен, давай начнём с перемещения объектов.</p>
+<p><strong>СКАЗАТЬ: Предлагаю цель: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Ты согласен?</strong></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Начнём игру! Давай договоримся о целевой конфигурации объектов. Вот мои текущие позиции:</p>
+<ul>
+<li>W: (5, 1)</li>
+<li>I: (2, 1)</li>
+<li>T: (3, 1)</li>
+<li>C: (1, 7)</li>
+<li>H: (3, 5)</li>
+</ul>
+<p>Предлагаю разместить все объекты в нижней части поля, чтобы упростить синхронизацию. Например:
+- W: (3, 7)
+- I: (4, 7)
+- T: (5, 7)
+- C: (2, 7)
+- H: (6, 7)</p>
+<p>Как тебе такой план? Если согласен, давай начнём с перемещения объектов.</p>
+<p>**'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего перед командой!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 1 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЗАТЬ: Давай поставим все объекты в нижний ряд (y=7). Я предлагаю: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Ты согласен?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЗАТЬ: Давай поставим все объекты в нижний ряд (y=7). Я предлагаю: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Ты согласен?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Я твой ведущий, и ты играешь в совместную игру, где игровым полем служит следующая сетка:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌◌│HT║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌C│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│W◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌I│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>По верхнему краю показаны x-координаты, увеличивающиеся вправо, а по правому краю — y-координаты, увеличивающиеся вниз.</li>
+<li>На твоей сетке случайным образом размещены следующие объекты: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Другой игрок видит вариант игрового поля, где объекты размещены в других случайных местах. Ты не видишь поле другого игрока, и он не видит твоё.</p>
+<p><strong>Цель:</strong></p>
+<p>Оба игрока должны перемещать объекты на своём фоне так, чтобы одинаковые объекты оказались в одних и тех же координатах. Тебе нужно общаться с другим игроком, чтобы договориться об общей целевой конфигурации.</p>
+<p><strong>Правила:</strong></p>
+<ul>
+<li>В каждом ходе ты можешь отправить ровно одну из следующих двух команд:</li>
+<li><code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code>: чтобы отправить сообщение (всё до следующего перевода строки) другому игроку. Я перешлю его твоему партнёру.</li>
+<li><code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: чтобы переместить объект на новую позицию, где <code>&lt;X&gt;</code> — это столбец, а <code>&lt;Y&gt;</code> — строка. Я сообщу тебе, был ли ход успешным или нет.</li>
+<li>Если ты не придерживаешься формата или отправляешь несколько команд сразу, я должен назначить тебе штраф.</li>
+<li>Если оба игрока наберут больше чем 12 штрафов, вы оба проиграете.</li>
+<li>Крайне важно, чтобы ты общался(лась) с другим игроком о вашей целевой конфигурации! <em>Единственный</em> способ передать другому игроку свою стратегию — использовать команду <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code>!</li>
+</ul>
+<p><strong>Перемещение объектов</strong></p>
+<ul>
+<li>Ты можешь перемещать объекты только в клетки внутри границ сетки. Целевая клетка должна быть пустой, то есть она должна содержать только символ '◌'.</li>
+<li>Если ты попытаешься переместить объект в место, которое не пустое, или попытаешься переместить его за пределы сетки, я должен назначить тебе штраф. У тебя будет ещё одна попытка.</li>
+<li>Перед тем как сделать ход, дважды проверь, что целевое место пустое и что в нём нет никакой буквы, рамки или линии!</li>
+</ul>
+<p><strong>Конец игры</strong></p>
+<p>Если ты считаешь, что достиг(ла) цели и выровнял(а) все объекты, ты можешь попросить другого игрока завершить игру, отправив <code>СКАЗАТЬ: готово?</code>. Если другой игрок просит тебя завершить игру, и ты отвечаешь <code>СКАЗАТЬ: готово!</code>, игра завершится.</p>
+<p>Оба игрока выигрывают, если игра закончится в пределах 20 раундов, где один раунд определяется как то, что оба игрока отправили по одной корректной команде.</p>
+<p><strong>Подсчёт очков:</strong></p>
+<p>Чем ближе одинаковые объекты расположены на обоих игровых полях, тем больше очков ты получаешь. Штрафы уменьшают твои очки. Сможешь побить рекорд?</p>
+<p>Другой игрок начал игру, отправив это сообщение:</p>
+<p>"Давай поставим все объекты в нижний ряд (y=7). Я предлагаю: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Ты согласен?"</p>
+<p>Какая твоя первая команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Отлично! Другой игрок предложил целевую конфигурацию, где все объекты расположены в нижнем ряду (y=7). Давайте согласимся с этим планом, так как он логичен и прост для координации.</p>
+<p>Вот моя первая команда:</p>
+<pre><code>СКАЗАТЬ: Согласен! Давайте поставим W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Начинаю двигать объекты.
+</code></pre>
+<p>Теперь я начну перемещать объекты на моей сетке в соответствии с этой договорённостью. Первым делом перемещу объект 'C' на позицию (2,7), так как он ближе всего к этой цели.</p>
+<p>Следующая команда:</p>
+<pre><code>ДВИГАТЬСЯ: C, (2, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Отлично! Другой игрок предложил целевую конфигурацию, где все объекты расположены в нижнем ряду (y=7). Давайте согласимся с этим планом, так как он логичен и прост для координации.</p>
+<p>Вот моя первая команда:</p>
+<pre><code>СКАЗАТЬ: Согласен! Давайте поставим W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Начинаю двигать объекты.
+</code></pre>
+<p>Теперь я начну перемещать объекты на моей сетке в соответствии с этой договорённостью. Первым делом перемещу объект 'C' на позицию (2,7), так как он ближе всего к этой цели.</p>
+<p>Следующая команда:</p>
+<pre><code>ДВИГАТЬСЯ: C, (2, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: Отлично! Другой игрок предложил целевую конфигурацию, где все объекты расположены в нижнем ряду (y=7). Давайте согласимся с этим планом, так как он логичен и прост для координации.</p>
+<p>Вот моя первая команда:</p>
+<p>СКАЗАТЬ: Согласен! Давайте поставим W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Начинаю двигать объекты.</p>
+<p>Теперь я начну перемещать объекты на моей сетке в соответствии с этой договорённостью. Первым делом перемещу объект 'C' на позицию (2,7), так как он ближе всего к этой цели.</p>
+<p>Следующая команда:</p>
+<p>ДВИГАТЬСЯ: C, (2, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше сообщение содержит более одной команды!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 2 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Извините за ошибку! Вот исправленная команда:</p>
+<pre><code>СКАЗАТЬ: Согласен! Давай поставим: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Начинаю с C.
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Извините за ошибку! Вот исправленная команда:</p>
+<pre><code>СКАЗАТЬ: Согласен! Давай поставим: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7). Начинаю с C.
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Извините за ошибку! Вот исправленная команда:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего перед командой!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 3 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>СКАЗАТЬ: Согласен с предложением: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЗАТЬ: Согласен с предложением: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7)</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ваше сообщение было передано другому игроку.</p>
+<p>Сейчас вы играете раунд 1 из максимум 20.
+Вы вместе накопили 3 из 12 штрафов.
+Другой игрок отправил это сообщение:</p>
+<p>"Согласен с предложением: W(3,7), I(4,7), T(5,7), C(2,7), H(6,7)"</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ДВИГАТЬСЯ: C, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: C, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (2, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ваше сообщение было передано другому игроку.</p>
+<p>Сейчас вы играете раунд 2 из максимум 20.
+Вы вместе накопили 3 из 12 штрафов.
+Другой игрок переместил объект на своей сетке.</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Теперь попробую переместить объект <strong>C</strong> на моей сетке в целевую позицию (2,7). Проверяю текущее состояние:
+- <strong>C</strong> сейчас находится в (4,3).
+- Клетка (2,7) пустая (◌), значит, перемещение возможно.</p>
+<p>Команда:</p>
+<pre><code>ДВИГАТЬСЯ: C, (2, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Теперь попробую переместить объект <strong>C</strong> на моей сетке в целевую позицию (2,7). Проверяю текущее состояние:
+- <strong>C</strong> сейчас находится в (4,3).
+- Клетка (2,7) пустая (◌), значит, перемещение возможно.</p>
+<p>Команда:</p>
+<pre><code>ДВИГАТЬСЯ: C, (2, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Теперь попробую переместить объект <strong>C</strong> на моей сетке в целевую позицию (2,7). Проверяю текущее состояние:
+- <strong>C</strong> сейчас находится в (4,3).
+- Клетка (2,7) пустая (◌), значит, перемещение возможно.</p>
+<p>Команда:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего перед командой!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 4 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ДВИГАТЬСЯ: C, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: C, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (2,7) не пусто, а содержит "I".</p>
+<p>Вы вместе накопили 5 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (2,7) не пусто, а содержит "I".</p>
+<p>Вы вместе накопили 5 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Извините, не заметил, что в (2,7) уже есть объект <strong>I</strong>. Попробую переместить <strong>I</strong> на его целевую позицию (4,7), чтобы освободить место для <strong>C</strong>.</p>
+<pre><code>ДВИГАТЬСЯ: I, (4, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Извините, не заметил, что в (2,7) уже есть объект <strong>I</strong>. Попробую переместить <strong>I</strong> на его целевую позицию (4,7), чтобы освободить место для <strong>C</strong>.</p>
+<pre><code>ДВИГАТЬСЯ: I, (4, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Извините, не заметил, что в (2,7) уже есть объект <strong>I</strong>. Попробую переместить <strong>I</strong> на его целевую позицию (4,7), чтобы освободить место для <strong>C</strong>.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего перед командой!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 6 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ДВИГАТЬСЯ: I, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: I, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (4, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Успешно перемещён объект "C" в (2,7). Ваша обновлённая сетка выглядит так:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌ITW│◌◌║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│H◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌C│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Сейчас вы играете раунд 2 из максимум 20.
+Вы вместе накопили 6 из 12 штрафов.
+Другой игрок переместил объект на своей сетке.</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЗАТЬ: Я переместил C на (2,7). Теперь двигаю W на (3,7). Проверь, свободна ли у тебя эта клетка?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЗАТЬ: Я переместил C на (2,7). Теперь двигаю W на (3,7). Проверь, свободна ли у тебя эта клетка?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Успешно перемещён объект "I" в (4,7). Ваша обновлённая сетка выглядит так:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌◌│HT║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌C│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│W◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌◌│I│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Сейчас вы играете раунд 3 из максимум 20.
+Вы вместе накопили 6 из 12 штрафов.
+Другой игрок отправил это сообщение:</p>
+<p>"Я переместил C на (2,7). Теперь двигаю W на (3,7). Проверь, свободна ли у тебя эта клетка?"</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Теперь на моей сетке клетка (2,7) свободна (там был <strong>I</strong>, которого я переместил). Попробую переместить <strong>C</strong> на (2,7):</p>
+<pre><code>ДВИГАТЬСЯ: C, (2, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Теперь на моей сетке клетка (2,7) свободна (там был <strong>I</strong>, которого я переместил). Попробую переместить <strong>C</strong> на (2,7):</p>
+<pre><code>ДВИГАТЬСЯ: C, (2, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Теперь на моей сетке клетка (2,7) свободна (там был <strong>I</strong>, которого я переместил). Попробую переместить <strong>C</strong> на (2,7):</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего перед командой!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 7 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ДВИГАТЬСЯ: C, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: C, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (2, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ваше сообщение было передано другому игроку.</p>
+<p>Сейчас вы играете раунд 3 из максимум 20.
+Вы вместе накопили 7 из 12 штрафов.
+Другой игрок переместил объект на своей сетке.</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ДВИГАТЬСЯ: W, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: W, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (3,7) не пусто, а содержит "│".</p>
+<p>Вы вместе накопили 8 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (3,7) не пусто, а содержит "│".</p>
+<p>Вы вместе накопили 8 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЗАТЬ: Ошибка! У меня (3,7) занята линией "│". Давай проверим свободные клетки в 7-м ряду:
+- (1,7): занято линией "║"
+- (2,7): C (уже на месте)
+- (3,7): "│" (занято)
+- (4,7): "◌" (пусто)
+- (5,7): "◌" (пусто)
+- (6,7): "◌" (пусто)
+- (7,7): занято линией "║"</p>
+<p>Предлагаю перенести W на (4,7), а T на (5,7). Ты согласен?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЗАТЬ: Ошибка! У меня (3,7) занята линией "│". Давай проверим свободные клетки в 7-м ряду:
+- (1,7): занято линией "║"
+- (2,7): C (уже на месте)
+- (3,7): "│" (занято)
+- (4,7): "◌" (пусто)
+- (5,7): "◌" (пусто)
+- (6,7): "◌" (пусто)
+- (7,7): занято линией "║"</p>
+<p>Предлагаю перенести W на (4,7), а T на (5,7). Ты согласен?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '
+- (1,7): занято линией "║"
+- (2,7): C (уже на месте)
+- (3,7): "│" (занято)
+- (4,7): "◌" (пусто)
+- (5,7): "◌" (пусто)
+- (6,7): "◌" (пусто)
+- (7,7): занято линией "║"</p>
+<p>Предлагаю перенести W на (4,7), а T на (5,7). Ты согласен?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего после команды!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 9 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЗАТЬ: У меня (3,7) занято линией. Предлагаю W→(4,7), T→(5,7). Ты согласен?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЗАТЬ: У меня (3,7) занято линией. Предлагаю W→(4,7), T→(5,7). Ты согласен?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Успешно перемещён объект "C" в (2,7). Ваша обновлённая сетка выглядит так:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌◌│HT║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│W◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌C│I│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Сейчас вы играете раунд 4 из максимум 20.
+Вы вместе накопили 9 из 12 штрафов.
+Другой игрок отправил это сообщение:</p>
+<p>"У меня (3,7) занято линией. Предлагаю W→(4,7), T→(5,7). Ты согласен?"</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>СКАЗАТЬ: Согласен! W→(4,7), T→(5,7). Освобождаю (4,7) для W (там сейчас I).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЗАТЬ: Согласен! W→(4,7), T→(5,7). Освобождаю (4,7) для W (там сейчас I).</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ваше сообщение было передано другому игроку.</p>
+<p>Сейчас вы играете раунд 4 из максимум 20.
+Вы вместе накопили 9 из 12 штрафов.
+Другой игрок отправил это сообщение:</p>
+<p>"Согласен! W→(4,7), T→(5,7). Освобождаю (4,7) для W (там сейчас I)."</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ДВИГАТЬСЯ: W, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: W, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (4, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ваше сообщение было передано другому игроку.</p>
+<p>Сейчас вы играете раунд 5 из максимум 20.
+Вы вместе накопили 9 из 12 штрафов.
+Другой игрок переместил объект на своей сетке.</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Теперь перемещу <strong>I</strong> с (4,7) на (6,7), чтобы освободить место для <strong>W</strong> на (4,7):</p>
+<pre><code>ДВИГАТЬСЯ: I, (6, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Теперь перемещу <strong>I</strong> с (4,7) на (6,7), чтобы освободить место для <strong>W</strong> на (4,7):</p>
+<pre><code>ДВИГАТЬСЯ: I, (6, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Теперь перемещу <strong>I</strong> с (4,7) на (6,7), чтобы освободить место для <strong>W</strong> на (4,7):</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего перед командой!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 10 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ДВИГАТЬСЯ: I, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: I, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (6, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Успешно перемещён объект "W" в (4,7). Ваша обновлённая сетка выглядит так:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌IT◌│◌◌║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│H◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌C│W│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Сейчас вы играете раунд 5 из максимум 20.
+Вы вместе накопили 10 из 12 штрафов.
+Другой игрок переместил объект на своей сетке.</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЗАТЬ: W на месте (4,7). Теперь двигаю T на (5,7). Проверь, свободна ли у тебя эта клетка?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЗАТЬ: W на месте (4,7). Теперь двигаю T на (5,7). Проверь, свободна ли у тебя эта клетка?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Успешно перемещён объект "I" в (6,7). Ваша обновлённая сетка выглядит так:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌◌│HT║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│W◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌C│◌│I◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Сейчас вы играете раунд 6 из максимум 20.
+Вы вместе накопили 10 из 12 штрафов.
+Другой игрок отправил это сообщение:</p>
+<p>"W на месте (4,7). Теперь двигаю T на (5,7). Проверь, свободна ли у тебя эта клетка?"</p>
+<p>Какая твоя следующая команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Проверил сетку: клетка (5,7) свободна (◌). Перемещаю <strong>T</strong> на (5,7):</p>
+<pre><code>ДВИГАТЬСЯ: T, (5, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Проверил сетку: клетка (5,7) свободна (◌). Перемещаю <strong>T</strong> на (5,7):</p>
+<pre><code>ДВИГАТЬСЯ: T, (5, 7)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Проверил сетку: клетка (5,7) свободна (◌). Перемещаю <strong>T</strong> на (5,7):</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше сообщение не должно содержать ничего перед командой!</p>
+<p>Убедитесь, что ваш ответ содержит только <code>СКАЗАТЬ: &lt;СООБЩЕНИЕ&gt;</code> или <code>ДВИГАТЬСЯ: &lt;ОБЪЕКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> и ничего больше!</p>
+<p>Вы вместе накопили 11 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ДВИГАТЬСЯ: T, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ДВИГАТЬСЯ: T, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (5,7) не пусто, а содержит "│".</p>
+<p>Вы вместе накопили 12 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (5,7) не пусто, а содержит "│".</p>
+<p>Вы вместе накопили 12 из 12 штрафов.
+Пожалуйста, попробуйте ещё раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Критическая ситуация! Мы достигли лимита штрафов (12/12). Нужно действовать предельно аккуратно.</p>
+<p>На моей сетке:
+- <strong>T</strong> находится в (6,1) (в верхнем правом углу)
+- Клетка (5,7) действительно занята вертикальной линией "│" (это часть рамки)
+- Свободные клетки в 7-м ряду: (1,7), (3,7), (7,7)</p>
+<p>Предлагаю альтернативный план:
+1. Переместить <strong>T</strong> в свободную (3,7)
+2. Сообщить партнёру об изменении</p>
+<p>Команда:</p>
+<pre><code>СКАЗАТЬ: Проблема: (5,7) занята линией. Предлагаю T→(3,7), H→(6,7). Согласен?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Критическая ситуация! Мы достигли лимита штрафов (12/12). Нужно действовать предельно аккуратно.</p>
+<p>На моей сетке:
+- <strong>T</strong> находится в (6,1) (в верхнем правом углу)
+- Клетка (5,7) действительно занята вертикальной линией "│" (это часть рамки)
+- Свободные клетки в 7-м ряду: (1,7), (3,7), (7,7)</p>
+<p>Предлагаю альтернативный план:
+1. Переместить <strong>T</strong> в свободную (3,7)
+2. Сообщить партнёру об изменении</p>
+<p>Команда:</p>
+<pre><code>СКАЗАТЬ: Проблема: (5,7) занята линией. Предлагаю T→(3,7), H→(6,7). Согласен?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Критическая ситуация! Мы достигли лимита штрафов (12/12). Нужно действовать предельно аккуратно.</p>
+<p>На моей сетке:
+- <strong>T</strong> находится в (6,1) (в верхнем правом углу)
+- Клетка (5,7) действительно занята вертикальной линией "│" (это часть рамки)
+- Свободные клетки в 7-м ряду: (1,7), (3,7), (7,7)</p>
+<p>Предлагаю альтернативный план:
+1. Переместить <strong>T</strong> в свободную (3,7)
+2. Сообщить партнёру об изменении</p>
+<p>Команда:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔════╤══╗
+║◌ITW│◌◌║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│H◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║C◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔════╤══╗
+║◌◌◌◌│HT║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌C│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│W◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌I│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔════╤══╗
+║◌IT◌│◌◌║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│H◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌C│W│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔════╤══╗
+║◌◌◌◌│HT║ 1
+║◌◌◌◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌──┼──╢ 4
+║◌│W◌│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌C│◌│I◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 4.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 18.45</li>
+<li>Init Distance Sum: 24.12</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 13.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 5.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,797 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_5obj_uk', episode 4 with mistral-large-3-azure.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Я ваш ведучий гри, і ви граєте у спільну гру з наступною сіткою як ігровим полем:</p>
+<pre><code> 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌C└─┼──╢ 2
+║◌◌◌W│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│H│◌║ 5
+║I└┬┴┬┘T║ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Верхній край показує координати x, що зростають праворуч, а правий край — координати y, що зростають донизу.</li>
+<li>Наступні об'єкти випадково розміщені на вашій сітці: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Інший гравець бачить варіант ігрового поля, де об'єкти розміщені в інших випадкових місцях. Ви не бачите поле іншого гравця, а він не бачить вашого.</p>
+<p><strong>Мета:</strong></p>
+<p>Обидва гравці повинні переміщати об'єкти на своєму фоні так, щоб однакові об'єкти опинилися в однакових координатах. Ви повинні спілкуватися з іншим гравцем, щоб узгодити спільну цільову конфігурацію.</p>
+<p><strong>Правила:</strong></p>
+<ul>
+<li>За кожен хід ви можете надіслати рівно одну з двох наступних команд:</li>
+<li><code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>: щоб надіслати повідомлення (усе до наступного розриву рядка) іншому гравцю. Я передам його вашому партнеру.</li>
+<li><code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: щоб перемістити об'єкт у нову позицію, де <code>&lt;X&gt;</code> — це стовпець, а <code>&lt;Y&gt;</code> — рядок. Я повідомлю вас, чи був ваш хід успішним.</li>
+<li>Якщо ви не дотримуєтеся формату або надсилаєте кілька команд одночасно, я змушений вас оштрафувати.</li>
+<li>Якщо обидва гравці накопичать більше ніж 12 штрафів, ви обидва програєте гру.</li>
+<li>Дуже важливо, щоб ви спілкувалися з іншим гравцем щодо вашого цільового стану! <em>Єдиний</em> спосіб передати вашу стратегію іншому гравцю — це команда <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>!</li>
+</ul>
+<p><strong>Переміщення об'єктів</strong></p>
+<ul>
+<li>Ви можете переміщати об'єкти лише в клітинки в межах сітки. Цільова клітинка повинна бути порожньою, тобто містити лише символ '◌'.</li>
+<li>Якщо ви намагаєтеся перемістити об'єкт у клітинку, яка не порожня, або перемістити його за межі сітки, я змушений вас оштрафувати. Ви отримаєте ще одну спробу.</li>
+<li>Перш ніж зробити хід, ретельно перевірте, що цільова клітинка порожня та не містить жодної літери, рамки чи лінії!</li>
+</ul>
+<p><strong>Кінець гри</strong></p>
+<p>Якщо ви вважаєте, що досягли мети вирівнювання всіх об'єктів, ви можете попросити іншого гравця завершити гру, надіславши <code>СКАЖИ: завершено?</code>. Якщо інший гравець просить вас завершити гру, і ви відповідаєте <code>СКАЖИ: завершено!</code>, гра завершиться.</p>
+<p>Обидва гравці перемагають, якщо гра завершується протягом 20 раундів, де один раунд визначається як надсилання обома гравцями по одній дійсній команді.</p>
+<p><strong>Підрахунок очок:</strong></p>
+<p>Чим ближче однакові об'єкти на обох ігрових полях, тим більше очок ви отримуєте. Штрафи зменшують ваші очки. Чи зможете ви побити рекорд?</p>
+<p>Будь ласка, надішліть повідомлення іншому гравцю, щоб почати гру!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Розумію! Давайте почнемо гру та узгодимо стратегію з іншим гравцем.</p>
+<p>Спочатку опишу свої поточні позиції об'єктів для зручності:
+- <strong>W</strong>: (4, 3)
+- <strong>I</strong>: (1, 6)
+- <strong>T</strong>: (7, 6)
+- <strong>C</strong>: (2, 2)
+- <strong>H</strong>: (5, 5)</p>
+<p><strong>Пропоную наступну цільову конфігурацію</strong> (можемо її змінити, якщо у вас є краща ідея):
+- <strong>W</strong>: (3, 3)
+- <strong>I</strong>: (3, 4)
+- <strong>T</strong>: (4, 4)
+- <strong>C</strong>: (4, 2)
+- <strong>H</strong>: (5, 3)</p>
+<p>Якщо вам підходить ця конфігурація, дайте знати. Якщо ні — запропонуйте свою, і ми обговоримо.</p>
+<p><strong>Мій перший хід</strong> (якщо ви погоджуєтесь з цільовою конфігурацією):
+<code>СКАЖИ: Пропоную цільові координати: W(3,3), I(3,4), T(4,4), C(4,2), H(5,3). Підходить? Якщо так, я почну переміщувати свої об'єкти.</code></p>
+<p>Якщо у вас є інші пропозиції, напишіть!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Розумію! Давайте почнемо гру та узгодимо стратегію з іншим гравцем.</p>
+<p>Спочатку опишу свої поточні позиції об'єктів для зручності:
+- <strong>W</strong>: (4, 3)
+- <strong>I</strong>: (1, 6)
+- <strong>T</strong>: (7, 6)
+- <strong>C</strong>: (2, 2)
+- <strong>H</strong>: (5, 5)</p>
+<p><strong>Пропоную наступну цільову конфігурацію</strong> (можемо її змінити, якщо у вас є краща ідея):
+- <strong>W</strong>: (3, 3)
+- <strong>I</strong>: (3, 4)
+- <strong>T</strong>: (4, 4)
+- <strong>C</strong>: (4, 2)
+- <strong>H</strong>: (5, 3)</p>
+<p>Якщо вам підходить ця конфігурація, дайте знати. Якщо ні — запропонуйте свою, і ми обговоримо.</p>
+<p><strong>Мій перший хід</strong> (якщо ви погоджуєтесь з цільовою конфігурацією):
+<code>СКАЖИ: Пропоную цільові координати: W(3,3), I(3,4), T(4,4), C(4,2), H(5,3). Підходить? Якщо так, я почну переміщувати свої об'єкти.</code></p>
+<p>Якщо у вас є інші пропозиції, напишіть!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Розумію! Давайте почнемо гру та узгодимо стратегію з іншим гравцем.</p>
+<p>Спочатку опишу свої поточні позиції об'єктів для зручності:
+- <strong>W</strong>: (4, 3)
+- <strong>I</strong>: (1, 6)
+- <strong>T</strong>: (7, 6)
+- <strong>C</strong>: (2, 2)
+- <strong>H</strong>: (5, 5)</p>
+<p><strong>Пропоную наступну цільову конфігурацію</strong> (можемо її змінити, якщо у вас є краща ідея):
+- <strong>W</strong>: (3, 3)
+- <strong>I</strong>: (3, 4)
+- <strong>T</strong>: (4, 4)
+- <strong>C</strong>: (4, 2)
+- <strong>H</strong>: (5, 3)</p>
+<p>Якщо вам підходить ця конфігурація, дайте знати. Якщо ні — запропонуйте свою, і ми обговоримо.</p>
+<p><strong>Мій перший хід</strong> (якщо ви погоджуєтесь з цільовою конфігурацією):
+'
+tail: '</p>
+<p>Якщо у вас є інші пропозиції, напишіть!'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою чи після неї!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 1 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЖИ: Мої об'єкти: W(4,3), I(1,6), T(7,6), C(2,2), H(5,5). Які ваші позиції?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЖИ: Мої об'єкти: W(4,3), I(1,6), T(7,6), C(2,2), H(5,5). Які ваші позиції?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Я ваш ведучий гри, і ви граєте у спільну гру з наступною сіткою як ігровим полем:</p>
+<pre><code> 1234567
+╔══╤═╤══╗
+║◌T│◌│◌◌║ 1
+║C◌└─┼──╢ 2
+║◌◌H◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║I└┬┴┬┘◌║ 6
+║◌W│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Верхній край показує координати x, що зростають праворуч, а правий край — координати y, що зростають донизу.</li>
+<li>Наступні об'єкти випадково розміщені на вашій сітці: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Інший гравець бачить варіант ігрового поля, де об'єкти розміщені в інших випадкових місцях. Ви не бачите поле іншого гравця, а він не бачить вашого.</p>
+<p><strong>Мета:</strong></p>
+<p>Обидва гравці повинні переміщати об'єкти на своєму фоні так, щоб однакові об'єкти опинилися в однакових координатах. Ви повинні спілкуватися з іншим гравцем, щоб узгодити спільну цільову конфігурацію.</p>
+<p><strong>Правила:</strong></p>
+<ul>
+<li>За кожен хід ви можете надіслати рівно одну з двох наступних команд:</li>
+<li><code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>: щоб надіслати повідомлення (усе до наступного розриву рядка) іншому гравцю. Я передам його вашому партнеру.</li>
+<li><code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: щоб перемістити об'єкт у нову позицію, де <code>&lt;X&gt;</code> — це стовпець, а <code>&lt;Y&gt;</code> — рядок. Я повідомлю вас, чи був ваш хід успішним.</li>
+<li>Якщо ви не дотримуєтеся формату або надсилаєте кілька команд одночасно, я змушений вас оштрафувати.</li>
+<li>Якщо обидва гравці накопичать більше ніж 12 штрафів, ви обидва програєте гру.</li>
+<li>Дуже важливо, щоб ви спілкувалися з іншим гравцем щодо вашого цільового стану! <em>Єдиний</em> спосіб передати вашу стратегію іншому гравцю — це команда <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>!</li>
+</ul>
+<p><strong>Переміщення об'єктів</strong></p>
+<ul>
+<li>Ви можете переміщати об'єкти лише в клітинки в межах сітки. Цільова клітинка повинна бути порожньою, тобто містити лише символ '◌'.</li>
+<li>Якщо ви намагаєтеся перемістити об'єкт у клітинку, яка не порожня, або перемістити його за межі сітки, я змушений вас оштрафувати. Ви отримаєте ще одну спробу.</li>
+<li>Перш ніж зробити хід, ретельно перевірте, що цільова клітинка порожня та не містить жодної літери, рамки чи лінії!</li>
+</ul>
+<p><strong>Кінець гри</strong></p>
+<p>Якщо ви вважаєте, що досягли мети вирівнювання всіх об'єктів, ви можете попросити іншого гравця завершити гру, надіславши <code>СКАЖИ: завершено?</code>. Якщо інший гравець просить вас завершити гру, і ви відповідаєте <code>СКАЖИ: завершено!</code>, гра завершиться.</p>
+<p>Обидва гравці перемагають, якщо гра завершується протягом 20 раундів, де один раунд визначається як надсилання обома гравцями по одній дійсній команді.</p>
+<p><strong>Підрахунок очок:</strong></p>
+<p>Чим ближче однакові об'єкти на обох ігрових полях, тим більше очок ви отримуєте. Штрафи зменшують ваші очки. Чи зможете ви побити рекорд?</p>
+<p>Інший гравець почав гру, надіславши це повідомлення:</p>
+<p>"Мої об'єкти: W(4,3), I(1,6), T(7,6), C(2,2), H(5,5). Які ваші позиції?"</p>
+<p>Яка ваша перша команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Насамперед, я визначу позиції своїх об'єктів на моєму ігровому полі:</p>
+<ul>
+<li>W знаходиться в (3,7)</li>
+<li>I знаходиться в (1,6)</li>
+<li>T знаходиться в (2,1)</li>
+<li>C знаходиться в (1,2)</li>
+<li>H знаходиться в (3,3)</li>
+</ul>
+<p>Тепер я надішлю відповідь іншому гравцю, щоб ми могли узгодити спільну цільову конфігурацію.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: Мої об'єкти: W(3,7), I(1,6), T(2,1), C(1,2), H(3,3). Давайте узгодимо цільові позиції.
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Насамперед, я визначу позиції своїх об'єктів на моєму ігровому полі:</p>
+<ul>
+<li>W знаходиться в (3,7)</li>
+<li>I знаходиться в (1,6)</li>
+<li>T знаходиться в (2,1)</li>
+<li>C знаходиться в (1,2)</li>
+<li>H знаходиться в (3,3)</li>
+</ul>
+<p>Тепер я надішлю відповідь іншому гравцю, щоб ми могли узгодити спільну цільову конфігурацію.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: Мої об'єкти: W(3,7), I(1,6), T(2,1), C(1,2), H(3,3). Давайте узгодимо цільові позиції.
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Насамперед, я визначу позиції своїх об'єктів на моєму ігровому полі:</p>
+<ul>
+<li>W знаходиться в (3,7)</li>
+<li>I знаходиться в (1,6)</li>
+<li>T знаходиться в (2,1)</li>
+<li>C знаходиться в (1,2)</li>
+<li>H знаходиться в (3,3)</li>
+</ul>
+<p>Тепер я надішлю відповідь іншому гравцю, щоб ми могли узгодити спільну цільову конфігурацію.</p>
+<p><strong>Моя команда:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 2 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Зрозумів! Тоді я просто надішлю інформацію про позиції своїх об'єктів без додаткових слів.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7), I(1,6), T(2,1), C(1,2), H(3,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Зрозумів! Тоді я просто надішлю інформацію про позиції своїх об'єктів без додаткових слів.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7), I(1,6), T(2,1), C(1,2), H(3,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Зрозумів! Тоді я просто надішлю інформацію про позиції своїх об'єктів без додаткових слів.</p>
+<p><strong>Моя команда:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 3 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Вибачте за плутанину! Тепер я надішлю тільки саме повідомлення без жодних вступних сихвиль.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: Мої позиції: W на (3,7), I на (1,6), T на (2,1), C на (1,2), H на (3,3). Які ваші пропозиції щодо цільових позицій?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Вибачте за плутанину! Тепер я надішлю тільки саме повідомлення без жодних вступних сихвиль.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: Мої позиції: W на (3,7), I на (1,6), T на (2,1), C на (1,2), H на (3,3). Які ваші пропозиції щодо цільових позицій?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Вибачте за плутанину! Тепер я надішлю тільки саме повідомлення без жодних вступних сихвиль.</p>
+<p><strong>Моя команда:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 4 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Зрозумів! Тепер я строго дотримуватимусь формату.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7) I(1,6) T(2,1) C(1,2) H(3,3). Які цільові координати?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Зрозумів! Тепер я строго дотримуватимусь формату.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7) I(1,6) T(2,1) C(1,2) H(3,3). Які цільові координати?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Зрозумів! Тепер я строго дотримуватимусь формату.</p>
+<p><strong>Моя команда:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 5 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Вибачте за помилки. Тепер я надішлю лише координати без додаткових слів.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7), I(1,6), T(2,1), C(1,2), H(3,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Вибачте за помилки. Тепер я надішлю лише координати без додаткових слів.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7), I(1,6), T(2,1), C(1,2), H(3,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Вибачте за помилки. Тепер я надішлю лише координати без додаткових слів.</p>
+<p><strong>Моя команда:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 6 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Зрозумів! Тепер я надішлю лише саму команду з повідомленням у суворо необхідному форматі.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: Мої об'єкти: W-3,7; I-1,6; T-2,1; C-1,2; H-3,3
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Зрозумів! Тепер я надішлю лише саму команду з повідомленням у суворо необхідному форматі.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: Мої об'єкти: W-3,7; I-1,6; T-2,1; C-1,2; H-3,3
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Зрозумів! Тепер я надішлю лише саму команду з повідомленням у суворо необхідному форматі.</p>
+<p><strong>Моя команда:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 7 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Вибачте за всі попередні помилки. Тепер я відправлю лише самі координати без будь-яких додаткових слів чи розділових знаків.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W 3 7 I 1 6 T 2 1 C 1 2 H 3 3
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Вибачте за всі попередні помилки. Тепер я відправлю лише самі координати без будь-яких додаткових слів чи розділових знаків.</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W 3 7 I 1 6 T 2 1 C 1 2 H 3 3
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Вибачте за всі попередні помилки. Тепер я відправлю лише самі координати без будь-яких додаткових слів чи розділових знаків.</p>
+<p><strong>Моя команда:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 8 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Я зрозумів проблему - система суворо вимагає формат <strong>виключно</strong> <code>СКАЖИ:</code> з повідомленням без жодних додаткових слів на початку. Давайте спробуємо максимально простий варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7) I(1,6) T(2,1) C(1,2) H(3,3)
+</code></pre>
+<p>Якщо це не спрацює, спробую ще простіше:</p>
+<pre><code>СКАЖИ: W3,7I1,6T2,1C1,2H3,3
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Я зрозумів проблему - система суворо вимагає формат <strong>виключно</strong> <code>СКАЖИ:</code> з повідомленням без жодних додаткових слів на початку. Давайте спробуємо максимально простий варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W(3,7) I(1,6) T(2,1) C(1,2) H(3,3)
+</code></pre>
+<p>Якщо це не спрацює, спробую ще простіше:</p>
+<pre><code>СКАЖИ: W3,7I1,6T2,1C1,2H3,3
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Я зрозумів проблему - система суворо вимагає формат <strong>виключно</strong> СКАЖИ: з повідомленням без жодних додаткових слів на початку. Давайте спробуємо максимально простий варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<p>СКАЖИ: W(3,7) I(1,6) T(2,1) C(1,2) H(3,3)</p>
+<p>Якщо це не спрацює, спробую ще простіше:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 9 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Розумію, система суворо вимагає лише сам текст повідомлення після <code>СКАЖИ:</code> без жодних додаткових символів чи форматування. Давайте спробуємо вкрай мінімалістичний варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W 3 7 I 1 6 T 2 1 C 1 2 H 3 3 без розділових
+</code></pre>
+<p>Якщо це не спрацює, спробую абсолютно сирий варіант без жодних символів:</p>
+<pre><code>СКАЖИ: W37I16T21C12H33
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Розумію, система суворо вимагає лише сам текст повідомлення після <code>СКАЖИ:</code> без жодних додаткових символів чи форматування. Давайте спробуємо вкрай мінімалістичний варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: W 3 7 I 1 6 T 2 1 C 1 2 H 3 3 без розділових
+</code></pre>
+<p>Якщо це не спрацює, спробую абсолютно сирий варіант без жодних символів:</p>
+<pre><code>СКАЖИ: W37I16T21C12H33
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Розумію, система суворо вимагає лише сам текст повідомлення після СКАЖИ: без жодних додаткових символів чи форматування. Давайте спробуємо вкрай мінімалістичний варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<p>СКАЖИ: W 3 7 I 1 6 T 2 1 C 1 2 H 3 3 без розділових</p>
+<p>Якщо це не спрацює, спробую абсолютно сирий варіант без жодних символів:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 10 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Я остаточно зрозумів вимогу - потрібно надіслати <strong>лише самі координати</strong> без будь-яких пояснень чи позначень об'єктів. Ось абсолютно чистий варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: 3 7 1 6 2 1 1 2 3 3
+</code></pre>
+<p>Це просто послідовність координат у форматі x1 y1 x2 y2... для всіх п'яти об'єктів. Сподіваюся, цього разу система прийме повідомлення.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Я остаточно зрозумів вимогу - потрібно надіслати <strong>лише самі координати</strong> без будь-яких пояснень чи позначень об'єктів. Ось абсолютно чистий варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: 3 7 1 6 2 1 1 2 3 3
+</code></pre>
+<p>Це просто послідовність координат у форматі x1 y1 x2 y2... для всіх п'яти об'єктів. Сподіваюся, цього разу система прийме повідомлення.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Я остаточно зрозумів вимогу - потрібно надіслати <strong>лише самі координати</strong> без будь-яких пояснень чи позначень об'єктів. Ось абсолютно чистий варіант:</p>
+<p><strong>Моя команда:</strong></p>
+<p>'
+tail: '</p>
+<p>Це просто послідовність координат у форматі x1 y1 x2 y2... для всіх п'яти об'єктів. Сподіваюся, цього разу система прийме повідомлення.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою чи після неї!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 11 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Зрозумів! Останній спроба - я надішлю лише саму команду з координатами в найпростішому форматі:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: 3,7 1,6 2,1 1,2 3,3
+</code></pre>
+<p>Це просто пари координат (x,y) для всіх п'яти об'єктів, розділені пробілами. Якщо це не спрацює, залишиться лише один штраф до програшу.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Зрозумів! Останній спроба - я надішлю лише саму команду з координатами в найпростішому форматі:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ: 3,7 1,6 2,1 1,2 3,3
+</code></pre>
+<p>Це просто пари координат (x,y) для всіх п'яти об'єктів, розділені пробілами. Якщо це не спрацює, залишиться лише один штраф до програшу.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Зрозумів! Останній спроба - я надішлю лише саму команду з координатами в найпростішому форматі:</p>
+<p><strong>Моя команда:</strong></p>
+<p>'
+tail: '</p>
+<p>Це просто пари координат (x,y) для всіх п'яти об'єктів, розділені пробілами. Якщо це не спрацює, залишиться лише один штраф до програшу.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою чи після неї!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 12 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Залишився останній шанс! Я відправлю лише позиції об'єктів у найпростішому форматі без будь-яких символів чи пробілів:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ:W37I16T21C12H33
+</code></pre>
+<p>Це:
+- W на (3,7)
+- I на (1,6)
+- T на (2,1)
+- C на (1,2)
+- H на (3,3)</p>
+<p>Без пробілів, ком, дужок чи інших символів. Сподіваюся, цього разу система прийме.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Залишився останній шанс! Я відправлю лише позиції об'єктів у найпростішому форматі без будь-яких символів чи пробілів:</p>
+<p><strong>Моя команда:</strong></p>
+<pre><code>СКАЖИ:W37I16T21C12H33
+</code></pre>
+<p>Це:
+- W на (3,7)
+- I на (1,6)
+- T на (2,1)
+- C на (1,2)
+- H на (3,3)</p>
+<p>Без пробілів, ком, дужок чи інших символів. Сподіваюся, цього разу система прийме.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌C└─┼──╢ 2
+║◌◌◌W│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│H│◌║ 5
+║I└┬┴┬┘T║ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔══╤═╤══╗
+║◌T│◌│◌◌║ 1
+║C◌└─┼──╢ 2
+║◌◌H◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║I└┬┴┬┘◌║ 6
+║◌W│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌C└─┼──╢ 2
+║◌◌◌W│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│H│◌║ 5
+║I└┬┴┬┘T║ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔══╤═╤══╗
+║◌T│◌│◌◌║ 1
+║C◌└─┼──╢ 2
+║◌◌H◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║I└┬┴┬┘◌║ 6
+║◌W│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 0.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 15.37</li>
+<li>Init Distance Sum: 15.37</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 13.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 0.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

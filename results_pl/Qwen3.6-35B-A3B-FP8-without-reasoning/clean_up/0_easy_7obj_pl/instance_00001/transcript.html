@@ -1,0 +1,1407 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '0_easy_7obj_pl', episode 1 with Qwen3.6-35B-A3B-FP8-without-reasoning.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jestem mistrzem gry, a Państwo grają w grę kooperacyjną z następującą siatką jako planszą:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌T◌║ 1
+║P◌◌◌◌◌◌║ 2
+║◌◌AD◌┌─╢ 3
+║◌◌◌┌─┤S║ 4
+║O◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌M◌│◌◌◌║ 7
+╚═══╧═══╝
+
+</code></pre>
+<ul>
+<li>Górna krawędź wyświetla współrzędne x rosnące w prawo, a prawa krawędź współrzędne y rosnące w dół.</li>
+<li>Następujące obiekty są losowo umieszczone na siatce: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Drugi gracz widzi wariant planszy, na której obiekty są umieszczone w różnych losowych miejscach. Nie można zobaczyć planszy drugiego gracza, a on nie może zobaczyć Państwa planszy.</p>
+<p><strong>Cel:</strong></p>
+<p>Obaj gracze muszą przesuwać obiekty na swoim tle tak, aby identyczne obiekty znalazły się na tych samych współrzędnych. Muszą Państwo komunikować się z drugim graczem, aby uzgodnić wspólną konfigurację docelową.</p>
+<p><strong>Zasady:</strong></p>
+<ul>
+<li>W każdej turze można wysłać dokładnie jedno z dwóch poniższych poleceń:</li>
+<li><code>POWIEDZ: &lt;WIADOMOŚĆ&gt;</code>: aby wysłać wiadomość (wszystko aż do następnego podziału wiersza) do drugiego gracza. Przekażę ją Państwa partnerowi.</li>
+<li><code>RUCH: &lt;OBIEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: aby przenieść obiekt na nową pozycję, gdzie <code>&lt;X&gt;</code> to kolumna, a <code>&lt;Y&gt;</code> to wiersz. Poinformuję Państwa, czy przeniesienie się powiodło, czy nie.</li>
+<li>Jeśli nie będą się Państwo trzymać formatu lub wyślą kilka poleceń jednocześnie, muszę Państwa ukarać.</li>
+<li>Jeśli obaj gracze zgromadzą więcej niż 16 kar, obaj przegrają grę.</li>
+<li>Bardzo ważne jest, aby komunikować się z drugim graczem w sprawie stanu docelowego! <em>Jedynym</em> sposobem na przekazanie swojej strategii drugiemu graczowi jest użycie polecenia <code>POWIEDZ: &lt;WIADOMOŚĆ&gt;</code>!</li>
+</ul>
+<p><strong>Przenoszenie obiektów</strong></p>
+<ul>
+<li>Obiekty można przenosić tylko do komórek znajdujących się w granicach siatki. Komórka docelowa musi być pusta, tzn. musi zawierać tylko symbol '◌'.</li>
+<li>Jeśli spróbują Państwo przenieść obiekt do miejsca, które nie jest puste, lub spróbują przenieść go poza siatkę, muszę Państwa ukarać. Otrzymają Państwo kolejną próbę.</li>
+<li>Przed wykonaniem ruchu proszę dwukrotnie sprawdzić, czy miejsce docelowe jest puste i nie zawiera żadnej litery, ramki lub linii!</li>
+</ul>
+<p><strong>Koniec gry</strong></p>
+<p>Jeśli uważają Państwo, że osiągnęli cel wyrównania wszystkich obiektów, mogą Państwo poprosić drugiego gracza o zakończenie gry, wysyłając <code>POWIEDZ: zakończono?</code>. Jeśli drugi gracz poprosi Państwa o zakończenie gry, a Państwo odpowiedzą <code>POWIEDZ: zakończono!</code>, gra się zakończy.</p>
+<p>Obaj gracze wygrywają, jeśli gra zakończy się w ciągu 28 rund, gdzie jedna runda jest definiowana jako wysłanie ważnego polecenia przez dwóch graczy.</p>
+<p><strong>Punktacja:</strong></p>
+<p>Im bliżej siebie znajdują się identyczne obiekty na obu planszach, tym więcej punktów otrzymują Państwo. Kary zmniejszają liczbę punktów. Czy uda się Państwu pobić rekord?</p>
+<p>Proszę wysłać wiadomość do drugiego gracza, aby rozpocząć grę!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Witaj! Zaczynamy. Proponuję, abyśmy najpierw ustalili wspólny punkt odniesienia. Proszę o podanie aktualnych współrzędnych (x, y) obiektu 'P' na Twojej planszy. Następnie prześlij swoje współrzędne dla obiektu 'A'. Czekam na odpowiedź.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Witaj! Zaczynamy. Proponuję, abyśmy najpierw ustalili wspólny punkt odniesienia. Proszę o podanie aktualnych współrzędnych (x, y) obiektu 'P' na Twojej planszy. Następnie prześlij swoje współrzędne dla obiektu 'A'. Czekam na odpowiedź.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jestem mistrzem gry, a Państwo grają w grę kooperacyjną z następującą siatką jako planszą:</p>
+<pre><code> 1234567
+╔═══════╗
+║◌◌◌◌◌S◌║ 1
+║◌◌◌◌O◌◌║ 2
+║◌◌◌M◌┌─╢ 3
+║◌◌A┌─┤◌║ 4
+║◌◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║D◌T│P◌◌║ 7
+╚═══╧═══╝
+
+</code></pre>
+<ul>
+<li>Górna krawędź wyświetla współrzędne x rosnące w prawo, a prawa krawędź współrzędne y rosnące w dół.</li>
+<li>Następujące obiekty są losowo umieszczone na siatce: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Drugi gracz widzi wariant planszy, na której obiekty są umieszczone w różnych losowych miejscach. Nie można zobaczyć planszy drugiego gracza, a on nie może zobaczyć Państwa planszy.</p>
+<p><strong>Cel:</strong></p>
+<p>Obaj gracze muszą przesuwać obiekty na swoim tle tak, aby identyczne obiekty znalazły się na tych samych współrzędnych. Muszą Państwo komunikować się z drugim graczem, aby uzgodnić wspólną konfigurację docelową.</p>
+<p><strong>Zasady:</strong></p>
+<ul>
+<li>W każdej turze można wysłać dokładnie jedno z dwóch poniższych poleceń:</li>
+<li><code>POWIEDZ: &lt;WIADOMOŚĆ&gt;</code>: aby wysłać wiadomość (wszystko aż do następnego podziału wiersza) do drugiego gracza. Przekażę ją Państwa partnerowi.</li>
+<li><code>RUCH: &lt;OBIEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: aby przenieść obiekt na nową pozycję, gdzie <code>&lt;X&gt;</code> to kolumna, a <code>&lt;Y&gt;</code> to wiersz. Poinformuję Państwa, czy przeniesienie się powiodło, czy nie.</li>
+<li>Jeśli nie będą się Państwo trzymać formatu lub wyślą kilka poleceń jednocześnie, muszę Państwa ukarać.</li>
+<li>Jeśli obaj gracze zgromadzą więcej niż 16 kar, obaj przegrają grę.</li>
+<li>Bardzo ważne jest, aby komunikować się z drugim graczem w sprawie stanu docelowego! <em>Jedynym</em> sposobem na przekazanie swojej strategii drugiemu graczowi jest użycie polecenia <code>POWIEDZ: &lt;WIADOMOŚĆ&gt;</code>!</li>
+</ul>
+<p><strong>Przenoszenie obiektów</strong></p>
+<ul>
+<li>Obiekty można przenosić tylko do komórek znajdujących się w granicach siatki. Komórka docelowa musi być pusta, tzn. musi zawierać tylko symbol '◌'.</li>
+<li>Jeśli spróbują Państwo przenieść obiekt do miejsca, które nie jest puste, lub spróbują przenieść go poza siatkę, muszę Państwa ukarać. Otrzymają Państwo kolejną próbę.</li>
+<li>Przed wykonaniem ruchu proszę dwukrotnie sprawdzić, czy miejsce docelowe jest puste i nie zawiera żadnej litery, ramki lub linii!</li>
+</ul>
+<p><strong>Koniec gry</strong></p>
+<p>Jeśli uważają Państwo, że osiągnęli cel wyrównania wszystkich obiektów, mogą Państwo poprosić drugiego gracza o zakończenie gry, wysyłając <code>POWIEDZ: zakończono?</code>. Jeśli drugi gracz poprosi Państwa o zakończenie gry, a Państwo odpowiedzą <code>POWIEDZ: zakończono!</code>, gra się zakończy.</p>
+<p>Obaj gracze wygrywają, jeśli gra zakończy się w ciągu 28 rund, gdzie jedna runda jest definiowana jako wysłanie ważnego polecenia przez dwóch graczy.</p>
+<p><strong>Punktacja:</strong></p>
+<p>Im bliżej siebie znajdują się identyczne obiekty na obu planszach, tym więcej punktów otrzymują Państwo. Kary zmniejszają liczbę punktów. Czy uda się Państwu pobić rekord?</p>
+<p>Drugi gracz rozpoczął grę wysyłając następującą wiadomość:</p>
+<p>"Witaj! Zaczynamy. Proponuję, abyśmy najpierw ustalili wspólny punkt odniesienia. Proszę o podanie aktualnych współrzędnych (x, y) obiektu 'P' na Twojej planszy. Następnie prześlij swoje współrzędne dla obiektu 'A'. Czekam na odpowiedź."</p>
+<p>Jakie jest twoje pierwsze polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Witaj! Zgadzam się na ustalenie punktu odniesienia. Na mojej planszy obiekt 'P' znajduje się na współrzędnych (6, 7), a obiekt 'A' na (3, 4). Proszę o podanie Twoich współrzędnych dla tych obiektów, abyśmy mogli zacząć synchronizację.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Witaj! Zgadzam się na ustalenie punktu odniesienia. Na mojej planszy obiekt 'P' znajduje się na współrzędnych (6, 7), a obiekt 'A' na (3, 4). Proszę o podanie Twoich współrzędnych dla tych obiektów, abyśmy mogli zacząć synchronizację.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 1 z maksymalnie 28.
+Łącznie zgromadziliście 0 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Witaj! Zgadzam się na ustalenie punktu odniesienia. Na mojej planszy obiekt 'P' znajduje się na współrzędnych (6, 7), a obiekt 'A' na (3, 4). Proszę o podanie Twoich współrzędnych dla tych obiektów, abyśmy mogli zacząć synchronizację."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Dziękuję za informacje. Na mojej planszy obiekt 'P' znajduje się na (1, 2), a obiekt 'A' na (4, 3). Aby zsynchronizować pozycje, musimy wybrać wspólny cel. Proponuję, abyśmy przenieśli oba obiekty 'P' na pozycję (1, 1) oraz oba obiekty 'A' na pozycję (1, 1). Czy zgadzasz się na ten plan? Jeśli tak, proszę potwierdzić, a następnie wykonaj ruch dla obiektu 'P' na (1, 1) na swojej planszy. Ja wykonam ruch dla obiektu 'P' na (1, 1) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Dziękuję za informacje. Na mojej planszy obiekt 'P' znajduje się na (1, 2), a obiekt 'A' na (4, 3). Aby zsynchronizować pozycje, musimy wybrać wspólny cel. Proponuję, abyśmy przenieśli oba obiekty 'P' na pozycję (1, 1) oraz oba obiekty 'A' na pozycję (1, 1). Czy zgadzasz się na ten plan? Jeśli tak, proszę potwierdzić, a następnie wykonaj ruch dla obiektu 'P' na (1, 1) na swojej planszy. Ja wykonam ruch dla obiektu 'P' na (1, 1) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 2 z maksymalnie 28.
+Łącznie zgromadziliście 0 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Dziękuję za informacje. Na mojej planszy obiekt 'P' znajduje się na (1, 2), a obiekt 'A' na (4, 3). Aby zsynchronizować pozycje, musimy wybrać wspólny cel. Proponuję, abyśmy przenieśli oba obiekty 'P' na pozycję (1, 1) oraz oba obiekty 'A' na pozycję (1, 1). Czy zgadzasz się na ten plan? Jeśli tak, proszę potwierdzić, a następnie wykonaj ruch dla obiektu 'P' na (1, 1) na swojej planszy. Ja wykonam ruch dla obiektu 'P' na (1, 1) na swojej planszy."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Nie, nie zgadzam się na przenoszenie obu obiektów na (1,1), ponieważ nie mogą one zajmować tej samej komórki jednocześnie. Musimy wybrać różne cele dla różnych obiektów. Proponuję, abyśmy zsynchronizowali obiekty 'P' na pozycji (1,1) dla Ciebie i (1,1) dla mnie (czyli obaj przenosimy swoje 'P' na (1,1)). Następnie zsynchronizujemy 'A' na innej pozycji, np. (1,2) dla Ciebie i (1,2) dla mnie. Czy zgadzasz się, że najpierw zsynchronizujemy 'P' na (1,1)? Jeśli tak, proszę potwierdzić, a ja wykonam ruch dla 'P' na (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Nie, nie zgadzam się na przenoszenie obu obiektów na (1,1), ponieważ nie mogą one zajmować tej samej komórki jednocześnie. Musimy wybrać różne cele dla różnych obiektów. Proponuję, abyśmy zsynchronizowali obiekty 'P' na pozycji (1,1) dla Ciebie i (1,1) dla mnie (czyli obaj przenosimy swoje 'P' na (1,1)). Następnie zsynchronizujemy 'A' na innej pozycji, np. (1,2) dla Ciebie i (1,2) dla mnie. Czy zgadzasz się, że najpierw zsynchronizujemy 'P' na (1,1)? Jeśli tak, proszę potwierdzić, a ja wykonam ruch dla 'P' na (1,1).</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 2 z maksymalnie 28.
+Łącznie zgromadziliście 0 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Nie, nie zgadzam się na przenoszenie obu obiektów na (1,1), ponieważ nie mogą one zajmować tej samej komórki jednocześnie. Musimy wybrać różne cele dla różnych obiektów. Proponuję, abyśmy zsynchronizowali obiekty 'P' na pozycji (1,1) dla Ciebie i (1,1) dla mnie (czyli obaj przenosimy swoje 'P' na (1,1)). Następnie zsynchronizujemy 'A' na innej pozycji, np. (1,2) dla Ciebie i (1,2) dla mnie. Czy zgadzasz się, że najpierw zsynchronizujemy 'P' na (1,1)? Jeśli tak, proszę potwierdzić, a ja wykonam ruch dla 'P' na (1,1)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Masz rację, obiekty nie mogą zajmować tej samej komórki. Zgadzam się na synchronizację obiektu 'P' na pozycji (1, 1) dla obu graczy. Proszę wykonaj ruch: RUCH: P, (1, 1). Ja również wykonam ten ruch. Następnie przejdziemy do obiektu 'A'.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Masz rację, obiekty nie mogą zajmować tej samej komórki. Zgadzam się na synchronizację obiektu 'P' na pozycji (1, 1) dla obu graczy. Proszę wykonaj ruch: RUCH: P, (1, 1). Ja również wykonam ten ruch. Następnie przejdziemy do obiektu 'A'.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: POWIEDZ: Masz rację, obiekty nie mogą zajmować tej samej komórki. Zgadzam się na synchronizację obiektu 'P' na pozycji (1, 1) dla obu graczy. Proszę wykonaj ruch: RUCH: P, (1, 1). Ja również wykonam ten ruch. Następnie przejdziemy do obiektu 'A'.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: Twoja wiadomość zawiera więcej niż jedno polecenie!</p>
+<p>Upewnij się, że twoja odpowiedź zawiera tylko <code>POWIEDZ: &lt;WIADOMOŚĆ&gt;</code> lub <code>RUCH: &lt;OBIEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> i nic więcej!</p>
+<p>Łącznie zgromadziliście 1 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 3 z maksymalnie 28.
+Łącznie zgromadziliście 1 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RUCH: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (1, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pomyślnie przeniesiono 'P' do (1,1). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌T◌║ 1
+║◌◌◌◌◌◌◌║ 2
+║◌◌AD◌┌─╢ 3
+║◌◌◌┌─┤S║ 4
+║O◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌M◌│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 3 z maksymalnie 28.
+Łącznie zgromadziliście 1 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'P' jest zsynchronizowany na (1,1). Teraz przejdźmy do obiektu 'A'. Na mojej planszy 'A' jest na (4,3). Proponuję przenieść go na (1,2). Czy zgadzasz się na ten cel dla 'A'? Jeśli tak, proszę wykonaj RUCH: A, (1,2) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'P' jest zsynchronizowany na (1,1). Teraz przejdźmy do obiektu 'A'. Na mojej planszy 'A' jest na (4,3). Proponuję przenieść go na (1,2). Czy zgadzasz się na ten cel dla 'A'? Jeśli tak, proszę wykonaj RUCH: A, (1,2) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: POWIEDZ: Świetnie, 'P' jest zsynchronizowany na (1,1). Teraz przejdźmy do obiektu 'A'. Na mojej planszy 'A' jest na (4,3). Proponuję przenieść go na (1,2). Czy zgadzasz się na ten cel dla 'A'? Jeśli tak, proszę wykonaj RUCH: A, (1,2) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: Twoja wiadomość zawiera więcej niż jedno polecenie!</p>
+<p>Upewnij się, że twoja odpowiedź zawiera tylko <code>POWIEDZ: &lt;WIADOMOŚĆ&gt;</code> lub <code>RUCH: &lt;OBIEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> i nic więcej!</p>
+<p>Łącznie zgromadziliście 2 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'P' jest zsynchronizowany na (1,1). Teraz przejdźmy do obiektu 'A'. Na mojej planszy 'A' jest na (4,3). Proponuję przenieść go na (1,2). Czy zgadzasz się na ten cel dla 'A'? Jeśli tak, proszę wykonaj RUCH: A, (1,2) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'P' jest zsynchronizowany na (1,1). Teraz przejdźmy do obiektu 'A'. Na mojej planszy 'A' jest na (4,3). Proponuję przenieść go na (1,2). Czy zgadzasz się na ten cel dla 'A'? Jeśli tak, proszę wykonaj RUCH: A, (1,2) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: POWIEDZ: Świetnie, 'P' jest zsynchronizowany na (1,1). Teraz przejdźmy do obiektu 'A'. Na mojej planszy 'A' jest na (4,3). Proponuję przenieść go na (1,2). Czy zgadzasz się na ten cel dla 'A'? Jeśli tak, proszę wykonaj RUCH: A, (1,2) na swojej planszy.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: Twoja wiadomość zawiera więcej niż jedno polecenie!</p>
+<p>Upewnij się, że twoja odpowiedź zawiera tylko <code>POWIEDZ: &lt;WIADOMOŚĆ&gt;</code> lub <code>RUCH: &lt;OBIEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> i nic więcej!</p>
+<p>Łącznie zgromadziliście 3 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Proponuję przenieść obiekt 'A' na pozycję (1,2). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Proponuję przenieść obiekt 'A' na pozycję (1,2). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pomyślnie przeniesiono 'P' do (1,1). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌S◌║ 1
+║◌◌◌◌O◌◌║ 2
+║◌◌◌M◌┌─╢ 3
+║◌◌A┌─┤◌║ 4
+║◌◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║D◌T│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 4 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Proponuję przenieść obiekt 'A' na pozycję (1,2). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'A' na pozycję (1,2) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'A' na (1,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'A' na pozycję (1,2) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'A' na (1,2).</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 4 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'A' na pozycję (1,2) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'A' na (1,2)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: A, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: A, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>A moved to (1, 2)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 5 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RUCH: A, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: A, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>A moved to (1, 2)</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pomyślnie przeniesiono 'A' do (1,2). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌T◌║ 1
+║A◌◌◌◌◌◌║ 2
+║◌◌◌D◌┌─╢ 3
+║◌◌◌┌─┤S║ 4
+║O◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌M◌│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 5 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'A' jest zsynchronizowany na (1,2). Teraz przejdźmy do obiektu 'D'. Na mojej planszy 'D' jest na (4,3). Proponuję przenieść go na (1,3). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'A' jest zsynchronizowany na (1,2). Teraz przejdźmy do obiektu 'D'. Na mojej planszy 'D' jest na (4,3). Proponuję przenieść go na (1,3). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pomyślnie przeniesiono 'A' do (1,2). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌S◌║ 1
+║A◌◌◌O◌◌║ 2
+║◌◌◌M◌┌─╢ 3
+║◌◌◌┌─┤◌║ 4
+║◌◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║D◌T│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 6 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Świetnie, 'A' jest zsynchronizowany na (1,2). Teraz przejdźmy do obiektu 'D'. Na mojej planszy 'D' jest na (4,3). Proponuję przenieść go na (1,3). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'D' na pozycję (1,3) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'D' na (1,3).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'D' na pozycję (1,3) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'D' na (1,3).</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 6 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'D' na pozycję (1,3) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'D' na (1,3)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>D moved to (1, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 7 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RUCH: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>D moved to (1, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pomyślnie przeniesiono 'D' do (1,3). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌T◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║◌◌◌┌─┤S║ 4
+║O◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌M◌│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 7 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'D' jest zsynchronizowany na (1,3). Teraz przejdźmy do obiektu 'O'. Na mojej planszy 'O' jest na (1,5). Proponuję przenieść go na (1,4). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'D' jest zsynchronizowany na (1,3). Teraz przejdźmy do obiektu 'O'. Na mojej planszy 'O' jest na (1,5). Proponuję przenieść go na (1,4). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pomyślnie przeniesiono 'D' do (1,3). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌S◌║ 1
+║A◌◌◌O◌◌║ 2
+║D◌◌M◌┌─╢ 3
+║◌◌◌┌─┤◌║ 4
+║◌◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌T│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 8 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Świetnie, 'D' jest zsynchronizowany na (1,3). Teraz przejdźmy do obiektu 'O'. Na mojej planszy 'O' jest na (1,5). Proponuję przenieść go na (1,4). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'O' na pozycję (1,4) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'O' na (1,4).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'O' na pozycję (1,4) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'O' na (1,4).</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 8 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'O' na pozycję (1,4) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'O' na (1,4)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: O, (1, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: O, (1, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (1, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 9 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RUCH: O, (1, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: O, (1, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (1, 4)</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pomyślnie przeniesiono 'O' do (1,4). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌T◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║O◌◌┌─┤S║ 4
+║◌◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌M◌│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 9 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'O' jest zsynchronizowany na (1,4). Teraz przejdźmy do obiektu 'T'. Na mojej planszy 'T' jest na (6,1). Proponuję przenieść go na (1,5). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'O' jest zsynchronizowany na (1,4). Teraz przejdźmy do obiektu 'T'. Na mojej planszy 'T' jest na (6,1). Proponuję przenieść go na (1,5). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pomyślnie przeniesiono 'O' do (1,4). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌S◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌M◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║◌◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌T│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 10 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Świetnie, 'O' jest zsynchronizowany na (1,4). Teraz przejdźmy do obiektu 'T'. Na mojej planszy 'T' jest na (6,1). Proponuję przenieść go na (1,5). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'T' na pozycję (1,5) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'T' na (1,5).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'T' na pozycję (1,5) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'T' na (1,5).</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 10 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'T' na pozycję (1,5) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'T' na (1,5)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: T, (1, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: T, (1, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (1, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 11 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RUCH: T, (1, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: T, (1, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (1, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pomyślnie przeniesiono 'T' do (1,5). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌◌◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║O◌◌┌─┤S║ 4
+║T◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌M◌│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 11 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'T' jest zsynchronizowany na (1,5). Teraz przejdźmy do obiektu 'S'. Na mojej planszy 'S' jest na (7,4). Proponuję przenieść go na (1,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'T' jest zsynchronizowany na (1,5). Teraz przejdźmy do obiektu 'S'. Na mojej planszy 'S' jest na (7,4). Proponuję przenieść go na (1,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pomyślnie przeniesiono 'T' do (1,5). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌S◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌M◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║T◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌◌│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 12 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Świetnie, 'T' jest zsynchronizowany na (1,5). Teraz przejdźmy do obiektu 'S'. Na mojej planszy 'S' jest na (7,4). Proponuję przenieść go na (1,6). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (1,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (1,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (1,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (1,6).</p></p>
+    </div>
+</div><div class="game-round" data-round="12">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 12 z maksymalnie 28.
+Łącznie zgromadziliście 3 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (1,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (1,6)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: S, (1, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: S, (1, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kara: (1,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 4 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: (1,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 4 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Przepraszam, pomyliłem się. Pozycja (1,6) jest zajęta przez ramkę. Proponuję przenieść obiekt 'S' na pozycję (2,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Przepraszam, pomyliłem się. Pozycja (1,6) jest zajęta przez ramkę. Proponuję przenieść obiekt 'S' na pozycję (2,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 13 z maksymalnie 28.
+Łącznie zgromadziliście 4 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Przepraszam, pomyliłem się. Pozycja (1,6) jest zajęta przez ramkę. Proponuję przenieść obiekt 'S' na pozycję (2,6). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (2,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (2,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (2,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (2,6).</p></p>
+    </div>
+</div><div class="game-round" data-round="13">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 13 z maksymalnie 28.
+Łącznie zgromadziliście 4 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (2,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (2,6)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: S, (2, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: S, (2, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kara: (2,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 5 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: (2,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 5 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Kolejna pomyłka, (2,6) też jest zajęte przez ramkę. Proponuję przenieść obiekt 'S' na pozycję (3,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Kolejna pomyłka, (2,6) też jest zajęte przez ramkę. Proponuję przenieść obiekt 'S' na pozycję (3,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 14 z maksymalnie 28.
+Łącznie zgromadziliście 5 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Kolejna pomyłka, (2,6) też jest zajęte przez ramkę. Proponuję przenieść obiekt 'S' na pozycję (3,6). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (3,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (3,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (3,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (3,6).</p></p>
+    </div>
+</div><div class="game-round" data-round="14">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 14 z maksymalnie 28.
+Łącznie zgromadziliście 5 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (3,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (3,6)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: S, (3, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: S, (3, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kara: (3,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 6 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: (3,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 6 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Widzę, że wiersz 6 jest całkowicie zablokowany przez ramkę. Musimy znaleźć inne miejsce dla 'S'. Proponuję przenieść go na pozycję (2,7). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Widzę, że wiersz 6 jest całkowicie zablokowany przez ramkę. Musimy znaleźć inne miejsce dla 'S'. Proponuję przenieść go na pozycję (2,7). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 15 z maksymalnie 28.
+Łącznie zgromadziliście 6 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Widzę, że wiersz 6 jest całkowicie zablokowany przez ramkę. Musimy znaleźć inne miejsce dla 'S'. Proponuję przenieść go na pozycję (2,7). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (2,7) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (2,7).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (2,7) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (2,7).</p></p>
+    </div>
+</div><div class="game-round" data-round="15">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 15 z maksymalnie 28.
+Łącznie zgromadziliście 6 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (2,7) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (2,7)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: S, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: S, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kara: (2,7) nie jest puste, ale zawiera 'M'.</p>
+<p>Łącznie zgromadziliście 7 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: (2,7) nie jest puste, ale zawiera 'M'.</p>
+<p>Łącznie zgromadziliście 7 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Przepraszam, (2,7) jest zajęte przez 'M'. Proponuję przenieść obiekt 'S' na pozycję (3,7). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Przepraszam, (2,7) jest zajęte przez 'M'. Proponuję przenieść obiekt 'S' na pozycję (3,7). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 16 z maksymalnie 28.
+Łącznie zgromadziliście 7 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Przepraszam, (2,7) jest zajęte przez 'M'. Proponuję przenieść obiekt 'S' na pozycję (3,7). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (3,7) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (3,7).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (3,7) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (3,7).</p></p>
+    </div>
+</div><div class="game-round" data-round="16">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 16 z maksymalnie 28.
+Łącznie zgromadziliście 7 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'S' na pozycję (3,7) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'S' na (3,7)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: S, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: S, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>S moved to (3, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 17 z maksymalnie 28.
+Łącznie zgromadziliście 7 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RUCH: S, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: S, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>S moved to (3, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="17">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pomyślnie przeniesiono 'S' do (3,7). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌◌◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║T◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌MS│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 17 z maksymalnie 28.
+Łącznie zgromadziliście 7 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'S' jest zsynchronizowany na (3,7). Teraz przejdźmy do obiektu 'M'. Na mojej planszy 'M' jest na (2,7). Proponuję przenieść go na pozycję (2,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'S' jest zsynchronizowany na (3,7). Teraz przejdźmy do obiektu 'M'. Na mojej planszy 'M' jest na (2,7). Proponuję przenieść go na pozycję (2,6). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pomyślnie przeniesiono 'S' do (3,7). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌◌◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌M◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║T◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌S│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 18 z maksymalnie 28.
+Łącznie zgromadziliście 7 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Świetnie, 'S' jest zsynchronizowany na (3,7). Teraz przejdźmy do obiektu 'M'. Na mojej planszy 'M' jest na (2,7). Proponuję przenieść go na pozycję (2,6). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'M' na pozycję (2,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'M' na (2,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'M' na pozycję (2,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'M' na (2,6).</p></p>
+    </div>
+</div><div class="game-round" data-round="18">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 18 z maksymalnie 28.
+Łącznie zgromadziliście 7 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'M' na pozycję (2,6) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'M' na (2,6)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: M, (2, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: M, (2, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kara: (2,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 8 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kara: (2,6) nie jest puste, ale zawiera '─'.</p>
+<p>Łącznie zgromadziliście 8 z 16 kar.
+Spróbuj ponownie!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Przepraszam, (2,6) jest zajęte przez ramkę. Proponuję przenieść obiekt 'M' na pozycję (2,5). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Przepraszam, (2,6) jest zajęte przez ramkę. Proponuję przenieść obiekt 'M' na pozycję (2,5). Czy zgadzasz się?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 19 z maksymalnie 28.
+Łącznie zgromadziliście 8 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Przepraszam, (2,6) jest zajęte przez ramkę. Proponuję przenieść obiekt 'M' na pozycję (2,5). Czy zgadzasz się?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'M' na pozycję (2,5) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'M' na (2,5).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Tak, zgadzam się. Przeniosę obiekt 'M' na pozycję (2,5) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'M' na (2,5).</p></p>
+    </div>
+</div><div class="game-round" data-round="19">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 19 z maksymalnie 28.
+Łącznie zgromadziliście 8 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Tak, zgadzam się. Przeniosę obiekt 'M' na pozycję (2,5) w tej turze. Proszę, abyś Ty również przeniósł swój obiekt 'M' na (2,5)."</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RUCH: M, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: M, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>M moved to (2, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 20 z maksymalnie 28.
+Łącznie zgromadziliście 8 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RUCH: M, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RUCH: M, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>M moved to (2, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="20">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pomyślnie przeniesiono 'M' do (2,5). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌◌◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║TM◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌S│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 20 z maksymalnie 28.
+Łącznie zgromadziliście 8 z 16 kar.
+Drugi gracz przesunął obiekt na swojej siatce.</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: Świetnie, 'M' jest zsynchronizowany na (2,5). Wszystkie obiekty zostały już zsynchronizowane. Czy zgadzasz się, że możemy zakończyć grę?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: Świetnie, 'M' jest zsynchronizowany na (2,5). Wszystkie obiekty zostały już zsynchronizowane. Czy zgadzasz się, że możemy zakończyć grę?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pomyślnie przeniesiono 'M' do (2,5). Twoja zaktualizowana siatka wygląda następująco:</p>
+<pre><code> 1234567
+╔═══════╗
+║P◌◌◌◌◌◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║TM◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌S│◌◌◌║ 7
+╚═══╧═══╝
+</code></pre>
+<p>Obecnie grasz rundę 21 z maksymalnie 28.
+Łącznie zgromadziliście 8 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"Świetnie, 'M' jest zsynchronizowany na (2,5). Wszystkie obiekty zostały już zsynchronizowane. Czy zgadzasz się, że możemy zakończyć grę?"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POWIEDZ: zakończono!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: zakończono!</p></p>
+    </div>
+</div><div class="game-round" data-round="21">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Twoja wiadomość została przekazana drugiemu graczowi.</p>
+<p>Obecnie grasz rundę 21 z maksymalnie 28.
+Łącznie zgromadziliście 8 z 16 kar.
+Drugi gracz wysłał tę wiadomość:</p>
+<p>"zakończono!"</p>
+<p>Jakie jest twoje następne polecenie?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POWIEDZ: zakończono!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POWIEDZ: zakończono!</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══════╗
+║◌◌◌◌◌T◌║ 1
+║P◌◌◌◌◌◌║ 2
+║◌◌AD◌┌─╢ 3
+║◌◌◌┌─┤S║ 4
+║O◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌M◌│◌◌◌║ 7
+╚═══╧═══╝
+
+
+Player 2:
+ 1234567
+╔═══════╗
+║◌◌◌◌◌S◌║ 1
+║◌◌◌◌O◌◌║ 2
+║◌◌◌M◌┌─╢ 3
+║◌◌A┌─┤◌║ 4
+║◌◌◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║D◌T│P◌◌║ 7
+╚═══╧═══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══════╗
+║P◌◌◌◌◌◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║TM◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌S│◌◌◌║ 7
+╚═══╧═══╝
+
+
+Player 2:
+ 1234567
+╔═══════╗
+║P◌◌◌◌◌◌║ 1
+║A◌◌◌◌◌◌║ 2
+║D◌◌◌◌┌─╢ 3
+║O◌◌┌─┤◌║ 4
+║TM◌│◌├─╢ 5
+╟───┼─┘◌║ 6
+║◌◌S│◌◌◌║ 7
+╚═══╧═══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 6.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 0.00</li>
+<li>Init Distance Sum: 31.75</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 8.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 21.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

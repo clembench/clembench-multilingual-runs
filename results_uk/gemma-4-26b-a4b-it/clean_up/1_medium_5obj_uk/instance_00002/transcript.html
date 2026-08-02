@@ -1,0 +1,1363 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_5obj_uk', episode 2 with gemma-4-26b-a4b-it.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Я ваш ведучий гри, і ви граєте у спільну гру з наступною сіткою як ігровим полем:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│◌C◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>Верхній край показує координати x, що зростають праворуч, а правий край — координати y, що зростають донизу.</li>
+<li>Наступні об'єкти випадково розміщені на вашій сітці: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Інший гравець бачить варіант ігрового поля, де об'єкти розміщені в інших випадкових місцях. Ви не бачите поле іншого гравця, а він не бачить вашого.</p>
+<p><strong>Мета:</strong></p>
+<p>Обидва гравці повинні переміщати об'єкти на своєму фоні так, щоб однакові об'єкти опинилися в однакових координатах. Ви повинні спілкуватися з іншим гравцем, щоб узгодити спільну цільову конфігурацію.</p>
+<p><strong>Правила:</strong></p>
+<ul>
+<li>За кожен хід ви можете надіслати рівно одну з двох наступних команд:</li>
+<li><code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>: щоб надіслати повідомлення (усе до наступного розриву рядка) іншому гравцю. Я передам його вашому партнеру.</li>
+<li><code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: щоб перемістити об'єкт у нову позицію, де <code>&lt;X&gt;</code> — це стовпець, а <code>&lt;Y&gt;</code> — рядок. Я повідомлю вас, чи був ваш хід успішним.</li>
+<li>Якщо ви не дотримуєтеся формату або надсилаєте кілька команд одночасно, я змушений вас оштрафувати.</li>
+<li>Якщо обидва гравці накопичать більше ніж 12 штрафів, ви обидва програєте гру.</li>
+<li>Дуже важливо, щоб ви спілкувалися з іншим гравцем щодо вашого цільового стану! <em>Єдиний</em> спосіб передати вашу стратегію іншому гравцю — це команда <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>!</li>
+</ul>
+<p><strong>Переміщення об'єктів</strong></p>
+<ul>
+<li>Ви можете переміщати об'єкти лише в клітинки в межах сітки. Цільова клітинка повинна бути порожньою, тобто містити лише символ '◌'.</li>
+<li>Якщо ви намагаєтеся перемістити об'єкт у клітинку, яка не порожня, або перемістити його за межі сітки, я змушений вас оштрафувати. Ви отримаєте ще одну спробу.</li>
+<li>Перш ніж зробити хід, ретельно перевірте, що цільова клітинка порожня та не містить жодної літери, рамки чи лінії!</li>
+</ul>
+<p><strong>Кінець гри</strong></p>
+<p>Якщо ви вважаєте, що досягли мети вирівнювання всіх об'єктів, ви можете попросити іншого гравця завершити гру, надіславши <code>СКАЖИ: завершено?</code>. Якщо інший гравець просить вас завершити гру, і ви відповідаєте <code>СКАЖИ: завершено!</code>, гра завершиться.</p>
+<p>Обидва гравці перемагають, якщо гра завершується протягом 20 раундів, де один раунд визначається як надсилання обома гравцями по одній дійсній команді.</p>
+<p><strong>Підрахунок очок:</strong></p>
+<p>Чим ближче однакові об'єкти на обох ігрових полях, тим більше очок ви отримуєте. Штрафи зменшують ваші очки. Чи зможете ви побити рекорд?</p>
+<p>Будь ласка, надішліть повідомлення іншому гравцю, щоб почати гру!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЖИ: Привіт! Я бачу свої об'єкти на таких позиціях: W(6,5), I(1,7), T(6,3), C(4,7), H(2,4). Давай узгодимо цільову конфігурацію. Я пропоную зібрати всі об'єкти в один ряд або в кут, щоб було легше координуватися. Які твої об'єкти та де вони?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЖИ: Привіт! Я бачу свої об'єкти на таких позиціях: W(6,5), I(1,7), T(6,3), C(4,7), H(2,4). Давай узгодимо цільову конфігурацію. Я пропоную зібрати всі об'єкти в один ряд або в кут, щоб було легше координуватися. Які твої об'єкти та де вони?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Я ваш ведучий гри, і ви граєте у спільну гру з наступною сіткою як ігровим полем:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌W◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>Верхній край показує координати x, що зростають праворуч, а правий край — координати y, що зростають донизу.</li>
+<li>Наступні об'єкти випадково розміщені на вашій сітці: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Інший гравець бачить варіант ігрового поля, де об'єкти розміщені в інших випадкових місцях. Ви не бачите поле іншого гравця, а він не бачить вашого.</p>
+<p><strong>Мета:</strong></p>
+<p>Обидва гравці повинні переміщати об'єкти на своєму фоні так, щоб однакові об'єкти опинилися в однакових координатах. Ви повинні спілкуватися з іншим гравцем, щоб узгодити спільну цільову конфігурацію.</p>
+<p><strong>Правила:</strong></p>
+<ul>
+<li>За кожен хід ви можете надіслати рівно одну з двох наступних команд:</li>
+<li><code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>: щоб надіслати повідомлення (усе до наступного розриву рядка) іншому гравцю. Я передам його вашому партнеру.</li>
+<li><code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: щоб перемістити об'єкт у нову позицію, де <code>&lt;X&gt;</code> — це стовпець, а <code>&lt;Y&gt;</code> — рядок. Я повідомлю вас, чи був ваш хід успішним.</li>
+<li>Якщо ви не дотримуєтеся формату або надсилаєте кілька команд одночасно, я змушений вас оштрафувати.</li>
+<li>Якщо обидва гравці накопичать більше ніж 12 штрафів, ви обидва програєте гру.</li>
+<li>Дуже важливо, щоб ви спілкувалися з іншим гравцем щодо вашого цільового стану! <em>Єдиний</em> спосіб передати вашу стратегію іншому гравцю — це команда <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code>!</li>
+</ul>
+<p><strong>Переміщення об'єктів</strong></p>
+<ul>
+<li>Ви можете переміщати об'єкти лише в клітинки в межах сітки. Цільова клітинка повинна бути порожньою, тобто містити лише символ '◌'.</li>
+<li>Якщо ви намагаєтеся перемістити об'єкт у клітинку, яка не порожня, або перемістити його за межі сітки, я змушений вас оштрафувати. Ви отримаєте ще одну спробу.</li>
+<li>Перш ніж зробити хід, ретельно перевірте, що цільова клітинка порожня та не містить жодної літери, рамки чи лінії!</li>
+</ul>
+<p><strong>Кінець гри</strong></p>
+<p>Якщо ви вважаєте, що досягли мети вирівнювання всіх об'єктів, ви можете попросити іншого гравця завершити гру, надіславши <code>СКАЖИ: завершено?</code>. Якщо інший гравець просить вас завершити гру, і ви відповідаєте <code>СКАЖИ: завершено!</code>, гра завершиться.</p>
+<p>Обидва гравці перемагають, якщо гра завершується протягом 20 раундів, де один раунд визначається як надсилання обома гравцями по одній дійсній команді.</p>
+<p><strong>Підрахунок очок:</strong></p>
+<p>Чим ближче однакові об'єкти на обох ігрових полях, тим більше очок ви отримуєте. Штрафи зменшують ваші очки. Чи зможете ви побити рекорд?</p>
+<p>Інший гравець почав гру, надіславши це повідомлення:</p>
+<p>"Привіт! Я бачу свої об'єкти на таких позиціях: W(6,5), I(1,7), T(6,3), C(4,7), H(2,4). Давай узгодимо цільову конфігурацію. Я пропоную зібрати всі об'єкти в один ряд або в кут, щоб було легше координуватися. Які твої об'єкти та де вони?"</p>
+<p>Яка ваша перша команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>СКАЖИ: Привіт! Мої об'єкти на таких позиціях: C(3,4), T(6,5), W(3,6), H(7,6), I(3,7). Пропоную зібрати всі об'єкти в ряд 6, щоб було простіше. Наприклад: W(1,6), H(2,6), I(3,6), T(4,6), C(5,6). Що думаєш?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЖИ: Привіт! Мої об'єкти на таких позиціях: C(3,4), T(6,5), W(3,6), H(7,6), I(3,7). Пропоную зібрати всі об'єкти в ряд 6, щоб було простіше. Наприклад: W(1,6), H(2,6), I(3,6), T(4,6), C(5,6). Що думаєш?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ваше повідомлення передано іншому гравцю.</p>
+<p>Зараз ви граєте раунд 1 з максимум 20.
+Разом ви накопичили 0 з 12 штрафів.
+Інший гравець надіслав це повідомлення:</p>
+<p>"Привіт! Мої об'єкти на таких позиціях: C(3,4), T(6,5), W(3,6), H(7,6), I(3,7). Пропоную зібрати всі об'єкти в ряд 6, щоб було простіше. Наприклад: W(1,6), H(2,6), I(3,6), T(4,6), C(5,6). Що думаєш?"</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЖИ: Чудова ідея! Ряд 6 підходить. Давай спробуємо твій варіант: W(1,6), H(2,6), I(3,6), T(4,6), C(5,6). Я почну переміщувати свої об'єкти до цих координат. Почнемо з W.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЖИ: Чудова ідея! Ряд 6 підходить. Давай спробуємо твій варіант: W(1,6), H(2,6), I(3,6), T(4,6), C(5,6). Я почну переміщувати свої об'єкти до цих координат. Почнемо з W.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ваше повідомлення передано іншому гравцю.</p>
+<p>Зараз ви граєте раунд 2 з максимум 20.
+Разом ви накопичили 0 з 12 штрафів.
+Інший гравець надіслав це повідомлення:</p>
+<p>"Чудова ідея! Ряд 6 підходить. Давай спробуємо твій варіант: W(1,6), H(2,6), I(3,6), T(4,6), C(5,6). Я почну переміщувати свої об'єкти до цих координат. Почнемо з W."</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (1,6) не порожня, а містить '─'.</p>
+<p>Разом ви накопичили 1 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (1,6) не порожня, а містить '─'.</p>
+<p>Разом ви накопичили 1 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: W, (2, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (2, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (2,6) не порожня, а містить '┤'.</p>
+<p>Разом ви накопичили 2 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (2,6) не порожня, а містить '┤'.</p>
+<p>Разом ви накопичили 2 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: W, (4, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (4, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (4,6) не порожня, а містить 'W'.</p>
+<p>Разом ви накопичили 3 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (4,6) не порожня, а містить 'W'.</p>
+<p>Разом ви накопичили 3 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (1, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ваше повідомлення передано іншому гравцю.</p>
+<p>Зараз ви граєте раунд 2 з максимум 20.
+Разом ви накопичили 3 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (1,6) не порожня, а містить '─'.</p>
+<p>Разом ви накопичили 4 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (1,6) не порожня, а містить '─'.</p>
+<p>Разом ви накопичили 4 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Вибачте, я помилився з перевіркою клітинки. Рядок 6 містить лінію рамки. Давайте змістимо наш план на рядок 7, де клітинки порожніші.</p>
+<p>СКАЖИ: Вибач, я не помітив лінію в 6-му рядку. Давай перенесемо наш план на 7-й рядок. Пропоную таку конфігурацію: W(1,7), H(2,7), I(3,7), T(4,7), C(5,7). Але зачекай, у мене I вже на (1,7), а у тебе I на (3,7). Давай узгодимо: W(1,7), H(2,7), I(3,7), T(4,7), C(5,7). Почнемо з мого W.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Вибачте, я помилився з перевіркою клітинки. Рядок 6 містить лінію рамки. Давайте змістимо наш план на рядок 7, де клітинки порожніші.</p>
+<p>СКАЖИ: Вибач, я не помітив лінію в 6-му рядку. Давай перенесемо наш план на 7-й рядок. Пропоную таку конфігурацію: W(1,7), H(2,7), I(3,7), T(4,7), C(5,7). Але зачекай, у мене I вже на (1,7), а у тебе I на (3,7). Давай узгодимо: W(1,7), H(2,7), I(3,7), T(4,7), C(5,7). Почнемо з мого W.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Вибачте, я помилився з перевіркою клітинки. Рядок 6 містить лінію рамки. Давайте змістимо наш план на рядок 7, де клітинки порожніші.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: Ваше повідомлення не повинно містити нічого перед командою!</p>
+<p>Переконайтеся, що ваша відповідь містить лише <code>СКАЖИ: &lt;ПОВІДОМЛЕННЯ&gt;</code> або <code>ПЕРЕСУНЬ: &lt;ОБ'ЄКТ&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> і нічого більше!</p>
+<p>Разом ви накопичили 5 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЖИ: Вибач, я помилився. Давай перенесемо план на 7-й рядок. Пропоную таку конфігурацію: W(1,7), H(2,7), I(3,7), T(4,7), C(5,7). Почнемо з мого W.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЖИ: Вибач, я помилився. Давай перенесемо план на 7-й рядок. Пропоную таку конфігурацію: W(1,7), H(2,7), I(3,7), T(4,7), C(5,7). Почнемо з мого W.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'W' успішно переміщено в (1,5). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║W┌─┘◌T◌║ 5
+╟─┤◌◌◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 3 з максимум 20.
+Разом ви накопичили 5 з 12 штрафів.
+Інший гравець надіслав це повідомлення:</p>
+<p>"Вибач, я помилився. Давай перенесемо план на 7-й рядок. Пропоную таку конфігурацію: W(1,7), H(2,7), I(3,7), T(4,7), C(5,7). Почнемо з мого W."</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>СКАЖИ: Зрозумів, давай перейдемо на 7-й рядок. Твій план W(1,7), H(2,7), I(3,7), T(4,7), C(5,7) мені підходить. Я почну переміщувати свої об'єкти відповідно до цього плану.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЖИ: Зрозумів, давай перейдемо на 7-й рядок. Твій план W(1,7), H(2,7), I(3,7), T(4,7), C(5,7) мені підходить. Я почну переміщувати свої об'єкти відповідно до цього плану.</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ваше повідомлення передано іншому гравцю.</p>
+<p>Зараз ви граєте раунд 3 з максимум 20.
+Разом ви накопичили 5 з 12 штрафів.
+Інший гравець надіслав це повідомлення:</p>
+<p>"Зрозумів, давай перейдемо на 7-й рядок. Твій план W(1,7), H(2,7), I(3,7), T(4,7), C(5,7) мені підходить. Я почну переміщувати свої об'єкти відповідно до цього плану."</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (1,7) не порожня, а містить 'I'.</p>
+<p>Разом ви накопичили 6 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (1,7) не порожня, а містить 'I'.</p>
+<p>Разом ви накопичили 6 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: W, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (2,7) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 7 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (2,7) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 7 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: W, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (3, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ваше повідомлення передано іншому гравцю.</p>
+<p>Зараз ви граєте раунд 4 з максимум 20.
+Разом ви накопичили 7 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (1, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Об'єкт 'W' успішно переміщено в (3,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│WC◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 4 з максимум 20.
+Разом ви накопичили 7 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: H, (3, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (3, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (3,5) не порожня, а містить '─'.</p>
+<p>Разом ви накопичили 8 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (3,5) не порожня, а містить '─'.</p>
+<p>Разом ви накопичили 8 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (2,5) не порожня, а містить '┌'.</p>
+<p>Разом ви накопичили 9 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (2,5) не порожня, а містить '┌'.</p>
+<p>Разом ви накопичили 9 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: H, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (4,4) не порожня, а містить '├'.</p>
+<p>Разом ви накопичили 10 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (4,4) не порожня, а містить '├'.</p>
+<p>Разом ви накопичили 10 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (2, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'W' успішно переміщено в (1,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌◌◌◌H║ 6
+║W│◌I◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 5 з максимум 20.
+Разом ви накопичили 10 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (2,7) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 11 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (2,7) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 11 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (4,7) не порожня, а містить 'I'.</p>
+<p>Разом ви накопичили 12 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (4,7) не порожня, а містить 'I'.</p>
+<p>Разом ви накопичили 12 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (5, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Об'єкт 'H' успішно переміщено в (2,3). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌H◌│◌│T║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│WC◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 5 з максимум 20.
+Разом ви накопичили 12 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>СКАЖИ: Вибач, я на межі програшу через штрафи. Я намагатимуся бути максимально обережним. Давай продовжувати наш план для 7-го рядка, коли зможемо. Наступним я спробую перемістити I або C.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>СКАЖИ: Вибач, я на межі програшу через штрафи. Я намагатимуся бути максимально обережним. Давай продовжувати наш план для 7-го рядка, коли зможемо. Наступним я спробую перемістити I або C.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'H' успішно переміщено в (5,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│◌IH◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 6 з максимум 20.
+Разом ви накопичили 12 з 12 штрафів.
+Інший гравець надіслав це повідомлення:</p>
+<p>"Вибач, я на межі програшу через штрафи. Я намагатимуся бути максимально обережним. Давай продовжувати наш план для 7-го рядка, коли зможемо. Наступним я спробую перемістити I або C."</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: I, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: I, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (3, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ваше повідомлення передано іншому гравцю.</p>
+<p>Зараз ви граєте раунд 6 з максимум 20.
+Разом ви накопичили 12 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: C, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: C, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (5, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'I' успішно переміщено в (3,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│I◌H◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 7 з максимум 20.
+Разом ви накопичили 12 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: T, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: T, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (4, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Об'єкт 'C' успішно переміщено в (5,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌H◌│◌│T║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│W◌C◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 7 з максимум 20.
+Разом ви накопичили 12 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: I, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: I, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'T' успішно переміщено в (4,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│ITH◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 8 з максимум 20.
+Разом ви накопичили 12 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: C, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: C, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (5,7) не порожня, а містить 'H'.</p>
+<p>Разом ви накопичили 13 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (5,7) не порожня, а містить 'H'.</p>
+<p>Разом ви накопичили 13 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: C, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: C, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (6, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Об'єкт 'I' успішно переміщено в (1,1). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║I│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌H◌│◌│T║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│W◌C◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 8 з максимум 20.
+Разом ви накопичили 13 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: T, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: T, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (1,1) не порожня, а містить 'I'.</p>
+<p>Разом ви накопичили 14 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (1,1) не порожня, а містить 'I'.</p>
+<p>Разом ви накопичили 14 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: T, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: T, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (4,1) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 15 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Штраф: (4,1) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 15 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: T, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: T, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (5, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'C' успішно переміщено в (6,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│ITHC◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 9 з максимум 20.
+Разом ви накопичили 15 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: C, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: C, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (5,7) не порожня, а містить 'H'.</p>
+<p>Разом ви накопичили 16 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (5,7) не порожня, а містить 'H'.</p>
+<p>Разом ви накопичили 16 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: C, (7, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: C, (7, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (7, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Об'єкт 'T' успішно переміщено в (5,1). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║I│◌│T◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌H◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│W◌C◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 9 з максимум 20.
+Разом ви накопичили 16 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: T, (7, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: T, (7, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (7, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'C' успішно переміщено в (7,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│ITH◌C║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 10 з максимум 20.
+Разом ви накопичили 16 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (2,7) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 17 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (2,7) не порожня, а містить '│'.</p>
+<p>Разом ви накопичили 17 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Штраф: (5,7) не порожня, а містить 'H'.</p>
+<p>Разом ви накопичили 18 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Штраф: (5,7) не порожня, а містить 'H'.</p>
+<p>Разом ви накопичили 18 з 12 штрафів.
+Будь ласка, спробуйте ще раз!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (6, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Об'єкт 'T' успішно переміщено в (7,1). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║I│◌│◌◌T║ 1
+╟─┴─┼─┬─╢ 2
+║◌H◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│W◌C◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 10 з максимум 20.
+Разом ви накопичили 18 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: H, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (1, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'H' успішно переміщено в (6,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│IT◌HC║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 11 з максимум 20.
+Разом ви накопичили 18 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (5, 7)</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Об'єкт 'H' успішно переміщено в (1,3). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║I│◌│◌◌T║ 1
+╟─┴─┼─┬─╢ 2
+║H◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│W◌C◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 11 з максимум 20.
+Разом ви накопичили 18 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ПЕРЕСУНЬ: W, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: W, (4, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (4, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Об'єкт 'H' успішно переміщено в (5,7). Ваша оновлена сітка виглядає так:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│ITH◌C║ 7
+╚═╧═════╝
+</code></pre>
+<p>Зараз ви граєте раунд 12 з максимум 20.
+Разом ви накопичили 18 з 12 штрафів.
+Інший гравець перемістив об'єкт на своїй сітці.</p>
+<p>Яка ваша наступна команда?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 7) — <em>Зачекайте, я знову помилився з координатами через межі. Спробую інший об'єкт.</em></p>
+<p>ПЕРЕСУНЬ: H, (5, 7) — <em>Вже там.</em></p>
+<p><em>Перевірю вільні клітинки в 7-му рядку:</em>
+(1,7) - W
+(2,7) - │ (не можна)
+(3,7) - I
+(4,7) - T
+(5,7) - H
+(6,7) - ◌ (порожньо)
+(7,7) - C</p>
+<p><em>Спробую перемістити H на (6,7), але там зараз порожньо? Ні, (6,7) порожньо.</em></p>
+<p>ПЕРЕСУНЬ: H, (6, 7) — <em>Ні, там зараз порожньо, але я хочу звільнити місце для H, якщо він не на місці. Але H вже на (5,7). Потрібно перемістити C або H.</em></p>
+<p><em>Давайте спробуємо перемістити H на (2,7) було неможливо. Спробуємо перемістити H на (6,7) якщо там порожньо.</em></p>
+<p>ПЕРЕСУНЬ: H, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ПЕРЕСУНЬ: H, (2, 7) — <em>Зачекайте, я знову помилився з координатами через межі. Спробую інший об'єкт.</em></p>
+<p>ПЕРЕСУНЬ: H, (5, 7) — <em>Вже там.</em></p>
+<p><em>Перевірю вільні клітинки в 7-му рядку:</em>
+(1,7) - W
+(2,7) - │ (не можна)
+(3,7) - I
+(4,7) - T
+(5,7) - H
+(6,7) - ◌ (порожньо)
+(7,7) - C</p>
+<p><em>Спробую перемістити H на (6,7), але там зараз порожньо? Ні, (6,7) порожньо.</em></p>
+<p>ПЕРЕСУНЬ: H, (6, 7) — <em>Ні, там зараз порожньо, але я хочу звільнити місце для H, якщо він не на місці. Але H вже на (5,7). Потрібно перемістити C або H.</em></p>
+<p><em>Давайте спробуємо перемістити H на (2,7) було неможливо. Спробуємо перемістити H на (6,7) якщо там порожньо.</em></p>
+<p>ПЕРЕСУНЬ: H, (6, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'ПЕРЕСУНЬ: H, (2, 7) — <em>Зачекайте, я знову помилився з координатами через межі. Спробую інший об'єкт.</em></p>
+<p>ПЕРЕСУНЬ: H, (5, 7) — <em>Вже там.</em></p>
+<p><em>Перевірю вільні клітинки в 7-му рядку:</em>
+(1,7) - W
+(2,7) - │ (не можна)
+(3,7) - I
+(4,7) - T
+(5,7) - H
+(6,7) - ◌ (порожньо)
+(7,7) - C</p>
+<p><em>Спробую перемістити H на (6,7), але там зараз порожньо? Ні, (6,7) порожньо.</em></p>
+<p>ПЕРЕСУНЬ: H, (6, 7) — <em>Ні, там зараз порожньо, але я хочу звільнити місце для H, якщо він не на місці. Але H вже на (5,7). Потрібно перемістити C або H.</em></p>
+<p><em>Давайте спробуємо перемістити H на (2,7) було неможливо. Спробуємо перемістити H на (6,7) якщо там порожньо.</em></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│◌C◌◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌W◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║I│◌│◌◌T║ 1
+╟─┴─┼─┬─╢ 2
+║H◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌WC◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║W│ITH◌C║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 11.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 23.69</li>
+<li>Init Distance Sum: 16.95</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 19.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 11.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

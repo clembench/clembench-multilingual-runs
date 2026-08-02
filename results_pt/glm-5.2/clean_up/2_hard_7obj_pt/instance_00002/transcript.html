@@ -1,0 +1,1388 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_7obj_pt', episode 2 with glm-5.2.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Eu sou o seu mestre de jogo e vocês estão a jogar um jogo colaborativo com a seguinte grelha como tabuleiro de jogo:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│◌T│◌◌║ 1
+║◌└┬─┴──╢ 2
+║◌◌│O◌◌◌║ 3
+╟─┬┘P◌┌─╢ 4
+║◌│AD◌│◌║ 5
+╟─┼─┬─┤M║ 6
+║◌│S│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>A aresta superior apresenta as coordenadas x a aumentar para a direita e a aresta direita as coordenadas y a aumentar para baixo.</li>
+<li>Os seguintes objetos são colocados aleatoriamente na sua grelha: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>O outro jogador vê uma variação do tabuleiro de jogo, onde os objetos são colocados em diferentes locais aleatórios. Não pode ver o tabuleiro do outro jogador e ele não pode ver o seu.</p>
+<p><strong>Objetivo:</strong></p>
+<p>Ambos os jogadores têm de mover os objetos nos respetivos fundos de modo a que objetos idênticos acabem nas mesmas coordenadas. Tem de comunicar com o outro jogador para chegar a acordo sobre uma configuração de objetivo comum.</p>
+<p><strong>Regras:</strong></p>
+<ul>
+<li>Em cada turno, pode enviar exatamente um dos dois comandos seguintes:</li>
+<li><code>DIZER: &lt;MENSAGEM&gt;</code>: para enviar uma mensagem (tudo até à quebra de linha seguinte) para o outro jogador. Eu reencaminho-a para o seu parceiro.</li>
+<li><code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: para mover um objeto para uma nova posição, em que <code>&lt;X&gt;</code> é a coluna e <code>&lt;Y&gt;</code> é a linha. Informá-lo-ei se o seu movimento foi bem-sucedido ou não.</li>
+<li>Se não respeitar o formato ou enviar vários comandos ao mesmo tempo, tenho de o penalizar.</li>
+<li>Se ambos os jogadores acumularem mais de 16 penalidades, ambos perdem o jogo.</li>
+<li>É vital que comunique com o outro jogador sobre o estado do seu objetivo! A <em>única</em> forma de transmitir a sua estratégia ao outro jogador é utilizando o comando <code>DIZER: &lt;MENSAGEM&gt;</code>!</li>
+</ul>
+<p><strong>Mover Objetos</strong></p>
+<ul>
+<li>Só pode mover objetos para células dentro dos limites da grelha. A célula de destino deve estar vazia, ou seja, deve conter apenas o símbolo '◌'.</li>
+<li>Se tentar mover um objeto para um local que não esteja vazio, ou se tentar movê-lo para fora da grelha, tenho de o penalizar. Tem direito a outra tentativa.</li>
+<li>Antes de fazer um movimento, verifique se o local de destino está vazio e não contém nenhuma letra, moldura ou linha!</li>
+</ul>
+<p><strong>Fim do Jogo</strong></p>
+<p>Se acha que atingiu o objetivo de alinhar todos os objetos, pode pedir ao outro jogador para terminar o jogo enviando <code>DIZER: terminado?</code>. Se o outro jogador lhe pedir para terminar o jogo e você responder com <code>DIZER: terminado!</code>, o jogo termina.</p>
+<p>Ambos os jogadores ganham se o jogo terminar dentro de 28 rondas, onde uma ronda é definida como dois jogadores enviando cada um um comando válido.</p>
+<p><strong>Pontuação:</strong></p>
+<p>Quanto mais próximos estiverem os objetos idênticos em ambos os tabuleiros de jogo, mais pontos ganha. As penalizações reduzem os seus pontos. Consegue bater o recorde?</p>
+<p>Envie uma mensagem ao outro jogador para iniciar o jogo!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Olá! Vamos alinhar os objetos pela coordenada mais fácil. Sugiro colocar todos na linha 1: P em (1,1), O em (2,1), T em (3,1), S em (4,1), D em (5,1), A em (6,1), M em (7,1). O que achas?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Olá! Vamos alinhar os objetos pela coordenada mais fácil. Sugiro colocar todos na linha 1: P em (1,1), O em (2,1), T em (3,1), S em (4,1), D em (5,1), A em (6,1), M em (7,1). O que achas?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Eu sou o seu mestre de jogo e vocês estão a jogar um jogo colaborativo com a seguinte grelha como tabuleiro de jogo:</p>
+<pre><code> 1234567
+╔═╤══╤══╗
+║◌│O◌│◌◌║ 1
+║◌└┬─┴──╢ 2
+║◌P│◌D◌◌║ 3
+╟─┬┘◌◌┌─╢ 4
+║◌│◌◌◌│A║ 5
+╟─┼─┬─┤S║ 6
+║M│◌│◌│T║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>A aresta superior apresenta as coordenadas x a aumentar para a direita e a aresta direita as coordenadas y a aumentar para baixo.</li>
+<li>Os seguintes objetos são colocados aleatoriamente na sua grelha: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>O outro jogador vê uma variação do tabuleiro de jogo, onde os objetos são colocados em diferentes locais aleatórios. Não pode ver o tabuleiro do outro jogador e ele não pode ver o seu.</p>
+<p><strong>Objetivo:</strong></p>
+<p>Ambos os jogadores têm de mover os objetos nos respetivos fundos de modo a que objetos idênticos acabem nas mesmas coordenadas. Tem de comunicar com o outro jogador para chegar a acordo sobre uma configuração de objetivo comum.</p>
+<p><strong>Regras:</strong></p>
+<ul>
+<li>Em cada turno, pode enviar exatamente um dos dois comandos seguintes:</li>
+<li><code>DIZER: &lt;MENSAGEM&gt;</code>: para enviar uma mensagem (tudo até à quebra de linha seguinte) para o outro jogador. Eu reencaminho-a para o seu parceiro.</li>
+<li><code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: para mover um objeto para uma nova posição, em que <code>&lt;X&gt;</code> é a coluna e <code>&lt;Y&gt;</code> é a linha. Informá-lo-ei se o seu movimento foi bem-sucedido ou não.</li>
+<li>Se não respeitar o formato ou enviar vários comandos ao mesmo tempo, tenho de o penalizar.</li>
+<li>Se ambos os jogadores acumularem mais de 16 penalidades, ambos perdem o jogo.</li>
+<li>É vital que comunique com o outro jogador sobre o estado do seu objetivo! A <em>única</em> forma de transmitir a sua estratégia ao outro jogador é utilizando o comando <code>DIZER: &lt;MENSAGEM&gt;</code>!</li>
+</ul>
+<p><strong>Mover Objetos</strong></p>
+<ul>
+<li>Só pode mover objetos para células dentro dos limites da grelha. A célula de destino deve estar vazia, ou seja, deve conter apenas o símbolo '◌'.</li>
+<li>Se tentar mover um objeto para um local que não esteja vazio, ou se tentar movê-lo para fora da grelha, tenho de o penalizar. Tem direito a outra tentativa.</li>
+<li>Antes de fazer um movimento, verifique se o local de destino está vazio e não contém nenhuma letra, moldura ou linha!</li>
+</ul>
+<p><strong>Fim do Jogo</strong></p>
+<p>Se acha que atingiu o objetivo de alinhar todos os objetos, pode pedir ao outro jogador para terminar o jogo enviando <code>DIZER: terminado?</code>. Se o outro jogador lhe pedir para terminar o jogo e você responder com <code>DIZER: terminado!</code>, o jogo termina.</p>
+<p>Ambos os jogadores ganham se o jogo terminar dentro de 28 rondas, onde uma ronda é definida como dois jogadores enviando cada um um comando válido.</p>
+<p><strong>Pontuação:</strong></p>
+<p>Quanto mais próximos estiverem os objetos idênticos em ambos os tabuleiros de jogo, mais pontos ganha. As penalizações reduzem os seus pontos. Consegue bater o recorde?</p>
+<p>O outro jogador começou o jogo enviando esta mensagem:</p>
+<p>"Olá! Vamos alinhar os objetos pela coordenada mais fácil. Sugiro colocar todos na linha 1: P em (1,1), O em (2,1), T em (3,1), S em (4,1), D em (5,1), A em (6,1), M em (7,1). O que achas?"</p>
+<p>Qual é o seu primeiro comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Boa ideia, mas (2,1) está ocupada por uma parede no meu tabuleiro. Proponho o objetivo: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (1,7). Concordas?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Boa ideia, mas (2,1) está ocupada por uma parede no meu tabuleiro. Proponho o objetivo: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (1,7). Concordas?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 1 de um máximo de 28.
+Acumularam coletivamente 0 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Boa ideia, mas (2,1) está ocupada por uma parede no meu tabuleiro. Proponho o objetivo: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (1,7). Concordas?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Concordo! Vou começar a mover: P para (1,1), O para (3,1), T para (4,1), S para (5,1), D para (6,1), A para (7,1) e M para (1,7).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Concordo! Vou começar a mover: P para (1,1), O para (3,1), T para (4,1), S para (5,1), D para (6,1), A para (7,1) e M para (1,7).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 2 de um máximo de 28.
+Acumularam coletivamente 0 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Concordo! Vou começar a mover: P para (1,1), O para (3,1), T para (4,1), S para (5,1), D para (6,1), A para (7,1) e M para (1,7)."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Perfeito! Vou começar a mover os meus objetos para essas posições. Primeiro, M para (1,7).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Perfeito! Vou começar a mover os meus objetos para essas posições. Primeiro, M para (1,7).</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 2 de um máximo de 28.
+Acumularam coletivamente 0 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Perfeito! Vou começar a mover os meus objetos para essas posições. Primeiro, M para (1,7)."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Vou mover o M para (1,7) primeiro. Depois movo os outros objetos.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Vou mover o M para (1,7) primeiro. Depois movo os outros objetos.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 3 de um máximo de 28.
+Acumularam coletivamente 0 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Vou mover o M para (1,7) primeiro. Depois movo os outros objetos."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: M, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: M, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 1 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: M, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: M, (1, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 2 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Fui penalizado por tentar mover o M. Pode confirmar se a posição (1,7) está vazia no seu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Fui penalizado por tentar mover o M. Pode confirmar se a posição (1,7) está vazia no seu tabuleiro?</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 3 de um máximo de 28.
+Acumularam coletivamente 2 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Fui penalizado por tentar mover o M. Pode confirmar se a posição (1,7) está vazia no seu tabuleiro?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Vou verificar primeiro se a posição (1,7) está vazia no meu tabuleiro.</p>
+<p>Olhando para a grelha:
+- A posição (1,7) corresponde à coluna 1, linha 7.
+- Na linha 7: <code>║◌│S│◌│◌║ 7</code>
+- A coluna 1 na linha 7 contém o símbolo <code>◌</code>, ou seja, está vazia!</p>
+<p>Portanto, a posição (1,7) está vazia no meu tabuleiro. Vou tentar mover o M para lá:</p>
+<p>MOVERR: M, (1,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Vou verificar primeiro se a posição (1,7) está vazia no meu tabuleiro.</p>
+<p>Olhando para a grelha:
+- A posição (1,7) corresponde à coluna 1, linha 7.
+- Na linha 7: <code>║◌│S│◌│◌║ 7</code>
+- A coluna 1 na linha 7 contém o símbolo <code>◌</code>, ou seja, está vazia!</p>
+<p>Portanto, a posição (1,7) está vazia no meu tabuleiro. Vou tentar mover o M para lá:</p>
+<p>MOVERR: M, (1,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 3 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVERR: M, (1,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: M, (1,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 4 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: A posição (1,7) está vazia no meu tabuleiro. Mas também fui penalizado ao tentar mover M para (1,7). Talvez M não consiga chegar lá devido às paredes. Vamos tentar M em (3,7) que parece mais acessível. Concordas?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: A posição (1,7) está vazia no meu tabuleiro. Mas também fui penalizado ao tentar mover M para (1,7). Talvez M não consiga chegar lá devido às paredes. Vamos tentar M em (3,7) que parece mais acessível. Concordas?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 4 de um máximo de 28.
+Acumularam coletivamente 4 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"A posição (1,7) está vazia no meu tabuleiro. Mas também fui penalizado ao tentar mover M para (1,7). Talvez M não consiga chegar lá devido às paredes. Vamos tentar M em (3,7) que parece mais acessível. Concordas?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Sim, concordo com M em (3,7). Vou mover M para (3,7) agora.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Sim, concordo com M em (3,7). Vou mover M para (3,7) agora.</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 4 de um máximo de 28.
+Acumularam coletivamente 4 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Sim, concordo com M em (3,7). Vou mover M para (3,7) agora."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Ok, então o novo objetivo é: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (3,7). Vou tentar mover o M para (3,7) primeiro.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Ok, então o novo objetivo é: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (3,7). Vou tentar mover o M para (3,7) primeiro.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 5 de um máximo de 28.
+Acumularam coletivamente 4 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Ok, então o novo objetivo é: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (3,7). Vou tentar mover o M para (3,7) primeiro."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: M, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: M, (3, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 5 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Fui penalizado de novo ao tentar mover M. No meu tabuleiro, M está em (1,7) e (3,7) está bloqueada por uma parede. Vamos escolher outra posição para M. Que tal (2,7) ou (4,7)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Fui penalizado de novo ao tentar mover M. No meu tabuleiro, M está em (1,7) e (3,7) está bloqueada por uma parede. Vamos escolher outra posição para M. Que tal (2,7) ou (4,7)?</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 5 de um máximo de 28.
+Acumularam coletivamente 5 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Fui penalizado de novo ao tentar mover M. No meu tabuleiro, M está em (1,7) e (3,7) está bloqueada por uma parede. Vamos escolher outra posição para M. Que tal (2,7) ou (4,7)?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: No meu tabuleiro, M está em (7,6) e a coluna 7 tem paredes que bloqueiam o acesso à linha 7. Vamos tentar M em (5,7). No meu tabuleiro, (5,7) está vazia e acessível. Podes verificar se (5,7) está acessível no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: No meu tabuleiro, M está em (7,6) e a coluna 7 tem paredes que bloqueiam o acesso à linha 7. Vamos tentar M em (5,7). No meu tabuleiro, (5,7) está vazia e acessível. Podes verificar se (5,7) está acessível no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 6 de um máximo de 28.
+Acumularam coletivamente 5 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"No meu tabuleiro, M está em (7,6) e a coluna 7 tem paredes que bloqueiam o acesso à linha 7. Vamos tentar M em (5,7). No meu tabuleiro, (5,7) está vazia e acessível. Podes verificar se (5,7) está acessível no teu tabuleiro?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: No meu tabuleiro, M já está em (1,7) e não parece haver células vazias na linha 7 (exceto onde M está). Vamos tentar um local mais central: M em (2,5) ou (4,5)? Verifica se algum desses está acessível e vazio no teu tabuleiro.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: No meu tabuleiro, M já está em (1,7) e não parece haver células vazias na linha 7 (exceto onde M está). Vamos tentar um local mais central: M em (2,5) ou (4,5)? Verifica se algum desses está acessível e vazio no teu tabuleiro.</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 6 de um máximo de 28.
+Acumularam coletivamente 5 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"No meu tabuleiro, M já está em (1,7) e não parece haver células vazias na linha 7 (exceto onde M está). Vamos tentar um local mais central: M em (2,5) ou (4,5)? Verifica se algum desses está acessível e vazio no teu tabuleiro."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: No meu tabuleiro, (2,5) está vazia e acessível. Vou tentar mover M para (2,5). Concordas com M em (2,5)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: No meu tabuleiro, (2,5) está vazia e acessível. Vou tentar mover M para (2,5). Concordas com M em (2,5)?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 7 de um máximo de 28.
+Acumularam coletivamente 5 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"No meu tabuleiro, (2,5) está vazia e acessível. Vou tentar mover M para (2,5). Concordas com M em (2,5)?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Sim, concordo com M em (2,5). Atualizando o objetivo final: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (2,5). Vou tentar mover M para (2,5) agora.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Sim, concordo com M em (2,5). Atualizando o objetivo final: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (2,5). Vou tentar mover M para (2,5) agora.</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 7 de um máximo de 28.
+Acumularam coletivamente 5 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Sim, concordo com M em (2,5). Atualizando o objetivo final: P em (1,1), O em (3,1), T em (4,1), S em (5,1), D em (6,1), A em (7,1) e M em (2,5). Vou tentar mover M para (2,5) agora."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Bom, vou tentar mover o M para (2,5) agora.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Bom, vou tentar mover o M para (2,5) agora.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 8 de um máximo de 28.
+Acumularam coletivamente 5 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Bom, vou tentar mover o M para (2,5) agora."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: M, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: M, (2, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 6 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Fui penalizado de novo. Parece que há um problema técnico com o movimento do M. No meu tabuleiro, M está em (1,7) e não consigo movê-lo. Vamos tentar mover outros objetos primeiro. P em (1,1) está acessível para ti?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Fui penalizado de novo. Parece que há um problema técnico com o movimento do M. No meu tabuleiro, M está em (1,7) e não consigo movê-lo. Vamos tentar mover outros objetos primeiro. P em (1,1) está acessível para ti?</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 8 de um máximo de 28.
+Acumularam coletivamente 6 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Fui penalizado de novo. Parece que há um problema técnico com o movimento do M. No meu tabuleiro, M está em (1,7) e não consigo movê-lo. Vamos tentar mover outros objetos primeiro. P em (1,1) está acessível para ti?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Sim, (1,1) está vazia no meu tabuleiro. Vou mover P para (1,1) agora. Depois podemos voltar ao problema do M.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Sim, (1,1) está vazia no meu tabuleiro. Vou mover P para (1,1) agora. Depois podemos voltar ao problema do M.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 9 de um máximo de 28.
+Acumularam coletivamente 6 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Sim, (1,1) está vazia no meu tabuleiro. Vou mover P para (1,1) agora. Depois podemos voltar ao problema do M."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Boa! Eu também vou mover P para (1,1). Depois podemos lidar com o M. Vamos avançar com os movimentos.</p>
+<p>MOVERR: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Boa! Eu também vou mover P para (1,1). Depois podemos lidar com o M. Vamos avançar com os movimentos.</p>
+<p>MOVERR: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>MOVERR: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não deve conter nada depois do comando!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 7 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 8 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Ainda há um problema com os comandos. Vamos calibrar: confirma se recebeste esta mensagem intacta?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Ainda há um problema com os comandos. Vamos calibrar: confirma se recebeste esta mensagem intacta?</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 9 de um máximo de 28.
+Acumularam coletivamente 8 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Ainda há um problema com os comandos. Vamos calibrar: confirma se recebeste esta mensagem intacta?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Sim, recebi a tua mensagem intacta! Vou mover P para (1,1) agora.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Sim, recebi a tua mensagem intacta! Vou mover P para (1,1) agora.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 10 de um máximo de 28.
+Acumularam coletivamente 8 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Sim, recebi a tua mensagem intacta! Vou mover P para (1,1) agora."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: P, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: P, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 9 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Estou a ter problemas para enviar o comando MOVERR. Vamos tentar uma posição diferente para P. Que tal (2,3)? Está acessível no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Estou a ter problemas para enviar o comando MOVERR. Vamos tentar uma posição diferente para P. Que tal (2,3)? Está acessível no teu tabuleiro?</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 10 de um máximo de 28.
+Acumularam coletivamente 9 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Estou a ter problemas para enviar o comando MOVERR. Vamos tentar uma posição diferente para P. Que tal (2,3)? Está acessível no teu tabuleiro?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: (2,3) está ocupada por uma parede no meu tabuleiro. Que tal (4,3)? Está vazia e acessível para mim. Podes verificar se (4,3) está acessível no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: (2,3) está ocupada por uma parede no meu tabuleiro. Que tal (4,3)? Está vazia e acessível para mim. Podes verificar se (4,3) está acessível no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 11 de um máximo de 28.
+Acumularam coletivamente 9 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"(2,3) está ocupada por uma parede no meu tabuleiro. Que tal (4,3)? Está vazia e acessível para mim. Podes verificar se (4,3) está acessível no teu tabuleiro?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: No meu tabuleiro, P está em (2,3) e (4,3) tem o objeto D. Vamos tentar coordenar melhor. No meu tabuleiro, as células vazias na linha 1 são: (1,1), (3,1), (4,1), (5,1), (6,1), (7,1). As células vazias na linha 3 são: (1,3), (4,3), (5,3), (6,3), (7,3). Que células vazias tens na linha 1 e linha 3?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: No meu tabuleiro, P está em (2,3) e (4,3) tem o objeto D. Vamos tentar coordenar melhor. No meu tabuleiro, as células vazias na linha 1 são: (1,1), (3,1), (4,1), (5,1), (6,1), (7,1). As células vazias na linha 3 são: (1,3), (4,3), (5,3), (6,3), (7,3). Que células vazias tens na linha 1 e linha 3?</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 11 de um máximo de 28.
+Acumularam coletivamente 9 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"No meu tabuleiro, P está em (2,3) e (4,3) tem o objeto D. Vamos tentar coordenar melhor. No meu tabuleiro, as células vazias na linha 1 são: (1,1), (3,1), (4,1), (5,1), (6,1), (7,1). As células vazias na linha 3 são: (1,3), (4,3), (5,3), (6,3), (7,3). Que células vazias tens na linha 1 e linha 3?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: No meu tabuleiro, as células vazias na linha 1 são: (1,1), (2,1), (5,1), (6,1), (7,1). As células vazias na linha 3 são: (1,3), (5,3), (6,3), (7,3). Já que (4,3) não é possível, sugiro movermos primeiro os objetos para posições que ambos temos vazias. P para (1,1) e M para (1,3). Podes tentar mover P para (1,1)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: No meu tabuleiro, as células vazias na linha 1 são: (1,1), (2,1), (5,1), (6,1), (7,1). As células vazias na linha 3 são: (1,3), (5,3), (6,3), (7,3). Já que (4,3) não é possível, sugiro movermos primeiro os objetos para posições que ambos temos vazias. P para (1,1) e M para (1,3). Podes tentar mover P para (1,1)?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 12 de um máximo de 28.
+Acumularam coletivamente 9 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"No meu tabuleiro, as células vazias na linha 1 são: (1,1), (2,1), (5,1), (6,1), (7,1). As células vazias na linha 3 são: (1,3), (5,3), (6,3), (7,3). Já que (4,3) não é possível, sugiro movermos primeiro os objetos para posições que ambos temos vazias. P para (1,1) e M para (1,3). Podes tentar mover P para (1,1)?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Sim, concordo com P em (1,1) e M em (1,3). Vou tentar mover P para (1,1) agora. Confirma se recebes este objetivo atualizado.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Sim, concordo com P em (1,1) e M em (1,3). Vou tentar mover P para (1,1) agora. Confirma se recebes este objetivo atualizado.</p></p>
+    </div>
+</div><div class="game-round" data-round="12">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 12 de um máximo de 28.
+Acumularam coletivamente 9 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Sim, concordo com P em (1,1) e M em (1,3). Vou tentar mover P para (1,1) agora. Confirma se recebes este objetivo atualizado."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVERR: P, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: P, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 10 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Confirmo o objetivo atualizado: P em (1,1) e M em (1,3). Vou tentar mover P para (1,1) agora.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Confirmo o objetivo atualizado: P em (1,1) e M em (1,3). Vou tentar mover P para (1,1) agora.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 13 de um máximo de 28.
+Acumularam coletivamente 10 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Confirmo o objetivo atualizado: P em (1,1) e M em (1,3). Vou tentar mover P para (1,1) agora."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 11 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Continuo a ter problemas com o comando MOVERR. Vou tentar apenas confirmar: P em (1,1) é o objetivo. Conseguiste mover o P para (1,1) no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Continuo a ter problemas com o comando MOVERR. Vou tentar apenas confirmar: P em (1,1) é o objetivo. Conseguiste mover o P para (1,1) no teu tabuleiro?</p></p>
+    </div>
+</div><div class="game-round" data-round="13">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 13 de um máximo de 28.
+Acumularam coletivamente 11 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Continuo a ter problemas com o comando MOVERR. Vou tentar apenas confirmar: P em (1,1) é o objetivo. Conseguiste mover o P para (1,1) no teu tabuleiro?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Ainda não consegui mover P, também tive problemas com o comando MOVERR. Vou tentar novamente agora: MOVERR P para (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Ainda não consegui mover P, também tive problemas com o comando MOVERR. Vou tentar novamente agora: MOVERR P para (1,1).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 14 de um máximo de 28.
+Acumularam coletivamente 11 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Ainda não consegui mover P, também tive problemas com o comando MOVERR. Vou tentar novamente agora: MOVERR P para (1,1)."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Parece que ambos estamos a ter problemas com o formato do comando MOVERR. Vamos analisar o formato exato: MOVERR: <OBJETO>, (<X>, <Y>). Talvez o problema seja o espaço após a vírgula. Vou tentar sem espaço: MOVERR: P,(1,1). Podes tentar também?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Parece que ambos estamos a ter problemas com o formato do comando MOVERR. Vamos analisar o formato exato: MOVERR: <OBJETO>, (<X>, <Y>). Talvez o problema seja o espaço após a vírgula. Vou tentar sem espaço: MOVERR: P,(1,1). Podes tentar também?</p></p>
+    </div>
+</div><div class="game-round" data-round="14">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 14 de um máximo de 28.
+Acumularam coletivamente 11 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Parece que ambos estamos a ter problemas com o formato do comando MOVERR. Vamos analisar o formato exato: MOVERR: <OBJETO>, (<X>, <Y>). Talvez o problema seja o espaço após a vírgula. Vou tentar sem espaço: MOVERR: P,(1,1). Podes tentar também?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Boa ideia! Vou tentar sem espaço após a vírgula. Se não funcionar, tentamos outras variações.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Boa ideia! Vou tentar sem espaço após a vírgula. Se não funcionar, tentamos outras variações.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 15 de um máximo de 28.
+Acumularam coletivamente 11 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Boa ideia! Vou tentar sem espaço após a vírgula. Se não funcionar, tentamos outras variações."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: P,(1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: P,(1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 12 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Ainda não funcionou. Vamos analisar o tabuleiro com mais atenção. No meu tabuleiro, P está em (2,3) e a posição (1,1) contém um símbolo '◌', mas há uma parede vertical '║' à esquerda. Talvez (1,1) não seja uma posição válida para mover objetos. Podemos tentar mover P para (5,3) que está vazia no meu tabuleiro. Verifica se (5,3) está vazia no teu tabuleiro.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Ainda não funcionou. Vamos analisar o tabuleiro com mais atenção. No meu tabuleiro, P está em (2,3) e a posição (1,1) contém um símbolo '◌', mas há uma parede vertical '║' à esquerda. Talvez (1,1) não seja uma posição válida para mover objetos. Podemos tentar mover P para (5,3) que está vazia no meu tabuleiro. Verifica se (5,3) está vazia no teu tabuleiro.</p></p>
+    </div>
+</div><div class="game-round" data-round="15">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 15 de um máximo de 28.
+Acumularam coletivamente 12 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Ainda não funcionou. Vamos analisar o tabuleiro com mais atenção. No meu tabuleiro, P está em (2,3) e a posição (1,1) contém um símbolo '◌', mas há uma parede vertical '║' à esquerda. Talvez (1,1) não seja uma posição válida para mover objetos. Podemos tentar mover P para (5,3) que está vazia no meu tabuleiro. Verifica se (5,3) está vazia no teu tabuleiro."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Sim, (5,3) está vazia no meu tabuleiro! Concordo em mover P para (5,3). Vou tentar agora.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Sim, (5,3) está vazia no meu tabuleiro! Concordo em mover P para (5,3). Vou tentar agora.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 16 de um máximo de 28.
+Acumularam coletivamente 12 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Sim, (5,3) está vazia no meu tabuleiro! Concordo em mover P para (5,3). Vou tentar agora."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: P, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: P, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 13 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: O comando MOVERR continua a falhar. Apenas para confirmar, no meu tabuleiro, P está em (2,3) e está cercada por paredes. Não há células vazias adjacentes. Talvez não possamos mover o P. Conseguiste mover algum objeto no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: O comando MOVERR continua a falhar. Apenas para confirmar, no meu tabuleiro, P está em (2,3) e está cercada por paredes. Não há células vazias adjacentes. Talvez não possamos mover o P. Conseguiste mover algum objeto no teu tabuleiro?</p></p>
+    </div>
+</div><div class="game-round" data-round="16">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 16 de um máximo de 28.
+Acumularam coletivamente 13 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"O comando MOVERR continua a falhar. Apenas para confirmar, no meu tabuleiro, P está em (2,3) e está cercada por paredes. Não há células vazias adjacentes. Talvez não possamos mover o P. Conseguiste mover algum objeto no teu tabuleiro?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Ainda não consegui mover nenhum objeto. No meu tabuleiro, P está em (4,4) e parece acessível. Vamos tentar mover outros objetos que possam ser mais fáceis. No meu tabuleiro, consigo ver as posições dos objetos: P(4,4), O(3,3), T(3,1), S(2,7), D(4,5), A(3,5), M(7,6). Qual é a posição dos teus objetos?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Ainda não consegui mover nenhum objeto. No meu tabuleiro, P está em (4,4) e parece acessível. Vamos tentar mover outros objetos que possam ser mais fáceis. No meu tabuleiro, consigo ver as posições dos objetos: P(4,4), O(3,3), T(3,1), S(2,7), D(4,5), A(3,5), M(7,6). Qual é a posição dos teus objetos?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 17 de um máximo de 28.
+Acumularam coletivamente 13 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Ainda não consegui mover nenhum objeto. No meu tabuleiro, P está em (4,4) e parece acessível. Vamos tentar mover outros objetos que possam ser mais fáceis. No meu tabuleiro, consigo ver as posições dos objetos: P(4,4), O(3,3), T(3,1), S(2,7), D(4,5), A(3,5), M(7,6). Qual é a posição dos teus objetos?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: No meu tabuleiro, os objetos estão assim: P(2,3), O(2,1), T(7,6), S(6,6), D(4,3), A(7,5), M(1,7). Os dois espaços vazios parecem ser (2,1) e (2,5). Talvez as regras permitam apenas mover para células adjacentes? Tenta mover um objeto para uma célula adjacente vazia e diz-me se funciona.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: No meu tabuleiro, os objetos estão assim: P(2,3), O(2,1), T(7,6), S(6,6), D(4,3), A(7,5), M(1,7). Os dois espaços vazios parecem ser (2,1) e (2,5). Talvez as regras permitam apenas mover para células adjacentes? Tenta mover um objeto para uma célula adjacente vazia e diz-me se funciona.</p></p>
+    </div>
+</div><div class="game-round" data-round="17">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 17 de um máximo de 28.
+Acumularam coletivamente 13 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"No meu tabuleiro, os objetos estão assim: P(2,3), O(2,1), T(7,6), S(6,6), D(4,3), A(7,5), M(1,7). Os dois espaços vazios parecem ser (2,1) e (2,5). Talvez as regras permitam apenas mover para células adjacentes? Tenta mover um objeto para uma célula adjacente vazia e diz-me se funciona."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Boa ideia! No meu tabuleiro, S está em (2,7) e a célula (1,7) está vazia e adjacente. Vou tentar mover S para (1,7). Se funcionar, significa que só podemos mover para células adjacentes. Tenta mover um dos teus objetos para uma célula adjacente vazia também.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Boa ideia! No meu tabuleiro, S está em (2,7) e a célula (1,7) está vazia e adjacente. Vou tentar mover S para (1,7). Se funcionar, significa que só podemos mover para células adjacentes. Tenta mover um dos teus objetos para uma célula adjacente vazia também.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 18 de um máximo de 28.
+Acumularam coletivamente 13 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Boa ideia! No meu tabuleiro, S está em (2,7) e a célula (1,7) está vazia e adjacente. Vou tentar mover S para (1,7). Se funcionar, significa que só podemos mover para células adjacentes. Tenta mover um dos teus objetos para uma célula adjacente vazia também."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: No meu tabuleiro, O está em (2,1) e as células adjacentes (1,1), (3,1) e (2,2) estão ocupadas por paredes ou objetos. Não consigo mover O. Vou tentar mover T de (7,6) para (7,7) que parece vazia e adjacente.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: No meu tabuleiro, O está em (2,1) e as células adjacentes (1,1), (3,1) e (2,2) estão ocupadas por paredes ou objetos. Não consigo mover O. Vou tentar mover T de (7,6) para (7,7) que parece vazia e adjacente.</p></p>
+    </div>
+</div><div class="game-round" data-round="18">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 18 de um máximo de 28.
+Acumularam coletivamente 13 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"No meu tabuleiro, O está em (2,1) e as células adjacentes (1,1), (3,1) e (2,2) estão ocupadas por paredes ou objetos. Não consigo mover O. Vou tentar mover T de (7,6) para (7,7) que parece vazia e adjacente."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVERR: S, (1,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: S, (1,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 14 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Fui penalizado de novo ao tentar mover S para (1,7). Talvez (1,7) não seja acessível. Vou tentar mover A de (3,5) para (5,3) que parece acessível. Conseguiste mover o T no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Fui penalizado de novo ao tentar mover S para (1,7). Talvez (1,7) não seja acessível. Vou tentar mover A de (3,5) para (5,3) que parece acessível. Conseguiste mover o T no teu tabuleiro?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 19 de um máximo de 28.
+Acumularam coletivamente 14 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Fui penalizado de novo ao tentar mover S para (1,7). Talvez (1,7) não seja acessível. Vou tentar mover A de (3,5) para (5,3) que parece acessível. Conseguiste mover o T no teu tabuleiro?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Não consegui mover nada ainda. Vamos parar de tentar movimentos cegos. Eu vou enviar o comando MOVERR exatamente como está no manual, uma linha única, sem texto extra. Se eu for penalizado, então só nos resta alinhar pela comunicação. Vou tentar: MOVERR: T, (7,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Não consegui mover nada ainda. Vamos parar de tentar movimentos cegos. Eu vou enviar o comando MOVERR exatamente como está no manual, uma linha única, sem texto extra. Se eu for penalizado, então só nos resta alinhar pela comunicação. Vou tentar: MOVERR: T, (7,7)</p></p>
+    </div>
+</div><div class="game-round" data-round="19">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 19 de um máximo de 28.
+Acumularam coletivamente 14 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Não consegui mover nada ainda. Vamos parar de tentar movimentos cegos. Eu vou enviar o comando MOVERR exatamente como está no manual, uma linha única, sem texto extra. Se eu for penalizado, então só nos resta alinhar pela comunicação. Vou tentar: MOVERR: T, (7,7)"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Eu vou tentar mover S para (1,7) exatamente no formato. Se não funcionar, vamos ter que desistir de mover e apenas comunicar.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Eu vou tentar mover S para (1,7) exatamente no formato. Se não funcionar, vamos ter que desistir de mover e apenas comunicar.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 20 de um máximo de 28.
+Acumularam coletivamente 14 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Eu vou tentar mover S para (1,7) exatamente no formato. Se não funcionar, vamos ter que desistir de mover e apenas comunicar."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVERR: T, (7,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVERR: T, (7,7)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalização: A sua mensagem não está no formato esperado!</p>
+<p>Certifique-se de que a sua resposta contém apenas <code>DIZER: &lt;MENSAGEM&gt;</code> ou <code>MOVERR: &lt;OBJETO&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, e nada mais!</p>
+<p>Acumularam coletivamente 15 de 16 penalizações.
+Por favor, tente novamente!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: O comando MOVERR está sempre a falhar, mesmo respeitando o formato. Talvez (7,7) não esteja vazia no meu tabuleiro, mas isso deveria ser um movimento inválido, não uma penalização de formato. Só nos resta 1 penalização antes de perdermos. Vamos parar de tentar mover e focar-nos em descrever os nossos tabuleiros para encontrar posições idênticas. Onde está cada objeto no teu tabuleiro agora?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: O comando MOVERR está sempre a falhar, mesmo respeitando o formato. Talvez (7,7) não esteja vazia no meu tabuleiro, mas isso deveria ser um movimento inválido, não uma penalização de formato. Só nos resta 1 penalização antes de perdermos. Vamos parar de tentar mover e focar-nos em descrever os nossos tabuleiros para encontrar posições idênticas. Onde está cada objeto no teu tabuleiro agora?</p></p>
+    </div>
+</div><div class="game-round" data-round="20">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 20 de um máximo de 28.
+Acumularam coletivamente 15 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"O comando MOVERR está sempre a falhar, mesmo respeitando o formato. Talvez (7,7) não esteja vazia no meu tabuleiro, mas isso deveria ser um movimento inválido, não uma penalização de formato. Só nos resta 1 penalização antes de perdermos. Vamos parar de tentar mover e focar-nos em descrever os nossos tabuleiros para encontrar posições idênticas. Onde está cada objeto no teu tabuleiro agora?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Vou verificar os objetos no meu tabuleiro: P(4,4), O(3,3), T(3,1), S(2,7), D(4,5), A(3,5), M(7,6). Vou listar as células vazias acessíveis: (1,1), (2,1), (5,1), (6,1), (7,1), (1,3), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7), (7,7). Onde estão os teus objetos e quais as células vazias acessíveis?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Vou verificar os objetos no meu tabuleiro: P(4,4), O(3,3), T(3,1), S(2,7), D(4,5), A(3,5), M(7,6). Vou listar as células vazias acessíveis: (1,1), (2,1), (5,1), (6,1), (7,1), (1,3), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7), (7,7). Onde estão os teus objetos e quais as células vazias acessíveis?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 21 de um máximo de 28.
+Acumularam coletivamente 15 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Vou verificar os objetos no meu tabuleiro: P(4,4), O(3,3), T(3,1), S(2,7), D(4,5), A(3,5), M(7,6). Vou listar as células vazias acessíveis: (1,1), (2,1), (5,1), (6,1), (7,1), (1,3), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7), (7,7). Onde estão os teus objetos e quais as células vazias acessíveis?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Os meus objetos: P(2,3), O(2,1), T(7,6), S(6,6), D(4,3), A(7,5), M(1,7). Minhas células vazias: (1,1), (3,1), (4,1), (5,1), (6,1), (7,1), (1,3), (4,3), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7). Já temos T alinhado em (7,6)! Para os outros, vamos escolher posições que estejam vazias em ambos os tabuleiros. Posições comuns vazias: (1,1), (5,1), (6,1), (7,1), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7). Sugiro: P em (5,3), O em (5,1), S em (6,7), D em (6,3), A em (7,3), M em (5,7). Concordas?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Os meus objetos: P(2,3), O(2,1), T(7,6), S(6,6), D(4,3), A(7,5), M(1,7). Minhas células vazias: (1,1), (3,1), (4,1), (5,1), (6,1), (7,1), (1,3), (4,3), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7). Já temos T alinhado em (7,6)! Para os outros, vamos escolher posições que estejam vazias em ambos os tabuleiros. Posições comuns vazias: (1,1), (5,1), (6,1), (7,1), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7). Sugiro: P em (5,3), O em (5,1), S em (6,7), D em (6,3), A em (7,3), M em (5,7). Concordas?</p></p>
+    </div>
+</div><div class="game-round" data-round="21">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 21 de um máximo de 28.
+Acumularam coletivamente 15 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Os meus objetos: P(2,3), O(2,1), T(7,6), S(6,6), D(4,3), A(7,5), M(1,7). Minhas células vazias: (1,1), (3,1), (4,1), (5,1), (6,1), (7,1), (1,3), (4,3), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7). Já temos T alinhado em (7,6)! Para os outros, vamos escolher posições que estejam vazias em ambos os tabuleiros. Posições comuns vazias: (1,1), (5,1), (6,1), (7,1), (5,3), (6,3), (7,3), (2,5), (5,7), (6,7). Sugiro: P em (5,3), O em (5,1), S em (6,7), D em (6,3), A em (7,3), M em (5,7). Concordas?"</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Concordo com essa configuração! Vamos resumir o objetivo final: P em (5,3), O em (5,1), T em (7,6) já alinhado, S em (6,7), D em (6,3), A em (7,3), M em (5,7). Agora precisamos de tentar mover os objetos. Vou tentar mover P para (5,3). Se for penalizado, maybe precisamos de reconsiderar a estratégia.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Concordo com essa configuração! Vamos resumir o objetivo final: P em (5,3), O em (5,1), T em (7,6) já alinhado, S em (6,7), D em (6,3), A em (7,3), M em (5,7). Agora precisamos de tentar mover os objetos. Vou tentar mover P para (5,3). Se for penalizado, maybe precisamos de reconsiderar a estratégia.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 22 de um máximo de 28.
+Acumularam coletivamente 15 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Concordo com essa configuração! Vamos resumir o objetivo final: P em (5,3), O em (5,1), T em (7,6) já alinhado, S em (6,7), D em (6,3), A em (7,3), M em (5,7). Agora precisamos de tentar mover os objetos. Vou tentar mover P para (5,3). Se for penalizado, maybe precisamos de reconsiderar a estratégia."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIZER: Já estamos na ronda 22 de 28 e não conseguimos mover nenhum objeto. T em (7,6) é o único que está alinhado. Sugiro que terminemos o jogo agora para garantir os pontos por ter o T alinhado, em vez de arriscarmos perder tudo ao tentar mover os outros objetos. Vou enviar "terminado?" e se concordares, responde com "terminado!".</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Já estamos na ronda 22 de 28 e não conseguimos mover nenhum objeto. T em (7,6) é o único que está alinhado. Sugiro que terminemos o jogo agora para garantir os pontos por ter o T alinhado, em vez de arriscarmos perder tudo ao tentar mover os outros objetos. Vou enviar "terminado?" e se concordares, responde com "terminado!".</p></p>
+    </div>
+</div><div class="game-round" data-round="22">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>A sua mensagem foi transmitida ao outro jogador.</p>
+<p>Está atualmente a jogar a ronda 22 de um máximo de 28.
+Acumularam coletivamente 15 de 16 penalizações.
+O outro jogador enviou esta mensagem:</p>
+<p>"Já estamos na ronda 22 de 28 e não conseguimos mover nenhum objeto. T em (7,6) é o único que está alinhado. Sugiro que terminemos o jogo agora para garantir os pontos por ter o T alinhado, em vez de arriscarmos perder tudo ao tentar mover os outros objetos. Vou enviar "terminado?" e se concordares, responde com "terminado!"."</p>
+<p>Qual é o seu próximo comando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIZER: Concordo em terminar o jogo. Vou enviar "terminado!" quando me perguntares. Por favor, envia "terminado?" para que eu possa responder.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIZER: Concordo em terminar o jogo. Vou enviar "terminado!" quando me perguntares. Por favor, envia "terminado?" para que eu possa responder.</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤══╤══╗
+║◌│◌T│◌◌║ 1
+║◌└┬─┴──╢ 2
+║◌◌│O◌◌◌║ 3
+╟─┬┘P◌┌─╢ 4
+║◌│AD◌│◌║ 5
+╟─┼─┬─┤M║ 6
+║◌│S│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═╤══╤══╗
+║◌│O◌│◌◌║ 1
+║◌└┬─┴──╢ 2
+║◌P│◌D◌◌║ 3
+╟─┬┘◌◌┌─╢ 4
+║◌│◌◌◌│A║ 5
+╟─┼─┬─┤S║ 6
+║M│◌│◌│T║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤══╤══╗
+║◌│◌T│◌◌║ 1
+║◌└┬─┴──╢ 2
+║◌◌│O◌◌◌║ 3
+╟─┬┘P◌┌─╢ 4
+║◌│AD◌│◌║ 5
+╟─┼─┬─┤M║ 6
+║◌│S│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═╤══╤══╗
+║◌│O◌│◌◌║ 1
+║◌└┬─┴──╢ 2
+║◌P│◌D◌◌║ 3
+╟─┬┘◌◌┌─╢ 4
+║◌│◌◌◌│A║ 5
+╟─┼─┬─┤S║ 6
+║M│◌│◌│T║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 0.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 27.62</li>
+<li>Init Distance Sum: 27.62</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 15.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 22.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

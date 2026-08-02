@@ -1,0 +1,926 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_3obj_da', episode 0 with gemma-4-26b-a4b-it.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jeg er jeres spilleder, og I spiller et samarbejdsspil med følgende gitter som spilleplade:</p>
+<pre><code> 1234567
+╔══╤════╗
+║◌◌│C◌◌◌║ 1
+╟──┤◌L┌─╢ 2
+║◌◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Den øverste kant viser x-koordinater, der stiger mod højre, og den højre kant y-koordinater, der stiger nedad.</li>
+<li>Følgende objekter er tilfældigt placeret på dit gitter: 'C', 'L', 'P'.</li>
+</ul>
+<p>Den anden spiller ser en variant af spillepladen, hvor objekterne er placeret på forskellige tilfældige steder. Du kan ikke se den anden spillers bræt, og de kan ikke se dit.</p>
+<p><strong>Mål:</strong></p>
+<p>Begge spillere skal flytte objekterne på deres respektive baggrund, så identiske objekter ender på de samme koordinater. Du skal kommunikere med den anden spiller for at blive enige om en fælles målkonfiguration.</p>
+<p><strong>Regler:</strong></p>
+<ul>
+<li>I hver tur kan du sende præcis én af følgende to kommandoer:</li>
+<li><code>SIG: &lt;BESKED&gt;</code>: for at sende en besked (alt indtil næste linjeskift) til den anden spiller. Jeg sender den videre til din partner.</li>
+<li><code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: for at flytte et objekt til en ny position, hvor <code>&lt;X&gt;</code> er kolonnen og <code>&lt;Y&gt;</code> er rækken. Jeg vil informere dig om, hvorvidt din flytning var vellykket eller ej.</li>
+<li>Hvis du ikke holder dig til formatet eller sender flere kommandoer på én gang, er jeg nødt til at straffe dig.</li>
+<li>Hvis begge spillere akkumulerer mere end 8 straffe, taber I begge spillet.</li>
+<li>Det er vigtigt, at du kommunikerer med den anden spiller om din måltilstand! Den <em>eneste</em> måde, du kan formidle din strategi til den anden spiller på, er ved at bruge kommandoen <code>SIG: &lt;BESKED&gt;</code>!</li>
+</ul>
+<p><strong>Flytning af objekter</strong></p>
+<ul>
+<li>Du kan kun flytte objekter til celler inden for gitterets grænser. Målcellen skal være tom, dvs. den må kun indeholde symbolet '◌'.</li>
+<li>Hvis du forsøger at flytte et objekt til et sted, der ikke er tomt, eller forsøger at flytte det uden for gitteret, må jeg straffe dig. Du får et nyt forsøg.</li>
+<li>Før du foretager en flytning, skal du dobbelttjekke, at målstedet er tomt og ikke indeholder et bogstav, en ramme eller en linje!</li>
+</ul>
+<p><strong>Slut på spillet</strong></p>
+<p>Hvis du tror, at du har nået målet om at justere alle objekter, kan du bede den anden spiller om at afslutte spillet ved at sende <code>SIG: færdig?</code>. Hvis den anden spiller beder dig om at afslutte spillet, og du svarer med <code>SIG: færdig!</code>, er spillet slut.</p>
+<p>Begge spillere vinder, hvis spillet slutter inden for 12 runder, hvor en runde defineres som to spillere, der hver især sender en gyldig kommando.</p>
+<p><strong>Scoring:</strong></p>
+<p>Jo tættere de identiske objekter er på begge spilleplader, jo flere point får du. Straffe reducerer dine point. Kan du slå rekorden?</p>
+<p>Send en besked til den anden spiller for at starte spillet!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Hej partner! Lad os koordinere vores objekter. Jeg kan se mine objekter på følgende koordinater: C på (4,1), L på (3,2) og P på (3,5). Kan du fortælle mig, hvor dine objekter (C, L og P) er placeret?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Hej partner! Lad os koordinere vores objekter. Jeg kan se mine objekter på følgende koordinater: C på (4,1), L på (3,2) og P på (3,5). Kan du fortælle mig, hvor dine objekter (C, L og P) er placeret?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jeg er jeres spilleder, og I spiller et samarbejdsspil med følgende gitter som spilleplade:</p>
+<pre><code> 1234567
+╔══╤════╗
+║◌◌│L◌◌C║ 1
+╟──┤◌◌┌─╢ 2
+║◌◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Den øverste kant viser x-koordinater, der stiger mod højre, og den højre kant y-koordinater, der stiger nedad.</li>
+<li>Følgende objekter er tilfældigt placeret på dit gitter: 'C', 'L', 'P'.</li>
+</ul>
+<p>Den anden spiller ser en variant af spillepladen, hvor objekterne er placeret på forskellige tilfældige steder. Du kan ikke se den anden spillers bræt, og de kan ikke se dit.</p>
+<p><strong>Mål:</strong></p>
+<p>Begge spillere skal flytte objekterne på deres respektive baggrund, så identiske objekter ender på de samme koordinater. Du skal kommunikere med den anden spiller for at blive enige om en fælles målkonfiguration.</p>
+<p><strong>Regler:</strong></p>
+<ul>
+<li>I hver tur kan du sende præcis én af følgende to kommandoer:</li>
+<li><code>SIG: &lt;BESKED&gt;</code>: for at sende en besked (alt indtil næste linjeskift) til den anden spiller. Jeg sender den videre til din partner.</li>
+<li><code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: for at flytte et objekt til en ny position, hvor <code>&lt;X&gt;</code> er kolonnen og <code>&lt;Y&gt;</code> er rækken. Jeg vil informere dig om, hvorvidt din flytning var vellykket eller ej.</li>
+<li>Hvis du ikke holder dig til formatet eller sender flere kommandoer på én gang, er jeg nødt til at straffe dig.</li>
+<li>Hvis begge spillere akkumulerer mere end 8 straffe, taber I begge spillet.</li>
+<li>Det er vigtigt, at du kommunikerer med den anden spiller om din måltilstand! Den <em>eneste</em> måde, du kan formidle din strategi til den anden spiller på, er ved at bruge kommandoen <code>SIG: &lt;BESKED&gt;</code>!</li>
+</ul>
+<p><strong>Flytning af objekter</strong></p>
+<ul>
+<li>Du kan kun flytte objekter til celler inden for gitterets grænser. Målcellen skal være tom, dvs. den må kun indeholde symbolet '◌'.</li>
+<li>Hvis du forsøger at flytte et objekt til et sted, der ikke er tomt, eller forsøger at flytte det uden for gitteret, må jeg straffe dig. Du får et nyt forsøg.</li>
+<li>Før du foretager en flytning, skal du dobbelttjekke, at målstedet er tomt og ikke indeholder et bogstav, en ramme eller en linje!</li>
+</ul>
+<p><strong>Slut på spillet</strong></p>
+<p>Hvis du tror, at du har nået målet om at justere alle objekter, kan du bede den anden spiller om at afslutte spillet ved at sende <code>SIG: færdig?</code>. Hvis den anden spiller beder dig om at afslutte spillet, og du svarer med <code>SIG: færdig!</code>, er spillet slut.</p>
+<p>Begge spillere vinder, hvis spillet slutter inden for 12 runder, hvor en runde defineres som to spillere, der hver især sender en gyldig kommando.</p>
+<p><strong>Scoring:</strong></p>
+<p>Jo tættere de identiske objekter er på begge spilleplader, jo flere point får du. Straffe reducerer dine point. Kan du slå rekorden?</p>
+<p>Den anden spiller startede spillet ved at sende denne besked:</p>
+<p>"Hej partner! Lad os koordinere vores objekter. Jeg kan se mine objekter på følgende koordinater: C på (4,1), L på (3,2) og P på (3,5). Kan du fortælle mig, hvor dine objekter (C, L og P) er placeret?"</p>
+<p>Hvad er din første kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Hej! Jeg har modtaget dine koordinater. På mit bræt er mine objekter placeret således: C på (7,1), L på (4,1) og P på (3,5). Lad os prøve at få dem alle til at mødes på de samme koordinater. Skal vi prøve at flytte dem alle til (3,5)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Hej! Jeg har modtaget dine koordinater. På mit bræt er mine objekter placeret således: C på (7,1), L på (4,1) og P på (3,5). Lad os prøve at få dem alle til at mødes på de samme koordinater. Skal vi prøve at flytte dem alle til (3,5)?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 1 af maksimalt 12.
+I har samlet set akkumuleret 0 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Hej! Jeg har modtaget dine koordinater. På mit bræt er mine objekter placeret således: C på (7,1), L på (4,1) og P på (3,5). Lad os prøve at få dem alle til at mødes på de samme koordinater. Skal vi prøve at flytte dem alle til (3,5)?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Det lyder som en god plan! Lad os prøve at samle dem alle på (3,5). Da mit P allerede er på (3,5), vil jeg starte med at flytte mit C til (3,5). Men vent, jeg må først sikre mig, at (3,5) er ledig eller at jeg flytter i den rigtige rækkefølge. Da mit P allerede er på (3,5), kan jeg ikke flytte andre dertil endnu. Lad os i stedet prøve at flytte dem alle til (3,4) eller et andet tomt sted, hvis (3,5) er optaget.</p>
+<p>Lad os prøve dette mål i stedet: C på (3,4), L på (3,4) og P på (3,4). Nej, det kan ikke lade sig gøre, da de skal være på samme koordinat, men de skal flyttes én efter én.</p>
+<p>Lad os prøve at flytte mit L til (3,5) først, hvis det er muligt. Men vent, (3,5) er optaget af mit eget P.</p>
+<p>Lad os aftale at flytte alle til (1,1) i stedet, da det er helt tomt på mit bræt. Er (1,1) ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Det lyder som en god plan! Lad os prøve at samle dem alle på (3,5). Da mit P allerede er på (3,5), vil jeg starte med at flytte mit C til (3,5). Men vent, jeg må først sikre mig, at (3,5) er ledig eller at jeg flytter i den rigtige rækkefølge. Da mit P allerede er på (3,5), kan jeg ikke flytte andre dertil endnu. Lad os i stedet prøve at flytte dem alle til (3,4) eller et andet tomt sted, hvis (3,5) er optaget.</p>
+<p>Lad os prøve dette mål i stedet: C på (3,4), L på (3,4) og P på (3,4). Nej, det kan ikke lade sig gøre, da de skal være på samme koordinat, men de skal flyttes én efter én.</p>
+<p>Lad os prøve at flytte mit L til (3,5) først, hvis det er muligt. Men vent, (3,5) er optaget af mit eget P.</p>
+<p>Lad os aftale at flytte alle til (1,1) i stedet, da det er helt tomt på mit bræt. Er (1,1) ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>Lad os prøve dette mål i stedet: C på (3,4), L på (3,4) og P på (3,4). Nej, det kan ikke lade sig gøre, da de skal være på samme koordinat, men de skal flyttes én efter én.</p>
+<p>Lad os prøve at flytte mit L til (3,5) først, hvis det er muligt. Men vent, (3,5) er optaget af mit eget P.</p>
+<p>Lad os aftale at flytte alle til (1,1) i stedet, da det er helt tomt på mit bræt. Er (1,1) ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 1 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Undskyld! Lad os prøve at flytte alt til (1,1). Er (1,1) ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Undskyld! Lad os prøve at flytte alt til (1,1). Er (1,1) ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 2 af maksimalt 12.
+I har samlet set akkumuleret 1 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Undskyld! Lad os prøve at flytte alt til (1,1). Er (1,1) ledigt på dit bræt?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Ja, (1,1) er ledigt på mit bræt. Lad os gå efter det! Jeg starter med at flytte mit 'L' til (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Ja, (1,1) er ledigt på mit bræt. Lad os gå efter det! Jeg starter med at flytte mit 'L' til (1,1).</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 2 af maksimalt 12.
+I har samlet set akkumuleret 1 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Ja, (1,1) er ledigt på mit bræt. Lad os gå efter det! Jeg starter med at flytte mit 'L' til (1,1)."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYT: L, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: L, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 3 af maksimalt 12.
+I har samlet set akkumuleret 1 af 8 straffe.
+Den anden spiller flyttede et objekt på sit felt.</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYT: L, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: L, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (1, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Flyttede 'L' til (1,1) med succes. Dit opdaterede gitter ser sådan ud:</p>
+<pre><code> 1234567
+╔══╤════╗
+║L◌│C◌◌◌║ 1
+╟──┤◌◌┌─╢ 2
+║◌◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Du spiller i øjeblikket runde 3 af maksimalt 12.
+I har samlet set akkumuleret 1 af 8 straffe.
+Den anden spiller flyttede et objekt på sit felt.</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Godt gået! Nu flytter jeg mit C til (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Godt gået! Nu flytter jeg mit C til (1,1).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Flyttede 'L' til (1,1) med succes. Dit opdaterede gitter ser sådan ud:</p>
+<pre><code> 1234567
+╔══╤════╗
+║L◌│◌◌◌C║ 1
+╟──┤◌◌┌─╢ 2
+║◌◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Du spiller i øjeblikket runde 4 af maksimalt 12.
+I har samlet set akkumuleret 1 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Godt gået! Nu flytter jeg mit C til (1,1)."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYT: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (1,1) er ikke tom, men indeholder 'L'.</p>
+<p>I har samlet set akkumuleret 2 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: (1,1) er ikke tom, men indeholder 'L'.</p>
+<p>I har samlet set akkumuleret 2 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Beklager, jeg lavede en fejl! Jeg glemte, at 'L' allerede ligger i (1,1). Da vi begge prøver at samle alt i (1,1), må jeg flytte mine andre objekter derhen én efter én. Jeg prøver at flytte mit 'P' til (1,1) nu.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Beklager, jeg lavede en fejl! Jeg glemte, at 'L' allerede ligger i (1,1). Da vi begge prøver at samle alt i (1,1), må jeg flytte mine andre objekter derhen én efter én. Jeg prøver at flytte mit 'P' til (1,1) nu.</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 4 af maksimalt 12.
+I har samlet set akkumuleret 2 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Beklager, jeg lavede en fejl! Jeg glemte, at 'L' allerede ligger i (1,1). Da vi begge prøver at samle alt i (1,1), må jeg flytte mine andre objekter derhen én efter én. Jeg prøver at flytte mit 'P' til (1,1) nu."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Det er helt i orden! Jeg flytter nu mit C fra (4,1) til (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Det er helt i orden! Jeg flytter nu mit C fra (4,1) til (1,1).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 5 af maksimalt 12.
+I har samlet set akkumuleret 2 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Det er helt i orden! Jeg flytter nu mit C fra (4,1) til (1,1)."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYT: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: P, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (1,1) er ikke tom, men indeholder 'L'.</p>
+<p>I har samlet set akkumuleret 3 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: (1,1) er ikke tom, men indeholder 'L'.</p>
+<p>I har samlet set akkumuleret 3 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Undskyld, jeg er virkelig klodset i dag! Jeg glemmer hele tiden, at (1,1) allerede er optaget af 'L'. Jeg må flytte 'P' til et andet sted først, eller også må vi flytte 'L' væk fra (1,1), så der bliver plads. Lad os prøve at flytte mit 'P' til (1,5) først, så det er ude af vejen, eller skal vi prøve at flytte 'L' til (1,2) i stedet? Nej, lad os prøve at flytte mit 'P' til (1,2) for at gøre plads til de andre. Vent, jeg prøver bare at flytte 'P' til (1,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Undskyld, jeg er virkelig klodset i dag! Jeg glemmer hele tiden, at (1,1) allerede er optaget af 'L'. Jeg må flytte 'P' til et andet sted først, eller også må vi flytte 'L' væk fra (1,1), så der bliver plads. Lad os prøve at flytte mit 'P' til (1,5) først, så det er ude af vejen, eller skal vi prøve at flytte 'L' til (1,2) i stedet? Nej, lad os prøve at flytte mit 'P' til (1,2) for at gøre plads til de andre. Vent, jeg prøver bare at flytte 'P' til (1,2).</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 5 af maksimalt 12.
+I har samlet set akkumuleret 3 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Undskyld, jeg er virkelig klodset i dag! Jeg glemmer hele tiden, at (1,1) allerede er optaget af 'L'. Jeg må flytte 'P' til et andet sted først, eller også må vi flytte 'L' væk fra (1,1), så der bliver plads. Lad os prøve at flytte mit 'P' til (1,5) først, så det er ude af vejen, eller skal vi prøve at flytte 'L' til (1,2) i stedet? Nej, lad os prøve at flytte mit 'P' til (1,2) for at gøre plads til de andre. Vent, jeg prøver bare at flytte 'P' til (1,2)."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Det er okay, vi skal bare have en god plan. Jeg prøver nu at flytte mit C fra (4,1) til (1,1), men da mit L allerede ligger i (1,1), må jeg først flytte mit L til et andet tomt sted, f.eks. (1,2), så der er plads til C. Skal vi aftale, at jeg flytter mit L til (1,2) først?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Det er okay, vi skal bare have en god plan. Jeg prøver nu at flytte mit C fra (4,1) til (1,1), men da mit L allerede ligger i (1,1), må jeg først flytte mit L til et andet tomt sted, f.eks. (1,2), så der er plads til C. Skal vi aftale, at jeg flytter mit L til (1,2) først?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 6 af maksimalt 12.
+I har samlet set akkumuleret 3 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Det er okay, vi skal bare have en god plan. Jeg prøver nu at flytte mit C fra (4,1) til (1,1), men da mit L allerede ligger i (1,1), må jeg først flytte mit L til et andet tomt sted, f.eks. (1,2), så der er plads til C. Skal vi aftale, at jeg flytter mit L til (1,2) først?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Det lyder som en god plan! Lad os gøre det. Jeg venter på, at du flytter dit L til (1,2), så vi kan få ryddet op. Jeg vil derefter forsøge at flytte mit P til et tomt felt, så vi kan koordinere bedre.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Det lyder som en god plan! Lad os gøre det. Jeg venter på, at du flytter dit L til (1,2), så vi kan få ryddet op. Jeg vil derefter forsøge at flytte mit P til et tomt felt, så vi kan koordinere bedre.</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 6 af maksimalt 12.
+I har samlet set akkumuleret 3 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Det lyder som en god plan! Lad os gøre det. Jeg venter på, at du flytter dit L til (1,2), så vi kan få ryddet op. Jeg vil derefter forsøge at flytte mit P til et tomt felt, så vi kan koordinere bedre."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYT: L, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: L, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (1,2) er ikke tom, men indeholder '─'.</p>
+<p>I har samlet set akkumuleret 4 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: (1,2) er ikke tom, men indeholder '─'.</p>
+<p>I har samlet set akkumuleret 4 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Ups, min fejl! Jeg tjekkede ikke rammen ordentligt. Lad os i stedet flytte mit L til (1,3), som ser ud til at være tomt. Er (1,3) ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Ups, min fejl! Jeg tjekkede ikke rammen ordentligt. Lad os i stedet flytte mit L til (1,3), som ser ud til at være tomt. Er (1,3) ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 7 af maksimalt 12.
+I har samlet set akkumuleret 4 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Ups, min fejl! Jeg tjekkede ikke rammen ordentligt. Lad os i stedet flytte mit L til (1,3), som ser ud til at være tomt. Er (1,3) ledigt på dit bræt?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Ja, (1,3) er ledigt på mit bræt. Det er et godt sted at placere dit L midlertidigt.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Ja, (1,3) er ledigt på mit bræt. Det er et godt sted at placere dit L midlertidigt.</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 7 af maksimalt 12.
+I har samlet set akkumuleret 4 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Ja, (1,3) er ledigt på mit bræt. Det er et godt sted at placere dit L midlertidigt."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYT: L, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: L, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (1, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 8 af maksimalt 12.
+I har samlet set akkumuleret 4 af 8 straffe.
+Den anden spiller flyttede et objekt på sit felt.</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYT: P, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: P, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (1, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Flyttede 'L' til (1,3) med succes. Dit opdaterede gitter ser sådan ud:</p>
+<pre><code> 1234567
+╔══╤════╗
+║◌◌│C◌◌◌║ 1
+╟──┤◌◌┌─╢ 2
+║L◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Du spiller i øjeblikket runde 8 af maksimalt 12.
+I har samlet set akkumuleret 4 af 8 straffe.
+Den anden spiller flyttede et objekt på sit felt.</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Nu hvor L er på (1,3), vil jeg flytte mit C fra (4,1) til (1,1). Er (1,1) stadig ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Nu hvor L er på (1,3), vil jeg flytte mit C fra (4,1) til (1,1). Er (1,1) stadig ledigt på dit bræt?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Flyttede 'P' til (1,3) med succes. Dit opdaterede gitter ser sådan ud:</p>
+<pre><code> 1234567
+╔══╤════╗
+║L◌│◌◌◌C║ 1
+╟──┤◌◌┌─╢ 2
+║P◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌◌◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Du spiller i øjeblikket runde 9 af maksimalt 12.
+I har samlet set akkumuleret 4 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Nu hvor L er på (1,3), vil jeg flytte mit C fra (4,1) til (1,1). Er (1,1) stadig ledigt på dit bræt?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Ja, (1,1) er ledigt på mit bræt, da jeg flyttede mit 'L' derhen i starten, men det er nu tomt (da jeg flyttede 'P' til (1,3) i sidste runde, og 'L' stadig står i (1,1) på dit bræt... vent, lad mig tjekke mit eget bræt igen). </p>
+<p>Mit bræt viser:
+L er på (1,1)
+P er på (1,3)
+C er på (7,1)</p>
+<p>Så (1,1) er <strong>ikke</strong> ledigt, det er optaget af mit 'L'. Vi må flytte mit 'L' først! Skal vi flytte mit 'L' til (2,1) for at gøre (1,1) ledigt til dit 'C'?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Ja, (1,1) er ledigt på mit bræt, da jeg flyttede mit 'L' derhen i starten, men det er nu tomt (da jeg flyttede 'P' til (1,3) i sidste runde, og 'L' stadig står i (1,1) på dit bræt... vent, lad mig tjekke mit eget bræt igen). </p>
+<p>Mit bræt viser:
+L er på (1,1)
+P er på (1,3)
+C er på (7,1)</p>
+<p>Så (1,1) er <strong>ikke</strong> ledigt, det er optaget af mit 'L'. Vi må flytte mit 'L' først! Skal vi flytte mit 'L' til (2,1) for at gøre (1,1) ledigt til dit 'C'?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>Mit bræt viser:
+L er på (1,1)
+P er på (1,3)
+C er på (7,1)</p>
+<p>Så (1,1) er <strong>ikke</strong> ledigt, det er optaget af mit 'L'. Vi må flytte mit 'L' først! Skal vi flytte mit 'L' til (2,1) for at gøre (1,1) ledigt til dit 'C'?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 5 af 8 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Nej, (1,1) er ikke ledigt, da mit 'L' står der. Lad os flytte mit 'L' til (2,1) først, så (1,1) bliver ledigt til dit 'C'. Er det okay?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Nej, (1,1) er ikke ledigt, da mit 'L' står der. Lad os flytte mit 'L' til (2,1) først, så (1,1) bliver ledigt til dit 'C'. Er det okay?</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 9 af maksimalt 12.
+I har samlet set akkumuleret 5 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Nej, (1,1) er ikke ledigt, da mit 'L' står der. Lad os flytte mit 'L' til (2,1) først, så (1,1) bliver ledigt til dit 'C'. Er det okay?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Det er en god plan! Flyt dit L til (2,1), så jeg kan flytte mit C til (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Det er en god plan! Flyt dit L til (2,1), så jeg kan flytte mit C til (1,1).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 10 af maksimalt 12.
+I har samlet set akkumuleret 5 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Det er en god plan! Flyt dit L til (2,1), så jeg kan flytte mit C til (1,1)."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYT: L, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: L, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (2, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 10 af maksimalt 12.
+I har samlet set akkumuleret 5 af 8 straffe.
+Den anden spiller flyttede et objekt på sit felt.</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Har du flyttet dit L til (2,1)? Hvis ja, så er jeg klar til at flytte mit C til (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Har du flyttet dit L til (2,1)? Hvis ja, så er jeg klar til at flytte mit C til (1,1).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Flyttede 'L' til (2,1) med succes. Dit opdaterede gitter ser sådan ud:</p>
+<pre><code> 1234567
+╔══╤════╗
+║◌L│◌◌◌C║ 1
+╟──┤◌◌┌─╢ 2
+║P◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌◌◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Du spiller i øjeblikket runde 11 af maksimalt 12.
+I har samlet set akkumuleret 5 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Har du flyttet dit L til (2,1)? Hvis ja, så er jeg klar til at flytte mit C til (1,1)."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Ja, jeg har flyttet mit L til (2,1). Du kan nu flytte dit C til (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Ja, jeg har flyttet mit L til (2,1). Du kan nu flytte dit C til (1,1).</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 11 af maksimalt 12.
+I har samlet set akkumuleret 5 af 8 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Ja, jeg har flyttet mit L til (2,1). Du kan nu flytte dit C til (1,1)."</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYT: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 12 af maksimalt 12.
+I har samlet set akkumuleret 5 af 8 straffe.
+Den anden spiller flyttede et objekt på sit felt.</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: færdig?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: færdig?</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of rounds reached</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤════╗
+║◌◌│C◌◌◌║ 1
+╟──┤◌L┌─╢ 2
+║◌◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔══╤════╗
+║◌◌│L◌◌C║ 1
+╟──┤◌◌┌─╢ 2
+║◌◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤════╗
+║C◌│◌◌◌◌║ 1
+╟──┤◌◌┌─╢ 2
+║L◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌P◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔══╤════╗
+║◌L│◌◌◌C║ 1
+╟──┤◌◌┌─╢ 2
+║P◌├──┤◌║ 3
+╟──┘◌◌├─╢ 4
+║◌◌◌◌◌│◌║ 5
+╟─┐◌┌─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 3.00</li>
+<li>Max Shifts: 4.00</li>
+<li>Min Shifts: 2.00</li>
+<li>End Distance Sum: 11.06</li>
+<li>Init Distance Sum: 4.41</li>
+<li>Expected Distance Sum: 12.57</li>
+<li>Penalties: 5.00</li>
+<li>Max Penalties: 8.00</li>
+<li>Rounds: 12.00</li>
+<li>Max Rounds: 12.00</li>
+<li>Object Count: 3.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

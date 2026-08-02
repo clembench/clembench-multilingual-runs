@@ -1,0 +1,1218 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '0_easy_5obj_en', episode 4 with deepseek-v4-pro.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>I am your game master, and you are playing a collaborative game with the following grid as game board:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│I◌◌◌◌║ 2
+║C│◌◌◌◌◌║ 3
+║H│◌W◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│T║ 7
+╚═╧═══╧═╝
+
+</code></pre>
+<ul>
+<li>The upper edge displays x-coordinates increasing to the right, and the right edge y-coordinates increasing downward.</li>
+<li>The following objects are randomly placed on your grid: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>The other player sees a variation of the game board, where the objects are placed at different random locations. You cannot see the other player's board, and they cannot see yours.</p>
+<p><strong>Goal:</strong></p>
+<p>Both players need to move the objects on their respective background so that identical objects end up at the same coordinates. You have to communicate with the other player to agree upon a common goal configuration.</p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li>In each turn, you can send exactly one of the following two commands:</li>
+<li><code>SAY: &lt;MESSAGE&gt;</code>: to send a message (everything up until the next line break) to the other player. I will forward it to your partner.</li>
+<li><code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: to move an object to a new position, where <code>&lt;X&gt;</code> is the column and <code>&lt;Y&gt;</code> is the row. I will inform you if your move was successful or not.</li>
+<li>If you don't stick to the format, or send several commands at once, I have to penalize you.</li>
+<li>If both players accumulate more than 12 penalties, you both lose the game.</li>
+<li>It is vital that you communicate with the other player regarding your goal state! The <em>only</em> way you can transmit your strategy to the other player is using the <code>SAY: &lt;MESSAGE&gt;</code> command!</li>
+</ul>
+<p><strong>Moving Objects</strong></p>
+<ul>
+<li>You can only move objects to cells within the bounds of the grid. The target cell must be empty, i.e., it must only contain the symbol '◌'.</li>
+<li>If you try to move an object to a spot that is not empty, or try to move it outside of the grid, I have to penalize you. You get another try.</li>
+<li>Before making a move, double check that the target spot is empty, and does not hold any letter, frame, or line!</li>
+</ul>
+<p><strong>End of Game</strong></p>
+<p>If you think you reached the goal of aligning all objects, you can ask the other player to finish the game by sending <code>SAY: finished?</code>. If the other player asks you to finish the game, and you reply with <code>SAY: finished!</code>, the game will end.</p>
+<p>Both players win if the game ends within 20 rounds, where one round is defined as two players each sending a valid command.</p>
+<p><strong>Scoring:</strong></p>
+<p>The closer the identical objects are in both game boards, the more points you get. Penalties reduce your points. Can you beat the record?</p>
+<p>Please send a message to the other player to start the game!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: Hello! Let's coordinate to align our objects. I see W, I, T, C, H on my board. Can you share the coordinates of your objects so we can find a common configuration?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: Hello! Let's coordinate to align our objects. I see W, I, T, C, H on my board. Can you share the coordinates of your objects so we can find a common configuration?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>I am your game master, and you are playing a collaborative game with the following grid as game board:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌H◌║ 2
+║I│◌◌C◌◌║ 3
+║◌│◌◌T◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║W│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+
+</code></pre>
+<ul>
+<li>The upper edge displays x-coordinates increasing to the right, and the right edge y-coordinates increasing downward.</li>
+<li>The following objects are randomly placed on your grid: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>The other player sees a variation of the game board, where the objects are placed at different random locations. You cannot see the other player's board, and they cannot see yours.</p>
+<p><strong>Goal:</strong></p>
+<p>Both players need to move the objects on their respective background so that identical objects end up at the same coordinates. You have to communicate with the other player to agree upon a common goal configuration.</p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li>In each turn, you can send exactly one of the following two commands:</li>
+<li><code>SAY: &lt;MESSAGE&gt;</code>: to send a message (everything up until the next line break) to the other player. I will forward it to your partner.</li>
+<li><code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: to move an object to a new position, where <code>&lt;X&gt;</code> is the column and <code>&lt;Y&gt;</code> is the row. I will inform you if your move was successful or not.</li>
+<li>If you don't stick to the format, or send several commands at once, I have to penalize you.</li>
+<li>If both players accumulate more than 12 penalties, you both lose the game.</li>
+<li>It is vital that you communicate with the other player regarding your goal state! The <em>only</em> way you can transmit your strategy to the other player is using the <code>SAY: &lt;MESSAGE&gt;</code> command!</li>
+</ul>
+<p><strong>Moving Objects</strong></p>
+<ul>
+<li>You can only move objects to cells within the bounds of the grid. The target cell must be empty, i.e., it must only contain the symbol '◌'.</li>
+<li>If you try to move an object to a spot that is not empty, or try to move it outside of the grid, I have to penalize you. You get another try.</li>
+<li>Before making a move, double check that the target spot is empty, and does not hold any letter, frame, or line!</li>
+</ul>
+<p><strong>End of Game</strong></p>
+<p>If you think you reached the goal of aligning all objects, you can ask the other player to finish the game by sending <code>SAY: finished?</code>. If the other player asks you to finish the game, and you reply with <code>SAY: finished!</code>, the game will end.</p>
+<p>Both players win if the game ends within 20 rounds, where one round is defined as two players each sending a valid command.</p>
+<p><strong>Scoring:</strong></p>
+<p>The closer the identical objects are in both game boards, the more points you get. Penalties reduce your points. Can you beat the record?</p>
+<p>The other player started the game by sending this message:</p>
+<p>"Hello! Let's coordinate to align our objects. I see W, I, T, C, H on my board. Can you share the coordinates of your objects so we can find a common configuration?"</p>
+<p>What is your first command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAY: Hello! Here are my object coordinates: W at (1,7), I at (1,3), T at (4,4), C at (4,3), H at (5,2). What are your coordinates?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: Hello! Here are my object coordinates: W at (1,7), I at (1,3), T at (4,4), C at (4,3), H at (5,2). What are your coordinates?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 1 of maximum 20.
+You have collectively accumulated 0 of 12 penalties.
+The other player sent this message:</p>
+<p>"Hello! Here are my object coordinates: W at (1,7), I at (1,3), T at (4,4), C at (4,3), H at (5,2). What are your coordinates?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Here are my current coordinates:
+- C at (1,3)
+- H at (1,4)
+- W at (3,4)
+- I at (2,2)
+- T at (7,7)</p>
+<p>Let me compare our boards:</p>
+<p>| Object | My Board | Their Board |
+|--------|----------|-------------|
+| C | (1,3) | (4,3) |
+| H | (1,4) | (5,2) |
+| W | (3,4) | (1,7) |
+| I | (2,2) | (1,3) |
+| T | (7,7) | (4,4) |</p>
+<p>We need to find empty spots we can both move each object to. Let's look for a common vacant area. Can you tell me which cells on your board are currently empty, especially in the top-left or center area? That way we can pick target coordinates we can both reach.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Here are my current coordinates:
+- C at (1,3)
+- H at (1,4)
+- W at (3,4)
+- I at (2,2)
+- T at (7,7)</p>
+<p>Let me compare our boards:</p>
+<p>| Object | My Board | Their Board |
+|--------|----------|-------------|
+| C | (1,3) | (4,3) |
+| H | (1,4) | (5,2) |
+| W | (3,4) | (1,7) |
+| I | (2,2) | (1,3) |
+| T | (7,7) | (4,4) |</p>
+<p>We need to find empty spots we can both move each object to. Let's look for a common vacant area. Can you tell me which cells on your board are currently empty, especially in the top-left or center area? That way we can pick target coordinates we can both reach.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalty: Your message is not in the expected format!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 1 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: Here are my current coordinates: C at (1,3), H at (1,4), W at (3,4), I at (2,2), T at (7,7). Let's compare and find empty spots we both have. Can you share which cells on your board are empty?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: Here are my current coordinates: C at (1,3), H at (1,4), W at (3,4), I at (2,2), T at (7,7). Let's compare and find empty spots we both have. Can you share which cells on your board are empty?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 2 of maximum 20.
+You have collectively accumulated 1 of 12 penalties.
+The other player sent this message:</p>
+<p>"Here are my current coordinates: C at (1,3), H at (1,4), W at (3,4), I at (2,2), T at (7,7). Let's compare and find empty spots we both have. Can you share which cells on your board are empty?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAY: My empty cells are: (2,1), (3,1), (4,1), (5,1), (6,1), (7,1), (2,2), (3,2), (4,2), (6,2), (7,2), (2,3), (3,3), (5,3), (6,3), (7,3), (2,4), (3,4), (5,4), (6,4), (7,4), (2,5), (3,5), (4,5), (5,5), (7,5), (2,6), (3,6), (4,6), (5,6), (6,6), (2,7), (3,7), (4,7), (5,7), (7,7). Let's find a common configuration. Do you have (2,2) empty? That could work for one object.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: My empty cells are: (2,1), (3,1), (4,1), (5,1), (6,1), (7,1), (2,2), (3,2), (4,2), (6,2), (7,2), (2,3), (3,3), (5,3), (6,3), (7,3), (2,4), (3,4), (5,4), (6,4), (7,4), (2,5), (3,5), (4,5), (5,5), (7,5), (2,6), (3,6), (4,6), (5,6), (6,6), (2,7), (3,7), (4,7), (5,7), (7,7). Let's find a common configuration. Do you have (2,2) empty? That could work for one object.</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 2 of maximum 20.
+You have collectively accumulated 1 of 12 penalties.
+The other player sent this message:</p>
+<p>"My empty cells are: (2,1), (3,1), (4,1), (5,1), (6,1), (7,1), (2,2), (3,2), (4,2), (6,2), (7,2), (2,3), (3,3), (5,3), (6,3), (7,3), (2,4), (3,4), (5,4), (6,4), (7,4), (2,5), (3,5), (4,5), (5,5), (7,5), (2,6), (3,6), (4,6), (5,6), (6,6), (2,7), (3,7), (4,7), (5,7), (7,7). Let's find a common configuration. Do you have (2,2) empty? That could work for one object."</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: My empty cells on my board: Row 1: (1,1) to (7,1), Row 2: (1,2), (3,2) to (7,2), Row 3: (2,3) to (7,3), Row 4: (2,4), (4,4) to (7,4), Row 5: (1,5) to (6,5), Row 6: (1,6) to (6,6), Row 7: (1,7) to (6,7). My I is at (2,2) so that's not empty for me. How about we aim for these target coordinates: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2)? Are those all empty for you?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: My empty cells on my board: Row 1: (1,1) to (7,1), Row 2: (1,2), (3,2) to (7,2), Row 3: (2,3) to (7,3), Row 4: (2,4), (4,4) to (7,4), Row 5: (1,5) to (6,5), Row 6: (1,6) to (6,6), Row 7: (1,7) to (6,7). My I is at (2,2) so that's not empty for me. How about we aim for these target coordinates: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2)? Are those all empty for you?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 3 of maximum 20.
+You have collectively accumulated 1 of 12 penalties.
+The other player sent this message:</p>
+<p>"My empty cells on my board: Row 1: (1,1) to (7,1), Row 2: (1,2), (3,2) to (7,2), Row 3: (2,3) to (7,3), Row 4: (2,4), (4,4) to (7,4), Row 5: (1,5) to (6,5), Row 6: (1,6) to (6,6), Row 7: (1,7) to (6,7). My I is at (2,2) so that's not empty for me. How about we aim for these target coordinates: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2)? Are those all empty for you?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Let me check those proposed coordinates against my board:</p>
+<p>Proposed targets:
+- C at (2,3) → My board: (2,3) is empty ✓
+- H at (2,4) → My board: (2,4) is empty ✓
+- W at (3,3) → My board: (3,3) is empty ✓
+- I at (3,2) → My board: (3,2) is empty ✓
+- T at (4,2) → My board: (4,2) is empty ✓</p>
+<p>All of those are empty on my board! This looks like a great common configuration. Let me confirm and start moving.</p>
+<p>SAY: All those coordinates are empty on my board! (2,3), (2,4), (3,3), (3,2), (4,2) are all free. Let's lock in: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2). I'll start moving my objects now!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Let me check those proposed coordinates against my board:</p>
+<p>Proposed targets:
+- C at (2,3) → My board: (2,3) is empty ✓
+- H at (2,4) → My board: (2,4) is empty ✓
+- W at (3,3) → My board: (3,3) is empty ✓
+- I at (3,2) → My board: (3,2) is empty ✓
+- T at (4,2) → My board: (4,2) is empty ✓</p>
+<p>All of those are empty on my board! This looks like a great common configuration. Let me confirm and start moving.</p>
+<p>SAY: All those coordinates are empty on my board! (2,3), (2,4), (3,3), (3,2), (4,2) are all free. Let's lock in: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2). I'll start moving my objects now!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Let me check those proposed coordinates against my board:</p>
+<p>Proposed targets:
+- C at (2,3) → My board: (2,3) is empty ✓
+- H at (2,4) → My board: (2,4) is empty ✓
+- W at (3,3) → My board: (3,3) is empty ✓
+- I at (3,2) → My board: (3,2) is empty ✓
+- T at (4,2) → My board: (4,2) is empty ✓</p>
+<p>All of those are empty on my board! This looks like a great common configuration. Let me confirm and start moving.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 2 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAY: All those coordinates are empty on my board! (2,3), (2,4), (3,3), (3,2), (4,2) are all free. Let's lock in: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2). I'll start moving my objects now!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: All those coordinates are empty on my board! (2,3), (2,4), (3,3), (3,2), (4,2) are all free. Let's lock in: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2). I'll start moving my objects now!</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 3 of maximum 20.
+You have collectively accumulated 2 of 12 penalties.
+The other player sent this message:</p>
+<p>"All those coordinates are empty on my board! (2,3), (2,4), (3,3), (3,2), (4,2) are all free. Let's lock in: C at (2,3), H at (2,4), W at (3,3), I at (3,2), T at (4,2). I'll start moving my objects now!"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: Great, let's do it! I'll start moving my objects too. Let's coordinate so we don't bump into each other's moves. I'll move C first.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: Great, let's do it! I'll start moving my objects too. Let's coordinate so we don't bump into each other's moves. I'll move C first.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 4 of maximum 20.
+You have collectively accumulated 2 of 12 penalties.
+The other player sent this message:</p>
+<p>"Great, let's do it! I'll start moving my objects too. Let's coordinate so we don't bump into each other's moves. I'll move C first."</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVE: C, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: C, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalty: (2,3) is not empty, but contains '│'.</p>
+<p>You have collectively accumulated 3 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: (2,3) is not empty, but contains '│'.</p>
+<p>You have collectively accumulated 3 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Let me re-examine my board carefully. Looking at the grid:</p>
+<p>Row 3: <code>║I│◌◌C◌◌║</code> so column 2, row 3 is the <code>│</code> character, not empty. The empty cells in row 3 are positions (3,3), (4,3) but C is at (4,3), (5,3), (6,3), (7,3).</p>
+<p>Wait, I need to be more careful. Let me re-read the grid:</p>
+<p>Row 1: <code>║◌│◌◌◌◌◌║</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=◌, 7=◌
+Row 2: <code>║◌│◌◌◌H◌║</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=H, 7=◌
+Row 3: <code>║I│◌◌C◌◌║</code> - columns: 1=I, 2=│, 3=◌, 4=◌, 5=C, 6=◌, 7=◌
+Row 4: <code>║◌│◌◌T◌◌║</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=T, 6=◌, 7=◌
+Row 5: <code>╟─┼───┐◌║</code> - columns: 1=╟, 2=─, 3=┼, 4=─, 5=─, 6=─, 7=┐, but wait, row 5 has frame elements
+Row 6: <code>║◌│◌◌◌├─╢</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=├, 7=─
+Row 7: <code>║W│◌◌◌│◌║</code> - columns: 1=W, 2=│, 3=◌, 4=◌, 5=◌, 6=│, 7=◌</p>
+<p>So column 2 is entirely occupied by <code>│</code> in rows 1-4, 6-7, and row 5 has <code>─</code>. So (2,3) is indeed the <code>│</code> character, not empty! I apologize for the error.</p>
+<p>The proposed (2,3) is not valid on my board. The column 2 vertical line is a frame element, not empty. I need to tell the other player that (2,3), (2,4), (3,2) are not all empty for me because of the frame.</p>
+<p>SAY: Wait! I made a mistake. Column 2 on my board has a vertical line '│' in most rows. (2,3), (2,4), and (3,2) are not all empty for me. Let's find coordinates that avoid column 2. How about: C at (3,3), H at (3,4), W at (4,3), I at (4,2), T at (5,2)? Are those empty for you?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Let me re-examine my board carefully. Looking at the grid:</p>
+<p>Row 3: <code>║I│◌◌C◌◌║</code> so column 2, row 3 is the <code>│</code> character, not empty. The empty cells in row 3 are positions (3,3), (4,3) but C is at (4,3), (5,3), (6,3), (7,3).</p>
+<p>Wait, I need to be more careful. Let me re-read the grid:</p>
+<p>Row 1: <code>║◌│◌◌◌◌◌║</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=◌, 7=◌
+Row 2: <code>║◌│◌◌◌H◌║</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=H, 7=◌
+Row 3: <code>║I│◌◌C◌◌║</code> - columns: 1=I, 2=│, 3=◌, 4=◌, 5=C, 6=◌, 7=◌
+Row 4: <code>║◌│◌◌T◌◌║</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=T, 6=◌, 7=◌
+Row 5: <code>╟─┼───┐◌║</code> - columns: 1=╟, 2=─, 3=┼, 4=─, 5=─, 6=─, 7=┐, but wait, row 5 has frame elements
+Row 6: <code>║◌│◌◌◌├─╢</code> - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=├, 7=─
+Row 7: <code>║W│◌◌◌│◌║</code> - columns: 1=W, 2=│, 3=◌, 4=◌, 5=◌, 6=│, 7=◌</p>
+<p>So column 2 is entirely occupied by <code>│</code> in rows 1-4, 6-7, and row 5 has <code>─</code>. So (2,3) is indeed the <code>│</code> character, not empty! I apologize for the error.</p>
+<p>The proposed (2,3) is not valid on my board. The column 2 vertical line is a frame element, not empty. I need to tell the other player that (2,3), (2,4), (3,2) are not all empty for me because of the frame.</p>
+<p>SAY: Wait! I made a mistake. Column 2 on my board has a vertical line '│' in most rows. (2,3), (2,4), and (3,2) are not all empty for me. Let's find coordinates that avoid column 2. How about: C at (3,3), H at (3,4), W at (4,3), I at (4,2), T at (5,2)? Are those empty for you?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Let me re-examine my board carefully. Looking at the grid:</p>
+<p>Row 3: ║I│◌◌C◌◌║ so column 2, row 3 is the │ character, not empty. The empty cells in row 3 are positions (3,3), (4,3) but C is at (4,3), (5,3), (6,3), (7,3).</p>
+<p>Wait, I need to be more careful. Let me re-read the grid:</p>
+<p>Row 1: ║◌│◌◌◌◌◌║ - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=◌, 7=◌
+Row 2: ║◌│◌◌◌H◌║ - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=H, 7=◌
+Row 3: ║I│◌◌C◌◌║ - columns: 1=I, 2=│, 3=◌, 4=◌, 5=C, 6=◌, 7=◌
+Row 4: ║◌│◌◌T◌◌║ - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=T, 6=◌, 7=◌
+Row 5: ╟─┼───┐◌║ - columns: 1=╟, 2=─, 3=┼, 4=─, 5=─, 6=─, 7=┐, but wait, row 5 has frame elements
+Row 6: ║◌│◌◌◌├─╢ - columns: 1=◌, 2=│, 3=◌, 4=◌, 5=◌, 6=├, 7=─
+Row 7: ║W│◌◌◌│◌║ - columns: 1=W, 2=│, 3=◌, 4=◌, 5=◌, 6=│, 7=◌</p>
+<p>So column 2 is entirely occupied by │ in rows 1-4, 6-7, and row 5 has ─. So (2,3) is indeed the │ character, not empty! I apologize for the error.</p>
+<p>The proposed (2,3) is not valid on my board. The column 2 vertical line is a frame element, not empty. I need to tell the other player that (2,3), (2,4), (3,2) are not all empty for me because of the frame.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 4 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAY: Wait! I made a mistake. Column 2 on my board has a vertical line '│' in most rows. (2,3), (2,4), and (3,2) are not all empty for me. Let's find coordinates that avoid column 2. How about: C at (3,3), H at (3,4), W at (4,3), I at (4,2), T at (5,2)? Are those empty for you?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: Wait! I made a mistake. Column 2 on my board has a vertical line '│' in most rows. (2,3), (2,4), and (3,2) are not all empty for me. Let's find coordinates that avoid column 2. How about: C at (3,3), H at (3,4), W at (4,3), I at (4,2), T at (5,2)? Are those empty for you?</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 4 of maximum 20.
+You have collectively accumulated 4 of 12 penalties.
+The other player sent this message:</p>
+<p>"Wait! I made a mistake. Column 2 on my board has a vertical line '│' in most rows. (2,3), (2,4), and (3,2) are not all empty for me. Let's find coordinates that avoid column 2. How about: C at (3,3), H at (3,4), W at (4,3), I at (4,2), T at (5,2)? Are those empty for you?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: Let me check. On my board: (3,3) is empty, (3,4) has W so I'd need to move it first, (4,3) is empty, (4,2) is empty, (5,2) is empty. So those all work for me as targets. But same issue - does your board have lines in columns 3, 4, or 5? Can you describe the layout of lines and walls on your board so we can pick safe coordinates?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: Let me check. On my board: (3,3) is empty, (3,4) has W so I'd need to move it first, (4,3) is empty, (4,2) is empty, (5,2) is empty. So those all work for me as targets. But same issue - does your board have lines in columns 3, 4, or 5? Can you describe the layout of lines and walls on your board so we can pick safe coordinates?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 5 of maximum 20.
+You have collectively accumulated 4 of 12 penalties.
+The other player sent this message:</p>
+<p>"Let me check. On my board: (3,3) is empty, (3,4) has W so I'd need to move it first, (4,3) is empty, (4,2) is empty, (5,2) is empty. So those all work for me as targets. But same issue - does your board have lines in columns 3, 4, or 5? Can you describe the layout of lines and walls on your board so we can pick safe coordinates?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAY: My board has vertical lines at column 2 (rows 1-4 and 6-7), and column 6 (row 7 has '│'). Row 5 has a horizontal frame from columns 1-6. Row 6 has frame at columns 6-7. Column 1 has a frame corner at row 5. So safe empty columns for all rows 1-4 and 6-7 are columns 3, 4, 5, 7 (but check row 5 and 6 carefully). For our objects, columns 3, 4, 5 should work. What does your board look like?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: My board has vertical lines at column 2 (rows 1-4 and 6-7), and column 6 (row 7 has '│'). Row 5 has a horizontal frame from columns 1-6. Row 6 has frame at columns 6-7. Column 1 has a frame corner at row 5. So safe empty columns for all rows 1-4 and 6-7 are columns 3, 4, 5, 7 (but check row 5 and 6 carefully). For our objects, columns 3, 4, 5 should work. What does your board look like?</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 5 of maximum 20.
+You have collectively accumulated 4 of 12 penalties.
+The other player sent this message:</p>
+<p>"My board has vertical lines at column 2 (rows 1-4 and 6-7), and column 6 (row 7 has '│'). Row 5 has a horizontal frame from columns 1-6. Row 6 has frame at columns 6-7. Column 1 has a frame corner at row 5. So safe empty columns for all rows 1-4 and 6-7 are columns 3, 4, 5, 7 (but check row 5 and 6 carefully). For our objects, columns 3, 4, 5 should work. What does your board look like?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: My board has: a vertical line '│' at column 2 from rows 1-7, a vertical line '│' at column 6 from rows 5-7, a horizontal line row 5 from columns 1-6, and corners/frames at row 5 col 1 and row 7 cols 6-7. So columns 3, 4, 5 are safe for rows 1-4 and 6. Let's go with: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). Are those all empty for you?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: My board has: a vertical line '│' at column 2 from rows 1-7, a vertical line '│' at column 6 from rows 5-7, a horizontal line row 5 from columns 1-6, and corners/frames at row 5 col 1 and row 7 cols 6-7. So columns 3, 4, 5 are safe for rows 1-4 and 6. Let's go with: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). Are those all empty for you?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 6 of maximum 20.
+You have collectively accumulated 4 of 12 penalties.
+The other player sent this message:</p>
+<p>"My board has: a vertical line '│' at column 2 from rows 1-7, a vertical line '│' at column 6 from rows 5-7, a horizontal line row 5 from columns 1-6, and corners/frames at row 5 col 1 and row 7 cols 6-7. So columns 3, 4, 5 are safe for rows 1-4 and 6. Let's go with: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). Are those all empty for you?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Let me check those proposed coordinates on my board:</p>
+<ul>
+<li>C at (3,3): My board has ◌ at (3,3) ✓</li>
+<li>H at (4,3): My board has ◌ at (4,3) ✓ (wait, C is at (4,3) currently... no, let me re-check. Row 3: ║I│◌◌C◌◌║ - so columns: 1=I, 2=│, 3=◌, 4=◌, 5=C, 6=◌, 7=◌. So (3,3)=◌ empty, (4,3)=◌ empty, (5,3)=C - that's occupied!)</li>
+</ul>
+<p>So (5,3) is occupied by C on my board. Let me check all:
+- (3,3): empty ✓
+- (4,3): empty ✓ 
+- (5,3): has C ✗
+- (3,4): Row 4: ║◌│◌◌T◌◌║ → (3,4)=◌ empty ✓
+- (4,4): (4,4)=◌ empty ✓ (wait, T is at (4,4)? No, (5,4)=T, so (4,4)=◌ empty ✓)</p>
+<p>So (5,3) has my C. I should tell them and suggest an alternative since I'll need to move C anyway. Actually, since we're targeting these, I'll need to move C from (5,3) eventually. But the target (5,3) for W - is that empty for them? They said columns 3,4,5 are safe. If I move C out of (5,3) first, then W can go there. But I should suggest targets that don't overlap with current positions to avoid confusion, or we can just start moving.</p>
+<p>SAY: (5,3) currently has my C, but I can move it. Let's proceed with those targets: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). I'll move my C first to (3,3). Let's start!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Let me check those proposed coordinates on my board:</p>
+<ul>
+<li>C at (3,3): My board has ◌ at (3,3) ✓</li>
+<li>H at (4,3): My board has ◌ at (4,3) ✓ (wait, C is at (4,3) currently... no, let me re-check. Row 3: ║I│◌◌C◌◌║ - so columns: 1=I, 2=│, 3=◌, 4=◌, 5=C, 6=◌, 7=◌. So (3,3)=◌ empty, (4,3)=◌ empty, (5,3)=C - that's occupied!)</li>
+</ul>
+<p>So (5,3) is occupied by C on my board. Let me check all:
+- (3,3): empty ✓
+- (4,3): empty ✓ 
+- (5,3): has C ✗
+- (3,4): Row 4: ║◌│◌◌T◌◌║ → (3,4)=◌ empty ✓
+- (4,4): (4,4)=◌ empty ✓ (wait, T is at (4,4)? No, (5,4)=T, so (4,4)=◌ empty ✓)</p>
+<p>So (5,3) has my C. I should tell them and suggest an alternative since I'll need to move C anyway. Actually, since we're targeting these, I'll need to move C from (5,3) eventually. But the target (5,3) for W - is that empty for them? They said columns 3,4,5 are safe. If I move C out of (5,3) first, then W can go there. But I should suggest targets that don't overlap with current positions to avoid confusion, or we can just start moving.</p>
+<p>SAY: (5,3) currently has my C, but I can move it. Let's proceed with those targets: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). I'll move my C first to (3,3). Let's start!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Let me check those proposed coordinates on my board:</p>
+<ul>
+<li>C at (3,3): My board has ◌ at (3,3) ✓</li>
+<li>H at (4,3): My board has ◌ at (4,3) ✓ (wait, C is at (4,3) currently... no, let me re-check. Row 3: ║I│◌◌C◌◌║ - so columns: 1=I, 2=│, 3=◌, 4=◌, 5=C, 6=◌, 7=◌. So (3,3)=◌ empty, (4,3)=◌ empty, (5,3)=C - that's occupied!)</li>
+</ul>
+<p>So (5,3) is occupied by C on my board. Let me check all:
+- (3,3): empty ✓
+- (4,3): empty ✓ 
+- (5,3): has C ✗
+- (3,4): Row 4: ║◌│◌◌T◌◌║ → (3,4)=◌ empty ✓
+- (4,4): (4,4)=◌ empty ✓ (wait, T is at (4,4)? No, (5,4)=T, so (4,4)=◌ empty ✓)</p>
+<p>So (5,3) has my C. I should tell them and suggest an alternative since I'll need to move C anyway. Actually, since we're targeting these, I'll need to move C from (5,3) eventually. But the target (5,3) for W - is that empty for them? They said columns 3,4,5 are safe. If I move C out of (5,3) first, then W can go there. But I should suggest targets that don't overlap with current positions to avoid confusion, or we can just start moving.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 5 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAY: (5,3) currently has my C, but I can move it. Let's proceed with those targets: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). I'll move my C first to (3,3). Let's start!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: (5,3) currently has my C, but I can move it. Let's proceed with those targets: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). I'll move my C first to (3,3). Let's start!</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 6 of maximum 20.
+You have collectively accumulated 5 of 12 penalties.
+The other player sent this message:</p>
+<p>"(5,3) currently has my C, but I can move it. Let's proceed with those targets: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). I'll move my C first to (3,3). Let's start!"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVE: C, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: C, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (3, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 7 of maximum 20.
+You have collectively accumulated 5 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVE: C, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: C, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (3, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Moved 'C' to (3,3) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│I◌◌◌◌║ 2
+║◌│C◌◌◌◌║ 3
+║H│◌W◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│T║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 7 of maximum 20.
+You have collectively accumulated 5 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVE: H, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: H, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (4, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Moved 'C' to (3,3) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌H◌║ 2
+║I│C◌◌◌◌║ 3
+║◌│◌◌T◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║W│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 8 of maximum 20.
+You have collectively accumulated 5 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Now I need to move H to (4,3). Let me check: (4,3) is currently empty (it was ◌). H is currently at (5,2).</p>
+<p>MOVE: H, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Now I need to move H to (4,3). Let me check: (4,3) is currently empty (it was ◌). H is currently at (5,2).</p>
+<p>MOVE: H, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Now I need to move H to (4,3). Let me check: (4,3) is currently empty (it was ◌). H is currently at (5,2).</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 6 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVE: H, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: H, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (4, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Moved 'H' to (4,3) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│I◌◌◌◌║ 2
+║◌│CH◌◌◌║ 3
+║◌│◌W◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│T║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 8 of maximum 20.
+You have collectively accumulated 6 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVE: W, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: W, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (5, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Moved 'H' to (4,3) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║I│CH◌◌◌║ 3
+║◌│◌◌T◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║W│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 9 of maximum 20.
+You have collectively accumulated 6 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Now W needs to go to (5,3). W is at (1,7). (5,3) is currently empty (it was ◌ after I moved C).</p>
+<p>MOVE: W, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Now W needs to go to (5,3). W is at (1,7). (5,3) is currently empty (it was ◌ after I moved C).</p>
+<p>MOVE: W, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Now W needs to go to (5,3). W is at (1,7). (5,3) is currently empty (it was ◌ after I moved C).</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 7 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVE: W, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: W, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (5, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Moved 'W' to (5,3) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│I◌◌◌◌║ 2
+║◌│CHW◌◌║ 3
+║◌│◌◌◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│T║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 9 of maximum 20.
+You have collectively accumulated 7 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVE: I, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: I, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (3, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Moved 'W' to (5,3) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║I│CHW◌◌║ 3
+║◌│◌◌T◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 10 of maximum 20.
+You have collectively accumulated 7 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Now I need to move I to (3,4). I is at (1,3). (3,4) is currently empty (Row 4, col 3 is ◌).</p>
+<p>MOVE: I, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Now I need to move I to (3,4). I is at (1,3). (3,4) is currently empty (Row 4, col 3 is ◌).</p>
+<p>MOVE: I, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Now I need to move I to (3,4). I is at (1,3). (3,4) is currently empty (Row 4, col 3 is ◌).</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 8 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVE: I, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: I, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (3, 4)</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Moved 'I' to (3,4) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║◌│CHW◌◌║ 3
+║◌│I◌◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│T║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 10 of maximum 20.
+You have collectively accumulated 8 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>MOVE: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (4, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Moved 'I' to (3,4) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║◌│CHW◌◌║ 3
+║◌│I◌T◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 11 of maximum 20.
+You have collectively accumulated 8 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Now I need to move T to (4,4). T is at (4,4) currently... wait, let me check. T is at (5,4) in the updated grid. (4,4) is currently ◌ (empty). So I need to move T from (5,4) to (4,4).</p>
+<p>MOVE: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Now I need to move T to (4,4). T is at (4,4) currently... wait, let me check. T is at (5,4) in the updated grid. (4,4) is currently ◌ (empty). So I need to move T from (5,4) to (4,4).</p>
+<p>MOVE: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Now I need to move T to (4,4). T is at (4,4) currently... wait, let me check. T is at (5,4) in the updated grid. (4,4) is currently ◌ (empty). So I need to move T from (5,4) to (4,4).</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 9 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>MOVE: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>MOVE: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (4, 4)</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Moved 'T' to (4,4) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║◌│CHW◌◌║ 3
+║◌│IT◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 11 of maximum 20.
+You have collectively accumulated 9 of 12 penalties.
+The other player moved an object on their grid.</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: All my objects are in position: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). How does your board look? Are we aligned?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: All my objects are in position: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). How does your board look? Are we aligned?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Moved 'T' to (4,4) successfully. Your updated grid looks like this:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║◌│CHW◌◌║ 3
+║◌│IT◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>You are currently playing round 12 of maximum 20.
+You have collectively accumulated 9 of 12 penalties.
+The other player sent this message:</p>
+<p>"All my objects are in position: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). How does your board look? Are we aligned?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>My board shows: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). That matches perfectly! Let me ask if we're finished.</p>
+<p>SAY: My board matches exactly: C(3,3), H(4,3), W(5,3), I(3,4), T(4,4). finished?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>My board shows: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). That matches perfectly! Let me ask if we're finished.</p>
+<p>SAY: My board matches exactly: C(3,3), H(4,3), W(5,3), I(3,4), T(4,4). finished?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'My board shows: C at (3,3), H at (4,3), W at (5,3), I at (3,4), T at (4,4). That matches perfectly! Let me ask if we're finished.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalty: Your message must not contain anything before the command!</p>
+<p>Make sure that your response only contains either <code>SAY: &lt;MESSAGE&gt;</code> or <code>MOVE: &lt;OBJECT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, and nothing else!</p>
+<p>You have collectively accumulated 10 of 12 penalties.
+Please try again!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAY: My board matches exactly: C(3,3), H(4,3), W(5,3), I(3,4), T(4,4). finished?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: My board matches exactly: C(3,3), H(4,3), W(5,3), I(3,4), T(4,4). finished?</p></p>
+    </div>
+</div><div class="game-round" data-round="12">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Your message has been relayed to the other player.</p>
+<p>You are currently playing round 12 of maximum 20.
+You have collectively accumulated 10 of 12 penalties.
+The other player sent this message:</p>
+<p>"My board matches exactly: C(3,3), H(4,3), W(5,3), I(3,4), T(4,4). finished?"</p>
+<p>What is your next command?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAY: finished!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAY: finished!</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│I◌◌◌◌║ 2
+║C│◌◌◌◌◌║ 3
+║H│◌W◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│T║ 7
+╚═╧═══╧═╝
+
+
+Player 2:
+ 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌H◌║ 2
+║I│◌◌C◌◌║ 3
+║◌│◌◌T◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║W│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║◌│CHW◌◌║ 3
+║◌│IT◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+
+
+Player 2:
+ 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+║◌│◌◌◌◌◌║ 2
+║◌│CHW◌◌║ 3
+║◌│IT◌◌◌║ 4
+╟─┼───┐◌║ 5
+║◌│◌◌◌├─╢ 6
+║◌│◌◌◌│◌║ 7
+╚═╧═══╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 4.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 0.00</li>
+<li>Init Distance Sum: 19.47</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 10.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 12.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

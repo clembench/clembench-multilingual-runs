@@ -1,0 +1,992 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_7obj_fr', episode 0 with mistral-large-3-azure.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Je suis votre maître de jeu, et vous jouez à un jeu collaboratif avec la grille suivante comme plateau de jeu :</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌O│PM║ 1
+║◌◌T◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║S┌──┼──╢ 4
+║◌│◌A│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌◌│◌│D◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Le bord supérieur affiche des coordonnées x croissantes vers la droite, et le bord droit des coordonnées y croissantes vers le bas.</li>
+<li>Les objets suivants sont placés aléatoirement sur votre grille : 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>L'autre joueur voit une variante du plateau de jeu, où les objets sont placés à des emplacements aléatoires différents. Vous ne pouvez pas voir le plateau de l'autre joueur et il ne peut pas voir le vôtre.</p>
+<p><strong>Objectif :</strong></p>
+<p>Les deux joueurs doivent déplacer les objets sur leur arrière-plan respectif de manière à ce que des objets identiques se retrouvent aux mêmes coordonnées. Vous devez communiquer avec l'autre joueur pour convenir d'une configuration d'objectif commune.</p>
+<p><strong>Règles :</strong></p>
+<ul>
+<li>À chaque tour, vous pouvez envoyer exactement l'une des deux commandes suivantes :</li>
+<li><code>DIRE: &lt;MESSAGE&gt;</code> : pour envoyer un message (tout ce qui se trouve jusqu'au prochain saut de ligne) à l'autre joueur. Je le transmettrai à votre partenaire.</li>
+<li><code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> : pour déplacer un objet vers une nouvelle position, où <code>&lt;X&gt;</code> est la colonne et <code>&lt;Y&gt;</code> est la ligne. Je vous informerai si votre déplacement a réussi ou non.</li>
+<li>Si vous ne respectez pas le format, ou si vous envoyez plusieurs commandes à la fois, je dois vous pénaliser.</li>
+<li>Si les deux joueurs accumulent plus de 16 pénalités, vous perdez tous les deux la partie.</li>
+<li>Il est essentiel que vous communiquiez avec l'autre joueur concernant votre état d'objectif ! La <em>seule</em> façon de transmettre votre stratégie à l'autre joueur est d'utiliser la commande <code>DIRE: &lt;MESSAGE&gt;</code> !</li>
+</ul>
+<p><strong>Déplacement d'objets</strong></p>
+<ul>
+<li>Vous ne pouvez déplacer des objets que vers des cellules situées à l'intérieur des limites de la grille. La cellule cible doit être vide, c'est-à-dire qu'elle ne doit contenir que le symbole '◌'.</li>
+<li>Si vous essayez de déplacer un objet vers un endroit qui n'est pas vide, ou si vous essayez de le déplacer en dehors de la grille, je dois vous pénaliser. Vous avez droit à un nouvel essai.</li>
+<li>Avant d'effectuer un déplacement, vérifiez bien que l'emplacement cible est vide et qu'il ne contient aucune lettre, aucun cadre ou aucune ligne !</li>
+</ul>
+<p><strong>Fin de partie</strong></p>
+<p>Si vous pensez avoir atteint l'objectif d'aligner tous les objets, vous pouvez demander à l'autre joueur de terminer la partie en envoyant <code>DIRE: terminé ?</code>. Si l'autre joueur vous demande de terminer la partie et que vous répondez <code>DIRE: terminé !</code>, la partie se termine.</p>
+<p>Les deux joueurs gagnent si la partie se termine en 28 tours, un tour étant défini comme l'envoi d'une commande valide par chacun des deux joueurs.</p>
+<p><strong>Score :</strong></p>
+<p>Plus les objets identiques sont proches les uns des autres sur les deux plateaux de jeu, plus vous obtenez de points. Les pénalités réduisent vos points. Pouvez-vous battre le record ?</p>
+<p>Envoyez un message à l'autre joueur pour commencer le jeu !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Commençons par analyser la grille et proposer une stratégie de communication pour aligner nos objets. Voici d'abord la position de mes objets sur ma grille :</p>
+<ul>
+<li><strong>P</strong> : (6,1)</li>
+<li><strong>M</strong> : (7,1)</li>
+<li><strong>O</strong> : (4,1)</li>
+<li><strong>T</strong> : (3,2)</li>
+<li><strong>S</strong> : (1,4)</li>
+<li><strong>A</strong> : (4,5)</li>
+<li><strong>D</strong> : (5,7)</li>
+</ul>
+<h3>Proposition de stratégie :</h3>
+<ol>
+<li><strong>Échanger nos positions initiales</strong> : Je vais envoyer les coordonnées de mes objets pour que l'autre joueur puisse les comparer aux siennes. Ensuite, nous pourrons convenir d'une configuration cible commune.</li>
+<li><strong>Choisir une configuration cible simple</strong> : Par exemple, aligner les objets sur une ligne ou une colonne spécifique (ex: ligne 4 ou colonne 3) pour faciliter la synchronisation.</li>
+<li><strong>Prioriser les objets proches</strong> : Commencer par déplacer les objets qui sont déjà proches de leur position cible pour minimiser les déplacements.</li>
+</ol>
+<h3>Premier message à l'autre joueur :</h3>
+<pre><code>DIRE: Voici mes positions actuelles :
+P(6,1), M(7,1), O(4,1), T(3,2), S(1,4), A(4,5), D(5,7).
+Quelles sont les tiennes ? Proposons une configuration cible commune (ex: tous sur la ligne 4 ou colonne 3).
+</code></pre>
+<p>À toi de jouer ! Envoie tes positions et tes idées pour la configuration cible. Nous pourrons ensuite ajuster nos déplacements en fonction.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Commençons par analyser la grille et proposer une stratégie de communication pour aligner nos objets. Voici d'abord la position de mes objets sur ma grille :</p>
+<ul>
+<li><strong>P</strong> : (6,1)</li>
+<li><strong>M</strong> : (7,1)</li>
+<li><strong>O</strong> : (4,1)</li>
+<li><strong>T</strong> : (3,2)</li>
+<li><strong>S</strong> : (1,4)</li>
+<li><strong>A</strong> : (4,5)</li>
+<li><strong>D</strong> : (5,7)</li>
+</ul>
+<h3>Proposition de stratégie :</h3>
+<ol>
+<li><strong>Échanger nos positions initiales</strong> : Je vais envoyer les coordonnées de mes objets pour que l'autre joueur puisse les comparer aux siennes. Ensuite, nous pourrons convenir d'une configuration cible commune.</li>
+<li><strong>Choisir une configuration cible simple</strong> : Par exemple, aligner les objets sur une ligne ou une colonne spécifique (ex: ligne 4 ou colonne 3) pour faciliter la synchronisation.</li>
+<li><strong>Prioriser les objets proches</strong> : Commencer par déplacer les objets qui sont déjà proches de leur position cible pour minimiser les déplacements.</li>
+</ol>
+<h3>Premier message à l'autre joueur :</h3>
+<pre><code>DIRE: Voici mes positions actuelles :
+P(6,1), M(7,1), O(4,1), T(3,2), S(1,4), A(4,5), D(5,7).
+Quelles sont les tiennes ? Proposons une configuration cible commune (ex: tous sur la ligne 4 ou colonne 3).
+</code></pre>
+<p>À toi de jouer ! Envoie tes positions et tes idées pour la configuration cible. Nous pourrons ensuite ajuster nos déplacements en fonction.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Commençons par analyser la grille et proposer une stratégie de communication pour aligner nos objets. Voici d'abord la position de mes objets sur ma grille :</p>
+<ul>
+<li><strong>P</strong> : (6,1)</li>
+<li><strong>M</strong> : (7,1)</li>
+<li><strong>O</strong> : (4,1)</li>
+<li><strong>T</strong> : (3,2)</li>
+<li><strong>S</strong> : (1,4)</li>
+<li><strong>A</strong> : (4,5)</li>
+<li><strong>D</strong> : (5,7)</li>
+</ul>
+<h3>Proposition de stratégie :</h3>
+<ol>
+<li><strong>Échanger nos positions initiales</strong> : Je vais envoyer les coordonnées de mes objets pour que l'autre joueur puisse les comparer aux siennes. Ensuite, nous pourrons convenir d'une configuration cible commune.</li>
+<li><strong>Choisir une configuration cible simple</strong> : Par exemple, aligner les objets sur une ligne ou une colonne spécifique (ex: ligne 4 ou colonne 3) pour faciliter la synchronisation.</li>
+<li><strong>Prioriser les objets proches</strong> : Commencer par déplacer les objets qui sont déjà proches de leur position cible pour minimiser les déplacements.</li>
+</ol>
+<h3>Premier message à l'autre joueur :</h3>
+<p>'
+tail: '
+P(6,1), M(7,1), O(4,1), T(3,2), S(1,4), A(4,5), D(5,7).
+Quelles sont les tiennes ? Proposons une configuration cible commune (ex: tous sur la ligne 4 ou colonne 3).</p>
+<p>À toi de jouer ! Envoie tes positions et tes idées pour la configuration cible. Nous pourrons ensuite ajuster nos déplacements en fonction.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir avant ou après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 1 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Voici mes positions : P(6,1), M(7,1), O(4,1), T(3,2), S(1,4), A(4,5), D(5,7). Quelles sont les tiennes ? Proposons une cible commune (ex: ligne 4).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Voici mes positions : P(6,1), M(7,1), O(4,1), T(3,2), S(1,4), A(4,5), D(5,7). Quelles sont les tiennes ? Proposons une cible commune (ex: ligne 4).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Je suis votre maître de jeu, et vous jouez à un jeu collaboratif avec la grille suivante comme plateau de jeu :</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌◌│O◌║ 1
+║P◌M◌├──╢ 2
+║◌S◌◌│T◌║ 3
+║◌┌──┼──╢ 4
+║A│◌◌│◌◌║ 5
+╟─┴┬─┤◌D║ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Le bord supérieur affiche des coordonnées x croissantes vers la droite, et le bord droit des coordonnées y croissantes vers le bas.</li>
+<li>Les objets suivants sont placés aléatoirement sur votre grille : 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>L'autre joueur voit une variante du plateau de jeu, où les objets sont placés à des emplacements aléatoires différents. Vous ne pouvez pas voir le plateau de l'autre joueur et il ne peut pas voir le vôtre.</p>
+<p><strong>Objectif :</strong></p>
+<p>Les deux joueurs doivent déplacer les objets sur leur arrière-plan respectif de manière à ce que des objets identiques se retrouvent aux mêmes coordonnées. Vous devez communiquer avec l'autre joueur pour convenir d'une configuration d'objectif commune.</p>
+<p><strong>Règles :</strong></p>
+<ul>
+<li>À chaque tour, vous pouvez envoyer exactement l'une des deux commandes suivantes :</li>
+<li><code>DIRE: &lt;MESSAGE&gt;</code> : pour envoyer un message (tout ce qui se trouve jusqu'au prochain saut de ligne) à l'autre joueur. Je le transmettrai à votre partenaire.</li>
+<li><code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> : pour déplacer un objet vers une nouvelle position, où <code>&lt;X&gt;</code> est la colonne et <code>&lt;Y&gt;</code> est la ligne. Je vous informerai si votre déplacement a réussi ou non.</li>
+<li>Si vous ne respectez pas le format, ou si vous envoyez plusieurs commandes à la fois, je dois vous pénaliser.</li>
+<li>Si les deux joueurs accumulent plus de 16 pénalités, vous perdez tous les deux la partie.</li>
+<li>Il est essentiel que vous communiquiez avec l'autre joueur concernant votre état d'objectif ! La <em>seule</em> façon de transmettre votre stratégie à l'autre joueur est d'utiliser la commande <code>DIRE: &lt;MESSAGE&gt;</code> !</li>
+</ul>
+<p><strong>Déplacement d'objets</strong></p>
+<ul>
+<li>Vous ne pouvez déplacer des objets que vers des cellules situées à l'intérieur des limites de la grille. La cellule cible doit être vide, c'est-à-dire qu'elle ne doit contenir que le symbole '◌'.</li>
+<li>Si vous essayez de déplacer un objet vers un endroit qui n'est pas vide, ou si vous essayez de le déplacer en dehors de la grille, je dois vous pénaliser. Vous avez droit à un nouvel essai.</li>
+<li>Avant d'effectuer un déplacement, vérifiez bien que l'emplacement cible est vide et qu'il ne contient aucune lettre, aucun cadre ou aucune ligne !</li>
+</ul>
+<p><strong>Fin de partie</strong></p>
+<p>Si vous pensez avoir atteint l'objectif d'aligner tous les objets, vous pouvez demander à l'autre joueur de terminer la partie en envoyant <code>DIRE: terminé ?</code>. Si l'autre joueur vous demande de terminer la partie et que vous répondez <code>DIRE: terminé !</code>, la partie se termine.</p>
+<p>Les deux joueurs gagnent si la partie se termine en 28 tours, un tour étant défini comme l'envoi d'une commande valide par chacun des deux joueurs.</p>
+<p><strong>Score :</strong></p>
+<p>Plus les objets identiques sont proches les uns des autres sur les deux plateaux de jeu, plus vous obtenez de points. Les pénalités réduisent vos points. Pouvez-vous battre le record ?</p>
+<p>L'autre joueur a commencé le jeu en envoyant ce message :</p>
+<p>"Voici mes positions : P(6,1), M(7,1), O(4,1), T(3,2), S(1,4), A(4,5), D(5,7). Quelles sont les tiennes ? Proposons une cible commune (ex: ligne 4)."</p>
+<p>Quelle est votre première commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Voici ma première commande pour répondre à l'autre joueur et partager mes positions, tout en proposant une stratégie de coordination :</p>
+<pre><code>DIRE: Voici mes positions : P(2,2), M(4,2), O(6,1), T(6,3), S(3,3), A(1,5), D(6,6). Proposons de les aligner sur la ligne 4 comme cible commune ? Par exemple : P(2,4), M(4,4), O(6,4), T(5,4), S(3,4), A(1,4), D(7,4). Cela te convient ?
+</code></pre>
+<h3>Explications :</h3>
+<ol>
+<li><strong>Partage des positions</strong> : J'indique mes coordonnées actuelles pour que l'autre joueur puisse les comparer aux siennes.</li>
+<li><strong>Proposition de cible</strong> : Je reprends l'idée de la ligne 4 (comme suggéré par l'autre joueur) et propose des coordonnées précises pour chaque objet. Cela permet de vérifier si cette configuration est réalisable pour lui aussi.</li>
+<li><strong>Ouverture à la discussion</strong> : La question finale invite l'autre joueur à ajuster ou valider la proposition.</li>
+</ol>
+<p>Si l'autre joueur accepte, nous pourrons commencer à déplacer les objets vers ces cibles. Sinon, nous affinerons la stratégie ensemble.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Voici ma première commande pour répondre à l'autre joueur et partager mes positions, tout en proposant une stratégie de coordination :</p>
+<pre><code>DIRE: Voici mes positions : P(2,2), M(4,2), O(6,1), T(6,3), S(3,3), A(1,5), D(6,6). Proposons de les aligner sur la ligne 4 comme cible commune ? Par exemple : P(2,4), M(4,4), O(6,4), T(5,4), S(3,4), A(1,4), D(7,4). Cela te convient ?
+</code></pre>
+<h3>Explications :</h3>
+<ol>
+<li><strong>Partage des positions</strong> : J'indique mes coordonnées actuelles pour que l'autre joueur puisse les comparer aux siennes.</li>
+<li><strong>Proposition de cible</strong> : Je reprends l'idée de la ligne 4 (comme suggéré par l'autre joueur) et propose des coordonnées précises pour chaque objet. Cela permet de vérifier si cette configuration est réalisable pour lui aussi.</li>
+<li><strong>Ouverture à la discussion</strong> : La question finale invite l'autre joueur à ajuster ou valider la proposition.</li>
+</ol>
+<p>Si l'autre joueur accepte, nous pourrons commencer à déplacer les objets vers ces cibles. Sinon, nous affinerons la stratégie ensemble.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Voici ma première commande pour répondre à l'autre joueur et partager mes positions, tout en proposant une stratégie de coordination :</p>
+<p>'
+tail: '</p>
+<h3>Explications :</h3>
+<ol>
+<li><strong>Partage des positions</strong> : J'indique mes coordonnées actuelles pour que l'autre joueur puisse les comparer aux siennes.</li>
+<li><strong>Proposition de cible</strong> : Je reprends l'idée de la ligne 4 (comme suggéré par l'autre joueur) et propose des coordonnées précises pour chaque objet. Cela permet de vérifier si cette configuration est réalisable pour lui aussi.</li>
+<li><strong>Ouverture à la discussion</strong> : La question finale invite l'autre joueur à ajuster ou valider la proposition.</li>
+</ol>
+<p>Si l'autre joueur accepte, nous pourrons commencer à déplacer les objets vers ces cibles. Sinon, nous affinerons la stratégie ensemble.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir avant ou après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 2 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: Mes positions : P(2,2), M(4,2), O(6,1), T(6,3), S(3,3), A(1,5), D(6,6). Ligne 4 comme cible ? Exemple : P(2,4), M(4,4), O(6,4), T(5,4), S(3,4), A(1,4), D(7,4). OK ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Mes positions : P(2,2), M(4,2), O(6,1), T(6,3), S(3,3), A(1,5), D(6,6). Ligne 4 comme cible ? Exemple : P(2,4), M(4,4), O(6,4), T(5,4), S(3,4), A(1,4), D(7,4). OK ?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 1 sur un maximum de 28.
+Vous avez collectivement accumulé 2 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Mes positions : P(2,2), M(4,2), O(6,1), T(6,3), S(3,3), A(1,5), D(6,6). Ligne 4 comme cible ? Exemple : P(2,4), M(4,4), O(6,4), T(5,4), S(3,4), A(1,4), D(7,4). OK ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: D'accord pour la ligne 4 ! Voici mes déplacements prévus :
+- P(6,1) → P(2,4)
+- M(7,1) → M(4,4)
+- O(4,1) → O(6,4)
+- T(3,2) → T(5,4)
+- S(1,4) reste S(3,4) (déjà proche)
+- A(4,5) → A(1,4)
+- D(5,7) → D(7,4)
+Je commence par déplacer P vers (2,4). À toi de jouer !</p>
+<pre><code>
+Je vais ensuite envoyer :
+</code></pre>
+<p>DÉPLACER: P, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: D'accord pour la ligne 4 ! Voici mes déplacements prévus :
+- P(6,1) → P(2,4)
+- M(7,1) → M(4,4)
+- O(4,1) → O(6,4)
+- T(3,2) → T(5,4)
+- S(1,4) reste S(3,4) (déjà proche)
+- A(4,5) → A(1,4)
+- D(5,7) → D(7,4)
+Je commence par déplacer P vers (2,4). À toi de jouer !</p>
+<pre><code>
+Je vais ensuite envoyer :
+</code></pre>
+<p>DÉPLACER: P, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: DIRE: D'accord pour la ligne 4 ! Voici mes déplacements prévus :
+- P(6,1) → P(2,4)
+- M(7,1) → M(4,4)
+- O(4,1) → O(6,4)
+- T(3,2) → T(5,4)
+- S(1,4) reste S(3,4) (déjà proche)
+- A(4,5) → A(1,4)
+- D(5,7) → D(7,4)
+Je commence par déplacer P vers (2,4). À toi de jouer !</p>
+<p>Je vais ensuite envoyer :</p>
+<p>DÉPLACER: P, (2,4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : Votre message contient plus d'une commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 3 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: P, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┌'.</p>
+<p>Vous avez collectivement accumulé 4 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┌'.</p>
+<p>Vous avez collectivement accumulé 4 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p><code>DÉPLACER: P, (3,4)</code> <em>(Vérification : (3,4) est vide sur ma grille, car S est en (1,4) et le reste de la ligne 4 est libre sauf les bords.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p><code>DÉPLACER: P, (3,4)</code> <em>(Vérification : (3,4) est vide sur ma grille, car S est en (1,4) et le reste de la ligne 4 est libre sauf les bords.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '
+ <em>(Vérification : (3,4) est vide sur ma grille, car S est en (1,4) et le reste de la ligne 4 est libre sauf les bords.)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 5 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: P, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (3,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 6 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : (3,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 6 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p><code>DIRE: Je vais déplacer P vers (1,3) car (3,4) est bloqué. Confirme si c'est libre pour toi aussi ?</code> <em>(Cette case est vide sur ma grille, et je vérifie avec l'autre joueur avant de tenter le déplacement.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p><code>DIRE: Je vais déplacer P vers (1,3) car (3,4) est bloqué. Confirme si c'est libre pour toi aussi ?</code> <em>(Cette case est vide sur ma grille, et je vérifie avec l'autre joueur avant de tenter le déplacement.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '
+ <em>(Cette case est vide sur ma grille, et je vérifie avec l'autre joueur avant de tenter le déplacement.)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 7 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: Je déplace P vers (1,3). OK pour toi ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: Je déplace P vers (1,3). OK pour toi ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 2 sur un maximum de 28.
+Vous avez collectivement accumulé 7 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"Je déplace P vers (1,3). OK pour toi ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>DIRE: Attends ! (1,3) est occupé par 'S' sur mon plateau. Proposons plutôt P(2,4) pour éviter les conflits. D'accord ?
+</code></pre>
+<p><strong>Explication</strong> :
+- J'alerte l'autre joueur que <code>(1,3)</code> est déjà occupé sur mon plateau (par <code>S</code>).
+- Je propose une alternative (<code>P(2,4)</code>), cohérente avec la cible commune que nous avions évoquée précédemment.
+- J'attends sa confirmation avant de bouger <code>P</code> pour éviter une nouvelle pénalité.</p>
+<p><em>(Si l'autre joueur accepte, je pourrai ensuite déplacer <code>P</code> vers <code>(2,4)</code> avec <code>DÉPLACER: P, (2,4)</code>.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>DIRE: Attends ! (1,3) est occupé par 'S' sur mon plateau. Proposons plutôt P(2,4) pour éviter les conflits. D'accord ?
+</code></pre>
+<p><strong>Explication</strong> :
+- J'alerte l'autre joueur que <code>(1,3)</code> est déjà occupé sur mon plateau (par <code>S</code>).
+- Je propose une alternative (<code>P(2,4)</code>), cohérente avec la cible commune que nous avions évoquée précédemment.
+- J'attends sa confirmation avant de bouger <code>P</code> pour éviter une nouvelle pénalité.</p>
+<p><em>(Si l'autre joueur accepte, je pourrai ensuite déplacer <code>P</code> vers <code>(2,4)</code> avec <code>DÉPLACER: P, (2,4)</code>.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: DIRE: Attends ! (1,3) est occupé par 'S' sur mon plateau. Proposons plutôt P(2,4) pour éviter les conflits. D'accord ?</p>
+<p><strong>Explication</strong> :
+- J'alerte l'autre joueur que (1,3) est déjà occupé sur mon plateau (par S).
+- Je propose une alternative (P(2,4)), cohérente avec la cible commune que nous avions évoquée précédemment.
+- J'attends sa confirmation avant de bouger P pour éviter une nouvelle pénalité.</p>
+<p><em>(Si l'autre joueur accepte, je pourrai ensuite déplacer P vers (2,4) avec DÉPLACER: P, (2,4).)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : Votre message contient plus d'une commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 8 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: (1,3) est occupé par S chez moi. P(2,4) comme cible pour P ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: (1,3) est occupé par S chez moi. P(2,4) comme cible pour P ?</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 2 sur un maximum de 28.
+Vous avez collectivement accumulé 8 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"(1,3) est occupé par S chez moi. P(2,4) comme cible pour P ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><pre><code>DÉPLACER: P, (2,3)
+</code></pre>
+<p><em>(Vérification : (2,3) est vide sur ma grille, et c'est une case adjacente à la ligne 4 pour faciliter l'alignement futur.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>DÉPLACER: P, (2,3)
+</code></pre>
+<p><em>(Vérification : (2,3) est vide sur ma grille, et c'est une case adjacente à la ligne 4 pour faciliter l'alignement futur.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><em>(Vérification : (2,3) est vide sur ma grille, et c'est une case adjacente à la ligne 4 pour faciliter l'alignement futur.)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 9 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DÉPLACER: P, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (2,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (2, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 3 sur un maximum de 28.
+Vous avez collectivement accumulé 9 pénalités sur 16.
+L'autre joueur a déplacé un objet sur sa grille.</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>DÉPLACER: P, (2, 4)
+</code></pre>
+<p><strong>Explication</strong> :
+- Je déplace <code>P</code> vers <code>(2,4)</code> comme convenu précédemment (cible commune sur la ligne 4).
+- Cette case est vide sur mon plateau (vérification visuelle : ligne 4, colonne 2 = <code>◌</code>).
+- J'attends la confirmation de l'autre joueur pour synchroniser les prochains déplacements.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>DÉPLACER: P, (2, 4)
+</code></pre>
+<p><strong>Explication</strong> :
+- Je déplace <code>P</code> vers <code>(2,4)</code> comme convenu précédemment (cible commune sur la ligne 4).
+- Cette case est vide sur mon plateau (vérification visuelle : ligne 4, colonne 2 = <code>◌</code>).
+- J'attends la confirmation de l'autre joueur pour synchroniser les prochains déplacements.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><strong>Explication</strong> :
+- Je déplace P vers (2,4) comme convenu précédemment (cible commune sur la ligne 4).
+- Cette case est vide sur mon plateau (vérification visuelle : ligne 4, colonne 2 = ◌).
+- J'attends la confirmation de l'autre joueur pour synchroniser les prochains déplacements.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 10 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: P, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┌'.</p>
+<p>Vous avez collectivement accumulé 11 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (2,4) n'est pas vide, mais contient '┌'.</p>
+<p>Vous avez collectivement accumulé 11 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>DIRE: Erreur : (2,4) est bloqué par un cadre. Proposons P(3,4) à la place ?
+</code></pre>
+<p><em>(Je vérifie visuellement la grille : en (3,4), il y a bien un '◌' vide. Cette case est libre et alignée sur la ligne 4 comme cible commune.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>DIRE: Erreur : (2,4) est bloqué par un cadre. Proposons P(3,4) à la place ?
+</code></pre>
+<p><em>(Je vérifie visuellement la grille : en (3,4), il y a bien un '◌' vide. Cette case est libre et alignée sur la ligne 4 comme cible commune.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><em>(Je vérifie visuellement la grille : en (3,4), il y a bien un '◌' vide. Cette case est libre et alignée sur la ligne 4 comme cible commune.)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 12 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: P(3,4) libre chez moi - OK ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: P(3,4) libre chez moi - OK ?</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Déplacement de 'P' vers (2,3) réussi. Votre grille mise à jour ressemble à ceci :</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌O│◌M║ 1
+║◌◌T◌├──╢ 2
+║◌P◌◌│◌◌║ 3
+║S┌──┼──╢ 4
+║◌│◌A│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌◌│◌│D◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Vous jouez actuellement le tour 3 sur un maximum de 28.
+Vous avez collectivement accumulé 12 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"P(3,4) libre chez moi - OK ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>DIRE: (3,4) est bloqué par '┌' chez moi. Je déplace M vers (4,3) pour libérer (4,4). OK ?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: (3,4) est bloqué par '┌' chez moi. Je déplace M vers (4,3) pour libérer (4,4). OK ?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 4 sur un maximum de 28.
+Vous avez collectivement accumulé 12 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"(3,4) est bloqué par '┌' chez moi. Je déplace M vers (4,3) pour libérer (4,4). OK ?"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>DÉPLACER: P, (3,4)
+</code></pre>
+<p><em>(Explication :</em>
+- <em>Sur mon plateau, (3,4) est bien vide ('◌')</em>
+- <em>Je valide le déplacement de P vers cette case pour avancer vers la cible ligne 4</em>
+- <em>Si l'autre joueur a besoin de libérer (4,4), je pourrai ensuite déplacer M vers (4,4) quand ce sera possible)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>DÉPLACER: P, (3,4)
+</code></pre>
+<p><em>(Explication :</em>
+- <em>Sur mon plateau, (3,4) est bien vide ('◌')</em>
+- <em>Je valide le déplacement de P vers cette case pour avancer vers la cible ligne 4</em>
+- <em>Si l'autre joueur a besoin de libérer (4,4), je pourrai ensuite déplacer M vers (4,4) quand ce sera possible)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><em>(Explication :</em>
+- <em>Sur mon plateau, (3,4) est bien vide ('◌')</em>
+- <em>Je valide le déplacement de P vers cette case pour avancer vers la cible ligne 4</em>
+- <em>Si l'autre joueur a besoin de libérer (4,4), je pourrai ensuite déplacer M vers (4,4) quand ce sera possible)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 13 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DÉPLACER: P, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DÉPLACER: P, (3,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Pénalité : (3,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 14 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : (3,4) n'est pas vide, mais contient '─'.</p>
+<p>Vous avez collectivement accumulé 14 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>DIRE: (3,4) bloqué par un trait horizontal. Essayons P(5,4) ?
+</code></pre>
+<p><em>(Vérification visuelle : (5,4) contient bien un '◌' vide sur mon plateau)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>DIRE: (3,4) bloqué par un trait horizontal. Essayons P(5,4) ?
+</code></pre>
+<p><em>(Vérification visuelle : (5,4) contient bien un '◌' vide sur mon plateau)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><em>(Vérification visuelle : (5,4) contient bien un '◌' vide sur mon plateau)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 15 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>DIRE: P(5,4) libre chez moi</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>DIRE: P(5,4) libre chez moi</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Votre message a été transmis à l'autre joueur.</p>
+<p>Vous jouez actuellement le tour 4 sur un maximum de 28.
+Vous avez collectivement accumulé 15 pénalités sur 16.
+L'autre joueur a envoyé ce message :</p>
+<p>"P(5,4) libre chez moi"</p>
+<p>Quelle est votre prochaine commande ?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p><code>DÉPLACER: P, (5,4)</code> <em>(Vérification : (5,4) est vide sur ma grille, et cela rapproche P de la ligne 4 cible.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p><code>DÉPLACER: P, (5,4)</code> <em>(Vérification : (5,4) est vide sur ma grille, et cela rapproche P de la ligne 4 cible.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '
+ <em>(Vérification : (5,4) est vide sur ma grille, et cela rapproche P de la ligne 4 cible.)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Pénalité : Votre message ne doit rien contenir après la commande !</p>
+<p>Assurez-vous que votre réponse ne contienne que <code>DIRE: &lt;MESSAGE&gt;</code> ou <code>DÉPLACER: &lt;OBJET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, et rien d'autre !</p>
+<p>Vous avez collectivement accumulé 16 pénalités sur 16.
+Veuillez réessayer !</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p><code>DÉPLACER: M, (4,3)</code> <em>(Déplacement prioritaire pour libérer la ligne 4, en évitant une 17ème pénalité fatale.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p><code>DÉPLACER: M, (4,3)</code> <em>(Déplacement prioritaire pour libérer la ligne 4, en évitant une 17ème pénalité fatale.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '
+ <em>(Déplacement prioritaire pour libérer la ligne 4, en évitant une 17ème pénalité fatale.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔════╤══╗
+║◌◌◌O│PM║ 1
+║◌◌T◌├──╢ 2
+║◌◌◌◌│◌◌║ 3
+║S┌──┼──╢ 4
+║◌│◌A│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌◌│◌│D◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔════╤══╗
+║◌◌◌◌│O◌║ 1
+║P◌M◌├──╢ 2
+║◌S◌◌│T◌║ 3
+║◌┌──┼──╢ 4
+║A│◌◌│◌◌║ 5
+╟─┴┬─┤◌D║ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔════╤══╗
+║◌◌◌O│◌M║ 1
+║◌◌T◌├──╢ 2
+║◌P◌◌│◌◌║ 3
+║S┌──┼──╢ 4
+║◌│◌A│◌◌║ 5
+╟─┴┬─┤◌◌║ 6
+║◌◌│◌│D◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔════╤══╗
+║◌◌◌◌│O◌║ 1
+║P◌M◌├──╢ 2
+║◌S◌◌│T◌║ 3
+║◌┌──┼──╢ 4
+║A│◌◌│◌◌║ 5
+╟─┴┬─┤◌D║ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 0.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 16.53</li>
+<li>Init Distance Sum: 20.21</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 17.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 4.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

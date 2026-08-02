@@ -1,0 +1,913 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_3obj_sl', episode 4 with glm-5.2.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jaz sem vaš vodja igre, vi pa igrate skupinsko igro z naslednjo mrežo kot igralno ploščo:</p>
+<pre><code> 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌◌└─┼──╢ 2
+║◌◌◌◌│P◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘L║ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Na zgornjem robu so prikazane koordinate x, ki naraščajo proti desni, na desnem robu pa koordinate y, ki naraščajo navzdol.</li>
+<li>Na mrežo so naključno postavljeni naslednji predmeti: 'C', 'L', 'P'.</li>
+</ul>
+<p>Drugi igralec vidi različico igralne plošče, na kateri so predmeti postavljeni na različna naključna mesta. Vi ne morete videti plošče drugega igralca, on pa ne more videti vaše.</p>
+<p><strong>Cilj:</strong></p>
+<p>Oba igralca morata premikati predmete na svojem ozadju tako, da se enaki predmeti znajdejo na istih koordinatah. Z drugim igralcem se morate dogovoriti o skupni ciljni konfiguraciji.</p>
+<p><strong>Pravila:</strong></p>
+<ul>
+<li>V vsakem krogu lahko pošljete natanko enega od naslednjih dveh ukazov:</li>
+<li><code>RECI: &lt;SPOROČILO&gt;</code>: za pošiljanje sporočila (vse do naslednjega preloma vrstice) drugemu igralcu. Posredoval ga bom vašemu partnerju.</li>
+<li><code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: za premik predmeta na novo mesto, pri čemer je <code>&lt;X&gt;</code> stolpec, <code>&lt;Y&gt;</code> pa vrstica. Obvestil vas bom, ali je bila vaša premestitev uspešna ali ne.</li>
+<li>Če se ne držite formata ali pošljete več ukazov hkrati, vas moram kaznovati.</li>
+<li>Če oba igralca zbereta več kot 8 kazni, oba izgubita igro.</li>
+<li>Pomembno je, da se z drugim igralcem pogovarjate o vašem ciljnem stanju! Svojo strategijo lahko drugemu igralcu posredujete <em>samo</em> z uporabo ukaza <code>RECI: &lt;SPOROČILO&gt;</code>!</li>
+</ul>
+<p><strong>Premikanje predmetov</strong></p>
+<ul>
+<li>Predmete lahko premikate le v celice znotraj meja mreže. Ciljna celica mora biti prazna, tj. vsebovati mora samo simbol '◌'.</li>
+<li>Če poskušate premakniti predmet na mesto, ki ni prazno, ali ga poskušate premakniti zunaj mreže, vas moram kaznovati. Dobili boste še en poskus.</li>
+<li>Pred premikom dvakrat preverite, ali je ciljno mesto prazno in v njem ni nobene črke, okvirja ali črte!</li>
+</ul>
+<p><strong>Konec igre</strong></p>
+<p>Če menite, da ste dosegli cilj in poravnali vse predmete, lahko drugega igralca pozovete, naj konča igro, tako da mu pošljete <code>RECI: končano?</code>. Če vas drugi igralec prosi, da končate igro, vi pa mu odgovorite z <code>RECI: končano!</code>, se igra konča.</p>
+<p>Oba igralca zmagata, če se igra konča v 12 krogih, pri čemer je en krog definiran tako, da dva igralca pošljeta vsak po en veljaven ukaz.</p>
+<p><strong>Točkovanje:</strong></p>
+<p>Bližje kot so enaki predmeti na obeh igralnih ploščah, več točk dobite. Kazni zmanjšajo število točk. Ali lahko premagate rekord?</p>
+<p>Pošljite sporočilo drugemu igralcu, da začnete igro!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Živjo! Moji predmeti so na: C(3,7), L(7,6), P(6,3). Predlagam cilj: C(3,1), L(5,1), P(6,2). Kaj praviš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Živjo! Moji predmeti so na: C(3,7), L(7,6), P(6,3). Predlagam cilj: C(3,1), L(5,1), P(6,2). Kaj praviš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jaz sem vaš vodja igre, vi pa igrate skupinsko igro z naslednjo mrežo kot igralno ploščo:</p>
+<pre><code> 1234567
+╔══╤═╤══╗
+║◌P│◌│◌◌║ 1
+║◌L└─┼──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘◌║ 6
+║◌◌│◌│◌C║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Na zgornjem robu so prikazane koordinate x, ki naraščajo proti desni, na desnem robu pa koordinate y, ki naraščajo navzdol.</li>
+<li>Na mrežo so naključno postavljeni naslednji predmeti: 'C', 'L', 'P'.</li>
+</ul>
+<p>Drugi igralec vidi različico igralne plošče, na kateri so predmeti postavljeni na različna naključna mesta. Vi ne morete videti plošče drugega igralca, on pa ne more videti vaše.</p>
+<p><strong>Cilj:</strong></p>
+<p>Oba igralca morata premikati predmete na svojem ozadju tako, da se enaki predmeti znajdejo na istih koordinatah. Z drugim igralcem se morate dogovoriti o skupni ciljni konfiguraciji.</p>
+<p><strong>Pravila:</strong></p>
+<ul>
+<li>V vsakem krogu lahko pošljete natanko enega od naslednjih dveh ukazov:</li>
+<li><code>RECI: &lt;SPOROČILO&gt;</code>: za pošiljanje sporočila (vse do naslednjega preloma vrstice) drugemu igralcu. Posredoval ga bom vašemu partnerju.</li>
+<li><code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: za premik predmeta na novo mesto, pri čemer je <code>&lt;X&gt;</code> stolpec, <code>&lt;Y&gt;</code> pa vrstica. Obvestil vas bom, ali je bila vaša premestitev uspešna ali ne.</li>
+<li>Če se ne držite formata ali pošljete več ukazov hkrati, vas moram kaznovati.</li>
+<li>Če oba igralca zbereta več kot 8 kazni, oba izgubita igro.</li>
+<li>Pomembno je, da se z drugim igralcem pogovarjate o vašem ciljnem stanju! Svojo strategijo lahko drugemu igralcu posredujete <em>samo</em> z uporabo ukaza <code>RECI: &lt;SPOROČILO&gt;</code>!</li>
+</ul>
+<p><strong>Premikanje predmetov</strong></p>
+<ul>
+<li>Predmete lahko premikate le v celice znotraj meja mreže. Ciljna celica mora biti prazna, tj. vsebovati mora samo simbol '◌'.</li>
+<li>Če poskušate premakniti predmet na mesto, ki ni prazno, ali ga poskušate premakniti zunaj mreže, vas moram kaznovati. Dobili boste še en poskus.</li>
+<li>Pred premikom dvakrat preverite, ali je ciljno mesto prazno in v njem ni nobene črke, okvirja ali črte!</li>
+</ul>
+<p><strong>Konec igre</strong></p>
+<p>Če menite, da ste dosegli cilj in poravnali vse predmete, lahko drugega igralca pozovete, naj konča igro, tako da mu pošljete <code>RECI: končano?</code>. Če vas drugi igralec prosi, da končate igro, vi pa mu odgovorite z <code>RECI: končano!</code>, se igra konča.</p>
+<p>Oba igralca zmagata, če se igra konča v 12 krogih, pri čemer je en krog definiran tako, da dva igralca pošljeta vsak po en veljaven ukaz.</p>
+<p><strong>Točkovanje:</strong></p>
+<p>Bližje kot so enaki predmeti na obeh igralnih ploščah, več točk dobite. Kazni zmanjšajo število točk. Ali lahko premagate rekord?</p>
+<p>Drugi igralec je začel igro s tem sporočilom:</p>
+<p>"Živjo! Moji predmeti so na: C(3,7), L(7,6), P(6,3). Predlagam cilj: C(3,1), L(5,1), P(6,2). Kaj praviš?"</p>
+<p>Kakšen je vaš prvi ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Živjo! Moji predmeti so na: C(7,7), L(2,2), P(2,1). Tvoj predlog (C(3,1), L(5,1), P(6,2)) mi ustreza in ga sprejmem. L(5,1) imam prazno, P(6,2) je zasedeno, ampak lahko takoj premakneš P stran. Prosim, najprej premakni L na (5,1) in P na (6,2), nato bom premaknil jaz.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Živjo! Moji predmeti so na: C(7,7), L(2,2), P(2,1). Tvoj predlog (C(3,1), L(5,1), P(6,2)) mi ustreza in ga sprejmem. L(5,1) imam prazno, P(6,2) je zasedeno, ampak lahko takoj premakneš P stran. Prosim, najprej premakni L na (5,1) in P na (6,2), nato bom premaknil jaz.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 1 od največ 12.
+Skupaj ste zbrali 0 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Živjo! Moji predmeti so na: C(7,7), L(2,2), P(2,1). Tvoj predlog (C(3,1), L(5,1), P(6,2)) mi ustreza in ga sprejmem. L(5,1) imam prazno, P(6,2) je zasedeno, ampak lahko takoj premakneš P stran. Prosim, najprej premakni L na (5,1) in P na (6,2), nato bom premaknil jaz."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Super! Najprej bom premaknil P na (6,2). Kmalu bo P stran od (6,3).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Super! Najprej bom premaknil P na (6,2). Kmalu bo P stran od (6,3).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 2 od največ 12.
+Skupaj ste zbrali 0 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Super! Najprej bom premaknil P na (6,2). Kmalu bo P stran od (6,3)."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>PREMAKNI SE: L, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: L, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazen: (5,1) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 1 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: (5,1) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 1 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Ups, (5,1) ni veljavno. Naj premakneva C na (3,1), L na (3,6), P na (3,2). Prosim, premakni svoj P na (3,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Ups, (5,1) ni veljavno. Naj premakneva C na (3,1), L na (3,6), P na (3,2). Prosim, premakni svoj P na (3,2).</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 2 od največ 12.
+Skupaj ste zbrali 1 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Ups, (5,1) ni veljavno. Naj premakneva C na (3,1), L na (3,6), P na (3,2). Prosim, premakni svoj P na (3,2)."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>PREMAKNI SE: P, (3,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: P, (3,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazen: (3,2) ni prazen, vendar vsebuje '└'.</p>
+<p>Skupaj ste zbrali 2 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kazen: (3,2) ni prazen, vendar vsebuje '└'.</p>
+<p>Skupaj ste zbrali 2 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: (3,2) ni prazno (vsebuje └). Potrebujeva nov cilj za P. Kaj pa P na (5,2)? Tudi preveri, ali sta (3,1) in (3,6) pri tebi prazni.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: (3,2) ni prazno (vsebuje └). Potrebujeva nov cilj za P. Kaj pa P na (5,2)? Tudi preveri, ali sta (3,1) in (3,6) pri tebi prazni.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 3 od največ 12.
+Skupaj ste zbrali 2 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"(3,2) ni prazno (vsebuje └). Potrebujeva nov cilj za P. Kaj pa P na (5,2)? Tudi preveri, ali sta (3,1) in (3,6) pri tebi prazni."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: (3,1) je prazno, (3,6) pa ne. Nov predlog: C(3,1), L(5,1), P(5,6). Prosim, premakni C na (3,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: (3,1) je prazno, (3,6) pa ne. Nov predlog: C(3,1), L(5,1), P(5,6). Prosim, premakni C na (3,1).</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 3 od največ 12.
+Skupaj ste zbrali 2 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"(3,1) je prazno, (3,6) pa ne. Nov predlog: C(3,1), L(5,1), P(5,6). Prosim, premakni C na (3,1)."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>PREMAKNI SE: C, (3,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: C, (3,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazen: (3,1) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 3 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kazen: (3,1) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 3 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: (3,1) pri meni ni prazno (vsebuje │). Zdi se, da imava težave s celicami, ki vsebujejo črte. Povej mi, katere celice so pri tebi prazne (vsebujejo samo ◌), pa bom preveril, ali so pri meni tudi prazne.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: (3,1) pri meni ni prazno (vsebuje │). Zdi se, da imava težave s celicami, ki vsebujejo črte. Povej mi, katere celice so pri tebi prazne (vsebujejo samo ◌), pa bom preveril, ali so pri meni tudi prazne.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 4 od največ 12.
+Skupaj ste zbrali 3 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"(3,1) pri meni ni prazno (vsebuje │). Zdi se, da imava težave s celicami, ki vsebujejo črte. Povej mi, katere celice so pri tebi prazne (vsebujejo samo ◌), pa bom preveril, ali so pri meni tudi prazne."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Prazne celice (sam ◌) pri meni so: (3,1), (3,3), (4,3), (3,5), (2,5), (4,5), (3,6), (1,6), (5,6), (6,6), (1,7), (2,7), (3,7), (4,7), (5,7), (6,7). Pošlji mi svoje prazne in najdimo skupne.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Prazne celice (sam ◌) pri meni so: (3,1), (3,3), (4,3), (3,5), (2,5), (4,5), (3,6), (1,6), (5,6), (6,6), (1,7), (2,7), (3,7), (4,7), (5,7), (6,7). Pošlji mi svoje prazne in najdimo skupne.</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 4 od največ 12.
+Skupaj ste zbrali 3 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Prazne celice (sam ◌) pri meni so: (3,1), (3,3), (4,3), (3,5), (2,5), (4,5), (3,6), (1,6), (5,6), (6,6), (1,7), (2,7), (3,7), (4,7), (5,7), (6,7). Pošlji mi svoje prazne in najdimo skupne."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Moje prazne celice (sam ◌) so: (1,1), (2,1), (3,1), (4,1), (5,1), (6,1), (7,1), (1,2), (2,2), (3,2), (4,2), (5,2), (7,2), (1,3), (2,3), (3,3), (4,3), (5,3), (1,4), (3,4), (5,4), (7,4), (2,5), (4,5), (6,5), (1,6), (3,6), (4,6), (5,6), (6,6), (1,7), (2,7), (4,7), (5,7), (6,7). Skupne prazne: (3,1), (3,3), (4,3), (2,5), (4,5), (3,6), (5,6), (6,6), (1,7), (2,7), (4,7), (5,7), (6,7). Predlagam: C na (3,1), L na (5,6), P na (3,3). Sprejmeš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Moje prazne celice (sam ◌) so: (1,1), (2,1), (3,1), (4,1), (5,1), (6,1), (7,1), (1,2), (2,2), (3,2), (4,2), (5,2), (7,2), (1,3), (2,3), (3,3), (4,3), (5,3), (1,4), (3,4), (5,4), (7,4), (2,5), (4,5), (6,5), (1,6), (3,6), (4,6), (5,6), (6,6), (1,7), (2,7), (4,7), (5,7), (6,7). Skupne prazne: (3,1), (3,3), (4,3), (2,5), (4,5), (3,6), (5,6), (6,6), (1,7), (2,7), (4,7), (5,7), (6,7). Predlagam: C na (3,1), L na (5,6), P na (3,3). Sprejmeš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 5 od največ 12.
+Skupaj ste zbrali 3 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Moje prazne celice (sam ◌) so: (1,1), (2,1), (3,1), (4,1), (5,1), (6,1), (7,1), (1,2), (2,2), (3,2), (4,2), (5,2), (7,2), (1,3), (2,3), (3,3), (4,3), (5,3), (1,4), (3,4), (5,4), (7,4), (2,5), (4,5), (6,5), (1,6), (3,6), (4,6), (5,6), (6,6), (1,7), (2,7), (4,7), (5,7), (6,7). Skupne prazne: (3,1), (3,3), (4,3), (2,5), (4,5), (3,6), (5,6), (6,6), (1,7), (2,7), (4,7), (5,7), (6,7). Predlagam: C na (3,1), L na (5,6), P na (3,3). Sprejmeš?"</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Da, sprejmem! C(3,1), L(5,6), P(3,3). Zacni z premikom svojega P na (3,3).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Da, sprejmem! C(3,1), L(5,6), P(3,3). Zacni z premikom svojega P na (3,3).</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 5 od največ 12.
+Skupaj ste zbrali 3 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Da, sprejmem! C(3,1), L(5,6), P(3,3). Zacni z premikom svojega P na (3,3)."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>PREMAKNI SE: P, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: P, (3,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (3, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 6 od največ 12.
+Skupaj ste zbrali 3 od 8 kazni.
+Drugi igralec je premaknil predmet na svoji mreži.</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>PREMAKNI SE: C, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: C, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazen: (3,1) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 4 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: (3,1) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 4 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Ne morem premakniti C na (3,1), ker pri meni ni prazno (vsebuje '│'). Tudi pri meni (5,6) verjetno ni prazno. Prosím, preveri (3,3), (4,3), (5,6), (1,7), (5,7) pri tebi. Predlagam nove cilje: P(3,3), L(1,7), C(5,7). Sprejmeš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Ne morem premakniti C na (3,1), ker pri meni ni prazno (vsebuje '│'). Tudi pri meni (5,6) verjetno ni prazno. Prosím, preveri (3,3), (4,3), (5,6), (1,7), (5,7) pri tebi. Predlagam nove cilje: P(3,3), L(1,7), C(5,7). Sprejmeš?</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Uspešno premaknjen 'P' v (3,3). Vaša posodobljena mreža je videti takole:</p>
+<pre><code> 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌◌└─┼──╢ 2
+║◌◌P◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘L║ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate krog 6 od največ 12.
+Skupaj ste zbrali 4 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Ne morem premakniti C na (3,1), ker pri meni ni prazno (vsebuje '│'). Tudi pri meni (5,6) verjetno ni prazno. Prosím, preveri (3,3), (4,3), (5,6), (1,7), (5,7) pri tebi. Predlagam nove cilje: P(3,3), L(1,7), C(5,7). Sprejmeš?"</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: (3,3) je pri meni prazno, (4,3) tudi, (5,6) NI prazno (vsebuje ◌? Pošlji mi natančen seznam praznih celic (sam ◌). Za začetek preveri (1,1), (2,1), (4,1), (5,1), (6,1), (7,1), (1,2), (4,2), (5,2), (7,2), (1,3), (2,3), (5,3), (1,4), (3,4), (5,4), (7,4), (6,5), (1,6), (3,6), (4,6), (6,6), (4,7), (6,7), katera od teh je pri tebi prazna?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: (3,3) je pri meni prazno, (4,3) tudi, (5,6) NI prazno (vsebuje ◌? Pošlji mi natančen seznam praznih celic (sam ◌). Za začetek preveri (1,1), (2,1), (4,1), (5,1), (6,1), (7,1), (1,2), (4,2), (5,2), (7,2), (1,3), (2,3), (5,3), (1,4), (3,4), (5,4), (7,4), (6,5), (1,6), (3,6), (4,6), (6,6), (4,7), (6,7), katera od teh je pri tebi prazna?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 7 od največ 12.
+Skupaj ste zbrali 4 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"(3,3) je pri meni prazno, (4,3) tudi, (5,6) NI prazno (vsebuje ◌? Pošlji mi natančen seznam praznih celic (sam ◌). Za začetek preveri (1,1), (2,1), (4,1), (5,1), (6,1), (7,1), (1,2), (4,2), (5,2), (7,2), (1,3), (2,3), (5,3), (1,4), (3,4), (5,4), (7,4), (6,5), (1,6), (3,6), (4,6), (6,6), (4,7), (6,7), katera od teh je pri tebi prazna?"</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Od tvojega seznama so pri meni prazne samo: (4,1), (5,1), (6,1), (1,2), (4,2), (5,2), (1,3), (2,3), (5,3), (3,4), (5,4), (3,6), (4,6), (6,6), (4,7), (6,7). Predlagam: P(1,2), L(5,3), C(4,7). Sprejmeš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Od tvojega seznama so pri meni prazne samo: (4,1), (5,1), (6,1), (1,2), (4,2), (5,2), (1,3), (2,3), (5,3), (3,4), (5,4), (3,6), (4,6), (6,6), (4,7), (6,7). Predlagam: P(1,2), L(5,3), C(4,7). Sprejmeš?</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 7 od največ 12.
+Skupaj ste zbrali 4 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Od tvojega seznama so pri meni prazne samo: (4,1), (5,1), (6,1), (1,2), (4,2), (5,2), (1,3), (2,3), (5,3), (3,4), (5,4), (3,6), (4,6), (6,6), (4,7), (6,7). Predlagam: P(1,2), L(5,3), C(4,7). Sprejmeš?"</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Sprejmem! P(1,2), L(5,3), C(4,7). Najprej bom premaknil L na (5,3).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Sprejmem! P(1,2), L(5,3), C(4,7). Najprej bom premaknil L na (5,3).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 8 od največ 12.
+Skupaj ste zbrali 4 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Sprejmem! P(1,2), L(5,3), C(4,7). Najprej bom premaknil L na (5,3)."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>PREMAKNI SE: P, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: P, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (1, 2)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 8 od največ 12.
+Skupaj ste zbrali 4 od 8 kazni.
+Drugi igralec je premaknil predmet na svoji mreži.</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>PREMAKNI SE: L, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: L, (5,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazen: (5,3) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 5 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kazen: (5,3) ni prazen, vendar vsebuje '│'.</p>
+<p>Skupaj ste zbrali 5 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: (5,3) pri meni ni prazno (vsebuje │). Razumem, da je pri tebi prazno, pri meni pa ne. Potrebujeva drugačne cilje. Preveri, ali so pri tebi prazne: (4,2), (6,6), (4,7)? Vse tri so pri meni prazne.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: (5,3) pri meni ni prazno (vsebuje │). Razumem, da je pri tebi prazno, pri meni pa ne. Potrebujeva drugačne cilje. Preveri, ali so pri tebi prazne: (4,2), (6,6), (4,7)? Vse tri so pri meni prazne.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Uspešno premaknjen 'P' v (1,2). Vaša posodobljena mreža je videti takole:</p>
+<pre><code> 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║PL└─┼──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘◌║ 6
+║◌◌│◌│◌C║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate krog 9 od največ 12.
+Skupaj ste zbrali 5 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"(5,3) pri meni ni prazno (vsebuje │). Razumem, da je pri tebi prazno, pri meni pa ne. Potrebujeva drugačne cilje. Preveri, ali so pri tebi prazne: (4,2), (6,6), (4,7)? Vse tri so pri meni prazne."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Da, (4,2), (6,6) in (4,7) so pri meni prazne! Predlagam: P ostane na (1,2), L na (4,2), C na (4,7). Sprejmeš? Prosim, premakni L na (4,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Da, (4,2), (6,6) in (4,7) so pri meni prazne! Predlagam: P ostane na (1,2), L na (4,2), C na (4,7). Sprejmeš? Prosim, premakni L na (4,2).</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 9 od največ 12.
+Skupaj ste zbrali 5 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Da, (4,2), (6,6) in (4,7) so pri meni prazne! Predlagam: P ostane na (1,2), L na (4,2), C na (4,7). Sprejmeš? Prosim, premakni L na (4,2)."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>PREMAKNI SE: L, (4,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: L, (4,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazen: (4,2) ni prazen, vendar vsebuje '─'.</p>
+<p>Skupaj ste zbrali 6 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kazen: (4,2) ni prazen, vendar vsebuje '─'.</p>
+<p>Skupaj ste zbrali 6 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Napaka! (4,2) pri meni ni prazno (vsebuje ─). Zdi se, da najina mreža nista enaki. Potrebujeva resnično skupne prazne celice. Od mojega seznama preveri: (6,1), (7,1), (5,2), (7,2), (1,3), (2,3), (1,4), (5,4), (7,4), (6,5), (1,6), (3,6), (4,6), (6,6), (6,7). Katere so pri tebi prazne?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Napaka! (4,2) pri meni ni prazno (vsebuje ─). Zdi se, da najina mreža nista enaki. Potrebujeva resnično skupne prazne celice. Od mojega seznama preveri: (6,1), (7,1), (5,2), (7,2), (1,3), (2,3), (1,4), (5,4), (7,4), (6,5), (1,6), (3,6), (4,6), (6,6), (6,7). Katere so pri tebi prazne?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 10 od največ 12.
+Skupaj ste zbrali 6 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Napaka! (4,2) pri meni ni prazno (vsebuje ─). Zdi se, da najina mreža nista enaki. Potrebujeva resnično skupne prazne celice. Od mojega seznama preveri: (6,1), (7,1), (5,2), (7,2), (1,3), (2,3), (1,4), (5,4), (7,4), (6,5), (1,6), (3,6), (4,6), (6,6), (6,7). Katere so pri tebi prazne?"</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Prazne pri meni so: (6,1), (5,2), (1,3), (2,3), (1,4), (5,4), (1,6), (3,6), (6,6), (6,7). Predlagam: L(1,3), C(6,6), P ostan (1,2). Sprejmeš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Prazne pri meni so: (6,1), (5,2), (1,3), (2,3), (1,4), (5,4), (1,6), (3,6), (6,6), (6,7). Predlagam: L(1,3), C(6,6), P ostan (1,2). Sprejmeš?</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 10 od največ 12.
+Skupaj ste zbrali 6 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Prazne pri meni so: (6,1), (5,2), (1,3), (2,3), (1,4), (5,4), (1,6), (3,6), (6,6), (6,7). Predlagam: L(1,3), C(6,6), P ostan (1,2). Sprejmeš?"</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>PREMAKNI SE: L, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: L, (1,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (1, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 11 od največ 12.
+Skupaj ste zbrali 6 od 8 kazni.
+Drugi igralec je premaknil predmet na svoji mreži.</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Prosim, potrdi, ali si premaknil L na (1,3) in ali si prepričan, da je (6,6) prazno pri tebi. Jaz sem pripravljen premakniti C na (6,6), vendar potrebujem potrditev, ker imava še zadnji krog.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Prosim, potrdi, ali si premaknil L na (1,3) in ali si prepričan, da je (6,6) prazno pri tebi. Jaz sem pripravljen premakniti C na (6,6), vendar potrebujem potrditev, ker imava še zadnji krog.</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Uspešno premaknjen 'L' v (1,3). Vaša posodobljena mreža je videti takole:</p>
+<pre><code> 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌◌└─┼──╢ 2
+║L◌P◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘◌║ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate krog 11 od največ 12.
+Skupaj ste zbrali 6 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Prosim, potrdi, ali si premaknil L na (1,3) in ali si prepričan, da je (6,6) prazno pri tebi. Jaz sem pripravljen premakniti C na (6,6), vendar potrebujem potrditev, ker imava še zadnji krog."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Da, L je na (1,3) in (6,6) je pri meni prazno! Prosim, premakni C na (6,6). Jaz bom zdaj premaknil P na (1,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Da, L je na (1,3) in (6,6) je pri meni prazno! Prosim, premakni C na (6,6). Jaz bom zdaj premaknil P na (1,2).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše sporočilo je bilo posredovano drugemu igralcu.</p>
+<p>Trenutno igrate krog 12 od največ 12.
+Skupaj ste zbrali 6 od 8 kazni.
+Drugi igralec je poslal to sporočilo:</p>
+<p>"Da, L je na (1,3) in (6,6) je pri meni prazno! Prosim, premakni C na (6,6). Jaz bom zdaj premaknil P na (1,2)."</p>
+<p>Kakšen je vaš naslednji ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>PREMAKNI SE: C, (6, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>PREMAKNI SE: C, (6, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazen: (6,6) ni prazen, vendar vsebuje '┘'.</p>
+<p>Skupaj ste zbrali 7 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: (6,6) ni prazen, vendar vsebuje '┘'.</p>
+<p>Skupaj ste zbrali 7 od 8 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Ne morem premakniti C na (6,6) - vsebuje '┘'. Poskusi (3,6) ali (6,7).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Ne morem premakniti C na (6,6) - vsebuje '┘'. Poskusi (3,6) ali (6,7).</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of rounds reached</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌◌└─┼──╢ 2
+║◌◌◌◌│P◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘L║ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔══╤═╤══╗
+║◌P│◌│◌◌║ 1
+║◌L└─┼──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘◌║ 6
+║◌◌│◌│◌C║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║◌◌└─┼──╢ 2
+║L◌P◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘◌║ 6
+║◌◌│C│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔══╤═╤══╗
+║◌◌│◌│◌◌║ 1
+║PL└─┼──╢ 2
+║◌◌◌◌│◌◌║ 3
+║◌┌─┬┴┬─╢ 4
+╟─┤◌│◌│◌║ 5
+║◌└┬┴┬┘◌║ 6
+║◌◌│◌│◌C║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 1.00</li>
+<li>Max Shifts: 4.00</li>
+<li>Min Shifts: 2.00</li>
+<li>End Distance Sum: 6.65</li>
+<li>Init Distance Sum: 13.88</li>
+<li>Expected Distance Sum: 12.57</li>
+<li>Penalties: 7.00</li>
+<li>Max Penalties: 8.00</li>
+<li>Rounds: 12.00</li>
+<li>Max Rounds: 12.00</li>
+<li>Object Count: 3.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,880 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_7obj_lt', episode 1 with mistral-large-3-azure.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Aš esu jūsų žaidimo vedėjas, o jūs žaidžiate bendrą žaidimą, kurio žaidimo lenta yra tokia lentelė:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌O◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Viršutiniame krašte x koordinatės didėja į dešinę, o dešiniajame krašte y koordinatės didėja žemyn.</li>
+<li>Tinklelyje atsitiktine tvarka išdėstyti šie objektai: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Kitas žaidėjas mato kitą žaidimo lentos variantą, kuriame objektai išdėstyti skirtingose atsitiktinėse vietose. Jūs negalite matyti kito žaidėjo lentos, o jis negali matyti jūsų lentos.</p>
+<p><strong>Tikslas:</strong></p>
+<p>Abu žaidėjai turi perkelti objektus savo fone taip, kad vienodi objektai atsidurtų tose pačiose koordinatėse. Turite bendrauti su kitu žaidėju ir susitarti dėl bendros tikslinės konfigūracijos.</p>
+<p><strong>Taisyklės:</strong></p>
+<ul>
+<li>Kiekvieno ėjimo metu galite išsiųsti lygiai vieną iš šių dviejų komandų:</li>
+<li><code>SAKYTI: &lt;ŽINUTĖ&gt;</code>: norėdami išsiųsti žinutę (viską iki kitos eilutės pertraukos) kitam žaidėjui. Aš ją persiųsiu jūsų partneriui.</li>
+<li><code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: perkelti objektą į naują poziciją, kur <code>&lt;X&gt;</code> yra stulpelis, o <code>&lt;Y&gt;</code> yra eilutė. Aš jums pranešiu, ar jūsų perkėlimas buvo sėkmingas, ar ne.</li>
+<li>Jei nesilaikysite formato arba siųsite kelias komandas iš karto, turėsiu jus nubausti.</li>
+<li>Jei abu žaidėjai sukaups daugiau nei 16 baudų, abu pralaimi žaidimą.</li>
+<li>Labai svarbu, kad bendrautumėte su kitu žaidėju dėl savo tikslinės būsenos! Vienintelis būdas, kuriuo galite perduoti savo strategiją kitam žaidėjui, yra komanda <code>SAKYTI: &lt;ŽINUTĖ&gt;</code>!</li>
+</ul>
+<p><strong>Objektų perkėlimas</strong></p>
+<ul>
+<li>Objektus galima perkelti tik į langelius, esančius tinklelio ribose. Tikslinis langelis turi būti tuščias, t. y. jame turi būti tik simbolis '◌'.</li>
+<li>Jei bandysite perkelti objektą į vietą, kuri nėra tuščia, arba bandysite jį perkelti už tinklelio ribų, turėsiu jus nubausti. Gausite dar vieną bandymą.</li>
+<li>Prieš atlikdami perkėlimą, dukart patikrinkite, ar tikslinė vieta yra tuščia ir ar joje nėra jokios raidės, rėmelio ar linijos!</li>
+</ul>
+<p><strong>Žaidimo pabaiga</strong></p>
+<p>Jei manote, kad pasiekėte tikslą - sulygiavote visus objektus, galite paprašyti kito žaidėjo baigti žaidimą siųsdami <code>SAKYTI: baigta?</code>. Jei kitas žaidėjas paprašys jūsų baigti žaidimą, o jūs atsakysite <code>SAKYTI: baigta!</code>, žaidimas baigsis.</p>
+<p>Abu žaidėjai laimi, jei žaidimas baigiasi per 28 raundus, kur vienas raundas apibrėžiamas kaip du žaidėjai, kiekvienas išsiuntęs po vieną galiojančią komandą.</p>
+<p><strong>Taškų skaičiavimas:</strong></p>
+<p>Kuo arčiau vienodų objektų abiejose žaidimo lentose, tuo daugiau taškų gausite. Baudos mažina jūsų taškus. Ar pavyks pagerinti rekordą?</p>
+<p>Išsiųskite žinutę kitam žaidėjui, kad pradėtumėte žaidimą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Pradedu žaidimą! Siunčiu pirminę žinutę kitam žaidėjui, kad susitartume dėl strategijos:</p>
+<pre><code>SAKYTI: Sveikas! Siūlau pradėti nuo to, kad kiekvienas iš mūsų pasakytume savo objektų koordinates. Mano objektai yra šiose pozicijose:
+P: (1, 3)
+O: (5, 3)
+T: (5, 1)
+S: (7, 2)
+D: (3, 5)
+A: (3, 2)
+M: (3, 1)
+Gal galėtum pasidalinti savo objektais? Tada galėsime planuoti, kaip juos sulyginti.
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Pradedu žaidimą! Siunčiu pirminę žinutę kitam žaidėjui, kad susitartume dėl strategijos:</p>
+<pre><code>SAKYTI: Sveikas! Siūlau pradėti nuo to, kad kiekvienas iš mūsų pasakytume savo objektų koordinates. Mano objektai yra šiose pozicijose:
+P: (1, 3)
+O: (5, 3)
+T: (5, 1)
+S: (7, 2)
+D: (3, 5)
+A: (3, 2)
+M: (3, 1)
+Gal galėtum pasidalinti savo objektais? Tada galėsime planuoti, kaip juos sulyginti.
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Pradedu žaidimą! Siunčiu pirminę žinutę kitam žaidėjui, kad susitartume dėl strategijos:</p>
+<p>'
+tail: '
+P: (1, 3)
+O: (5, 3)
+T: (5, 1)
+S: (7, 2)
+D: (3, 5)
+A: (3, 2)
+M: (3, 1)
+Gal galėtum pasidalinti savo objektais? Tada galėsime planuoti, kaip juos sulyginti.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš ar po komandos!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 1 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Atsiprašau už klaidą! Bandau dar kartą:</p>
+<pre><code>SAKYTI: Sveikas! Pasidalinkime savo objektų koordinatėmis. Mano yra: P(1,3), O(5,3), T(5,1), S(7,2), D(3,5), A(3,2), M(3,1). Kokie tavo?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsiprašau už klaidą! Bandau dar kartą:</p>
+<pre><code>SAKYTI: Sveikas! Pasidalinkime savo objektų koordinatėmis. Mano yra: P(1,3), O(5,3), T(5,1), S(7,2), D(3,5), A(3,2), M(3,1). Kokie tavo?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Atsiprašau už klaidą! Bandau dar kartą:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 2 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAKYTI: Mano objektai: P(1,3), O(5,3), T(5,1), S(7,2), D(3,5), A(3,2), M(3,1). Kokie tavo?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: Mano objektai: P(1,3), O(5,3), T(5,1), S(7,2), D(3,5), A(3,2), M(3,1). Kokie tavo?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Aš esu jūsų žaidimo vedėjas, o jūs žaidžiate bendrą žaidimą, kurio žaidimo lenta yra tokia lentelė:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Viršutiniame krašte x koordinatės didėja į dešinę, o dešiniajame krašte y koordinatės didėja žemyn.</li>
+<li>Tinklelyje atsitiktine tvarka išdėstyti šie objektai: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Kitas žaidėjas mato kitą žaidimo lentos variantą, kuriame objektai išdėstyti skirtingose atsitiktinėse vietose. Jūs negalite matyti kito žaidėjo lentos, o jis negali matyti jūsų lentos.</p>
+<p><strong>Tikslas:</strong></p>
+<p>Abu žaidėjai turi perkelti objektus savo fone taip, kad vienodi objektai atsidurtų tose pačiose koordinatėse. Turite bendrauti su kitu žaidėju ir susitarti dėl bendros tikslinės konfigūracijos.</p>
+<p><strong>Taisyklės:</strong></p>
+<ul>
+<li>Kiekvieno ėjimo metu galite išsiųsti lygiai vieną iš šių dviejų komandų:</li>
+<li><code>SAKYTI: &lt;ŽINUTĖ&gt;</code>: norėdami išsiųsti žinutę (viską iki kitos eilutės pertraukos) kitam žaidėjui. Aš ją persiųsiu jūsų partneriui.</li>
+<li><code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: perkelti objektą į naują poziciją, kur <code>&lt;X&gt;</code> yra stulpelis, o <code>&lt;Y&gt;</code> yra eilutė. Aš jums pranešiu, ar jūsų perkėlimas buvo sėkmingas, ar ne.</li>
+<li>Jei nesilaikysite formato arba siųsite kelias komandas iš karto, turėsiu jus nubausti.</li>
+<li>Jei abu žaidėjai sukaups daugiau nei 16 baudų, abu pralaimi žaidimą.</li>
+<li>Labai svarbu, kad bendrautumėte su kitu žaidėju dėl savo tikslinės būsenos! Vienintelis būdas, kuriuo galite perduoti savo strategiją kitam žaidėjui, yra komanda <code>SAKYTI: &lt;ŽINUTĖ&gt;</code>!</li>
+</ul>
+<p><strong>Objektų perkėlimas</strong></p>
+<ul>
+<li>Objektus galima perkelti tik į langelius, esančius tinklelio ribose. Tikslinis langelis turi būti tuščias, t. y. jame turi būti tik simbolis '◌'.</li>
+<li>Jei bandysite perkelti objektą į vietą, kuri nėra tuščia, arba bandysite jį perkelti už tinklelio ribų, turėsiu jus nubausti. Gausite dar vieną bandymą.</li>
+<li>Prieš atlikdami perkėlimą, dukart patikrinkite, ar tikslinė vieta yra tuščia ir ar joje nėra jokios raidės, rėmelio ar linijos!</li>
+</ul>
+<p><strong>Žaidimo pabaiga</strong></p>
+<p>Jei manote, kad pasiekėte tikslą - sulygiavote visus objektus, galite paprašyti kito žaidėjo baigti žaidimą siųsdami <code>SAKYTI: baigta?</code>. Jei kitas žaidėjas paprašys jūsų baigti žaidimą, o jūs atsakysite <code>SAKYTI: baigta!</code>, žaidimas baigsis.</p>
+<p>Abu žaidėjai laimi, jei žaidimas baigiasi per 28 raundus, kur vienas raundas apibrėžiamas kaip du žaidėjai, kiekvienas išsiuntęs po vieną galiojančią komandą.</p>
+<p><strong>Taškų skaičiavimas:</strong></p>
+<p>Kuo arčiau vienodų objektų abiejose žaidimo lentose, tuo daugiau taškų gausite. Baudos mažina jūsų taškus. Ar pavyks pagerinti rekordą?</p>
+<p>Kitas žaidėjas pradėjo žaidimą išsiųsdamas šią žinutę:</p>
+<p>"Mano objektai: P(1,3), O(5,3), T(5,1), S(7,2), D(3,5), A(3,2), M(3,1). Kokie tavo?"</p>
+<p>Kokia yra jūsų pirmoji komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Atsakysiu į kito žaidėjo žinutę, kad galėtume pradėti koordinuoti objektų padėtis. Štai mano pirmoji komanda:</p>
+<pre><code>SAKYTI: Mano objektai: P(3,3), O(7,4), T(1,2), S(2,3), D(2,4), A(1,3), M(4,2). Siūlau pradėti nuo objekto 'P' ir sutarti, kad jis būtų (4,4). Ką manai?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsakysiu į kito žaidėjo žinutę, kad galėtume pradėti koordinuoti objektų padėtis. Štai mano pirmoji komanda:</p>
+<pre><code>SAKYTI: Mano objektai: P(3,3), O(7,4), T(1,2), S(2,3), D(2,4), A(1,3), M(4,2). Siūlau pradėti nuo objekto 'P' ir sutarti, kad jis būtų (4,4). Ką manai?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Atsakysiu į kito žaidėjo žinutę, kad galėtume pradėti koordinuoti objektų padėtis. Štai mano pirmoji komanda:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 3 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Atsiprašau už klaidą. Štai taisyklingai suformuota komanda:</p>
+<pre><code>SAKYTI: Mano objektai: P(3,3), O(7,4), T(1,2), S(2,3), D(2,4), A(1,3), M(4,2). Siūlau sutarti dėl 'P' pozicijos (4,4). Ar tinka?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsiprašau už klaidą. Štai taisyklingai suformuota komanda:</p>
+<pre><code>SAKYTI: Mano objektai: P(3,3), O(7,4), T(1,2), S(2,3), D(2,4), A(1,3), M(4,2). Siūlau sutarti dėl 'P' pozicijos (4,4). Ar tinka?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Atsiprašau už klaidą. Štai taisyklingai suformuota komanda:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 4 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAKYTI: P(3,3), O(7,4), T(1,2), S(2,3), D(2,4), A(1,3), M(4,2). Siūlau P -&gt; (4,4). Tinka?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: P(3,3), O(7,4), T(1,2), S(2,3), D(2,4), A(1,3), M(4,2). Siūlau P -&gt; (4,4). Tinka?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jūsų žinutė buvo perduota kitam žaidėjui.</p>
+<p>Šiuo metu žaidžiate 1 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 4 iš 16 baudų.
+Kitas žaidėjas atsiuntė šią žinutę:</p>
+<p>"P(3,3), O(7,4), T(1,2), S(2,3), D(2,4), A(1,3), M(4,2). Siūlau P -&gt; (4,4). Tinka?"</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Atsakau į pasiūlymą ir siūlau savo planą:</p>
+<pre><code>SAKYTI: Sutinku su P -&gt; (4,4). Mano P yra (1,3), tad perkelsiu jį ten. Siūlau toliau: O -&gt; (6,3), T -&gt; (6,1), S -&gt; (7,3), D -&gt; (4,5), A -&gt; (2,3), M -&gt; (5,2). Ar tinka?
+</code></pre>
+<p>Arba, jei norime pradėti judėti iš karto, galime pirmiausia perkelti P:</p>
+<pre><code>JUDĖTI: P, (4, 4)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsakau į pasiūlymą ir siūlau savo planą:</p>
+<pre><code>SAKYTI: Sutinku su P -&gt; (4,4). Mano P yra (1,3), tad perkelsiu jį ten. Siūlau toliau: O -&gt; (6,3), T -&gt; (6,1), S -&gt; (7,3), D -&gt; (4,5), A -&gt; (2,3), M -&gt; (5,2). Ar tinka?
+</code></pre>
+<p>Arba, jei norime pradėti judėti iš karto, galime pirmiausia perkelti P:</p>
+<pre><code>JUDĖTI: P, (4, 4)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: Atsakau į pasiūlymą ir siūlau savo planą:</p>
+<p>SAKYTI: Sutinku su P -&gt; (4,4). Mano P yra (1,3), tad perkelsiu jį ten. Siūlau toliau: O -&gt; (6,3), T -&gt; (6,1), S -&gt; (7,3), D -&gt; (4,5), A -&gt; (2,3), M -&gt; (5,2). Ar tinka?</p>
+<p>Arba, jei norime pradėti judėti iš karto, galime pirmiausia perkelti P:</p>
+<p>JUDĖTI: P, (4, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje yra daugiau nei viena komanda!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 5 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: P, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (4,4) nėra tuščias, bet jame yra '┌'.</p>
+<p>Jūs bendrai sukaupėte 6 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: (4,4) nėra tuščias, bet jame yra '┌'.</p>
+<p>Jūs bendrai sukaupėte 6 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Atsiprašau, klaidos dėka. Patikrinu lentą ir siūlau kitą poziciją:</p>
+<pre><code>SAKYTI: (4,4) užimta. Siūlau P -&gt; (4,3). Ar tinka? Mano (4,3) yra tuščias (◌).
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsiprašau, klaidos dėka. Patikrinu lentą ir siūlau kitą poziciją:</p>
+<pre><code>SAKYTI: (4,4) užimta. Siūlau P -&gt; (4,3). Ar tinka? Mano (4,3) yra tuščias (◌).
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Atsiprašau, klaidos dėka. Patikrinu lentą ir siūlau kitą poziciją:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 7 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SAKYTI: P -&gt; (4,3) tinka? Mano (4,3) yra tuščias.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: P -&gt; (4,3) tinka? Mano (4,3) yra tuščias.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jūsų žinutė buvo perduota kitam žaidėjui.</p>
+<p>Šiuo metu žaidžiate 2 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 7 iš 16 baudų.
+Kitas žaidėjas atsiuntė šią žinutę:</p>
+<p>"P -&gt; (4,3) tinka? Mano (4,3) yra tuščias."</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Norėdamas išvengti papildomų baudų, pirmiausia patikrinsiu, ar (4,3) yra tuščias mano lentoje. Mano lentoje (4,3) yra <code>◌</code>, tad galime perkelti <code>P</code> į (4,3).</p>
+<p>Štai mano komanda:</p>
+<pre><code>JUDĖTI: P, (4, 3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Norėdamas išvengti papildomų baudų, pirmiausia patikrinsiu, ar (4,3) yra tuščias mano lentoje. Mano lentoje (4,3) yra <code>◌</code>, tad galime perkelti <code>P</code> į (4,3).</p>
+<p>Štai mano komanda:</p>
+<pre><code>JUDĖTI: P, (4, 3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Norėdamas išvengti papildomų baudų, pirmiausia patikrinsiu, ar (4,3) yra tuščias mano lentoje. Mano lentoje (4,3) yra ◌, tad galime perkelti P į (4,3).</p>
+<p>Štai mano komanda:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 8 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>JUDĖTI: P, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (4,3) nėra tuščias, bet jame yra 'P'.</p>
+<p>Jūs bendrai sukaupėte 9 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: (4,3) nėra tuščias, bet jame yra 'P'.</p>
+<p>Jūs bendrai sukaupėte 9 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Atsiprašau už klaidą. Mano lentoje (4,3) iš tiesų jau yra <code>P</code>, todėl negaliu jo perkelti į tą pačią vietą. Reaguosiu į kito žaidėjo pasiūlymą ir pasakysiu, kad mano (4,4) yra tuščias, tad siūlau perkelti <code>P</code> į (4,4).</p>
+<pre><code>SAKYTI: Mano (4,4) tuščias. Siūlau P -&gt; (4,4). Tinka?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsiprašau už klaidą. Mano lentoje (4,3) iš tiesų jau yra <code>P</code>, todėl negaliu jo perkelti į tą pačią vietą. Reaguosiu į kito žaidėjo pasiūlymą ir pasakysiu, kad mano (4,4) yra tuščias, tad siūlau perkelti <code>P</code> į (4,4).</p>
+<pre><code>SAKYTI: Mano (4,4) tuščias. Siūlau P -&gt; (4,4). Tinka?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Atsiprašau už klaidą. Mano lentoje (4,3) iš tiesų jau yra P, todėl negaliu jo perkelti į tą pačią vietą. Reaguosiu į kito žaidėjo pasiūlymą ir pasakysiu, kad mano (4,4) yra tuščias, tad siūlau perkelti P į (4,4).</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 10 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SAKYTI: P -&gt; (4,4). Mano (4,4) tuščias. Tinka?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SAKYTI: P -&gt; (4,4). Mano (4,4) tuščias. Tinka?</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jūsų žinutė buvo perduota kitam žaidėjui.</p>
+<p>Šiuo metu žaidžiate 2 raundą iš maksimaliai 28.
+Jūs bendrai sukaupėte 10 iš 16 baudų.
+Kitas žaidėjas atsiuntė šią žinutę:</p>
+<p>"P -&gt; (4,4). Mano (4,4) tuščias. Tinka?"</p>
+<p>Kokia jūsų kita komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Patikrinu savo lentą: (4,4) yra <code>┌</code> (rėmelio dalis), bet jei kito žaidėjo (4,4) yra tuščias, reikia patikslinti. Siunčiu:</p>
+<pre><code>SAKYTI: Mano (4,4) yra rėmelio dalis, bet jei tavo tuščias, bandysiu perkelti P ten. Ar kiti objektai sutampa su mano pasiūlymais: O(6,3), T(6,1), S(7,3), D(4,5), A(2,3), M(5,2)?
+</code></pre>
+<p>Jei norime tiesiog judėti:</p>
+<pre><code>JUDĖTI: P, (4, 4)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Patikrinu savo lentą: (4,4) yra <code>┌</code> (rėmelio dalis), bet jei kito žaidėjo (4,4) yra tuščias, reikia patikslinti. Siunčiu:</p>
+<pre><code>SAKYTI: Mano (4,4) yra rėmelio dalis, bet jei tavo tuščias, bandysiu perkelti P ten. Ar kiti objektai sutampa su mano pasiūlymais: O(6,3), T(6,1), S(7,3), D(4,5), A(2,3), M(5,2)?
+</code></pre>
+<p>Jei norime tiesiog judėti:</p>
+<pre><code>JUDĖTI: P, (4, 4)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: Patikrinu savo lentą: (4,4) yra ┌ (rėmelio dalis), bet jei kito žaidėjo (4,4) yra tuščias, reikia patikslinti. Siunčiu:</p>
+<p>SAKYTI: Mano (4,4) yra rėmelio dalis, bet jei tavo tuščias, bandysiu perkelti P ten. Ar kiti objektai sutampa su mano pasiūlymais: O(6,3), T(6,1), S(7,3), D(4,5), A(2,3), M(5,2)?</p>
+<p>Jei norime tiesiog judėti:</p>
+<p>JUDĖTI: P, (4, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje yra daugiau nei viena komanda!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 11 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: P, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (4, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (4,4) nėra tuščias, bet jame yra '┌'.</p>
+<p>Jūs bendrai sukaupėte 12 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: (4,4) nėra tuščias, bet jame yra '┌'.</p>
+<p>Jūs bendrai sukaupėte 12 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Atsiprašau už klaidą. Teks rinktis kitą poziciją. Mano (4,3) yra tuščias (◌), tad bandysiu ten:</p>
+<pre><code>JUDĖTI: P, (4, 3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsiprašau už klaidą. Teks rinktis kitą poziciją. Mano (4,3) yra tuščias (◌), tad bandysiu ten:</p>
+<pre><code>JUDĖTI: P, (4, 3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Atsiprašau už klaidą. Teks rinktis kitą poziciją. Mano (4,3) yra tuščias (◌), tad bandysiu ten:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 13 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: P, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (4,3) nėra tuščias, bet jame yra 'O'.</p>
+<p>Jūs bendrai sukaupėte 14 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: (4,3) nėra tuščias, bet jame yra 'O'.</p>
+<p>Jūs bendrai sukaupėte 14 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Atsiprašau už klaidą. Patikrinsiu savo lentą dar kartą:</p>
+<p>Mano tušti langeliai yra:
+- (1,1), (2,1), (6,1) [eilutė 1]
+- (1,2), (2,2), (6,2) [eilutė 2]
+- (2,3), (6,3), (7,3) [eilutė 3]
+- (1,4), (3,4), (5,4), (6,4) [eilutė 4]
+- (1,5), (2,5), (5,5), (6,5), (7,5) [eilutė 5]
+- (1,6), (3,6), (5,6), (7,6) [eilutė 6]
+- (1,7), (3,7), (5,7), (7,7) [eilutė 7]</p>
+<p>Bandysiu perkelti <strong>P</strong> į (6,3), kuris turėtų būti tuščias:</p>
+<pre><code>JUDĖTI: P, (6,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Atsiprašau už klaidą. Patikrinsiu savo lentą dar kartą:</p>
+<p>Mano tušti langeliai yra:
+- (1,1), (2,1), (6,1) [eilutė 1]
+- (1,2), (2,2), (6,2) [eilutė 2]
+- (2,3), (6,3), (7,3) [eilutė 3]
+- (1,4), (3,4), (5,4), (6,4) [eilutė 4]
+- (1,5), (2,5), (5,5), (6,5), (7,5) [eilutė 5]
+- (1,6), (3,6), (5,6), (7,6) [eilutė 6]
+- (1,7), (3,7), (5,7), (7,7) [eilutė 7]</p>
+<p>Bandysiu perkelti <strong>P</strong> į (6,3), kuris turėtų būti tuščias:</p>
+<pre><code>JUDĖTI: P, (6,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Atsiprašau už klaidą. Patikrinsiu savo lentą dar kartą:</p>
+<p>Mano tušti langeliai yra:
+- (1,1), (2,1), (6,1) [eilutė 1]
+- (1,2), (2,2), (6,2) [eilutė 2]
+- (2,3), (6,3), (7,3) [eilutė 3]
+- (1,4), (3,4), (5,4), (6,4) [eilutė 4]
+- (1,5), (2,5), (5,5), (6,5), (7,5) [eilutė 5]
+- (1,6), (3,6), (5,6), (7,6) [eilutė 6]
+- (1,7), (3,7), (5,7), (7,7) [eilutė 7]</p>
+<p>Bandysiu perkelti <strong>P</strong> į (6,3), kuris turėtų būti tuščias:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: Jūsų žinutėje neturi būti nieko prieš komandą!</p>
+<p>Įsitikinkite, kad jūsų atsakyme yra tik <code>SAKYTI: &lt;ŽINUTĖ&gt;</code> arba <code>JUDĖTI: &lt;OBJEKTAS&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, ir nieko daugiau!</p>
+<p>Jūs bendrai sukaupėte 15 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>JUDĖTI: P, (6,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>JUDĖTI: P, (6,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Nuobauda: (6,3) nėra tuščias, bet jame yra '├'.</p>
+<p>Jūs bendrai sukaupėte 16 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Nuobauda: (6,3) nėra tuščias, bet jame yra '├'.</p>
+<p>Jūs bendrai sukaupėte 16 iš 16 baudų.
+Pabandykite dar kartą!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Labai atsiprašau už klaidų gausą. Pasiekiame kritinį tašką (16/16 baudų), tad reikia būti ypač atsargiems.</p>
+<p>Patikrinsiu dar kartą <strong>tik tuščius langelius</strong> savo lentoje:
+- (1,1), (2,1)
+- (1,2), (2,2)
+- (2,3)
+- (1,4), (3,4), (6,4)
+- (1,5), (2,5), (5,5)
+- (1,6), (3,6), (5,6)
+- (1,7), (3,7), (5,7)</p>
+<p>Bandysiu perkelti <strong>P</strong> į (2,3), kuris turėtų būti tuščias:</p>
+<pre><code>JUDĖTI: P, (2,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Labai atsiprašau už klaidų gausą. Pasiekiame kritinį tašką (16/16 baudų), tad reikia būti ypač atsargiems.</p>
+<p>Patikrinsiu dar kartą <strong>tik tuščius langelius</strong> savo lentoje:
+- (1,1), (2,1)
+- (1,2), (2,2)
+- (2,3)
+- (1,4), (3,4), (6,4)
+- (1,5), (2,5), (5,5)
+- (1,6), (3,6), (5,6)
+- (1,7), (3,7), (5,7)</p>
+<p>Bandysiu perkelti <strong>P</strong> į (2,3), kuris turėtų būti tuščias:</p>
+<pre><code>JUDĖTI: P, (2,3)
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Labai atsiprašau už klaidų gausą. Pasiekiame kritinį tašką (16/16 baudų), tad reikia būti ypač atsargiems.</p>
+<p>Patikrinsiu dar kartą <strong>tik tuščius langelius</strong> savo lentoje:
+- (1,1), (2,1)
+- (1,2), (2,2)
+- (2,3)
+- (1,4), (3,4), (6,4)
+- (1,5), (2,5), (5,5)
+- (1,6), (3,6), (5,6)
+- (1,7), (3,7), (5,7)</p>
+<p>Bandysiu perkelti <strong>P</strong> į (2,3), kuris turėtų būti tuščias:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌O◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌M│T│◌║ 1
+║◌◌A└─┤S║ 2
+║P◌◌O◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│D│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║T◌M└─┤◌║ 2
+║AS◌P◌├─╢ 3
+╟─┐D┌─┤O║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 0.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 19.62</li>
+<li>Init Distance Sum: 19.62</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 17.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 2.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

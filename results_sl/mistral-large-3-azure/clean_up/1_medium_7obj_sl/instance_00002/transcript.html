@@ -1,0 +1,837 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_7obj_sl', episode 2 with mistral-large-3-azure.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jaz sem vaš vodja igre, vi pa igrate skupinsko igro z naslednjo mrežo kot igralno ploščo:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│MD◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║S◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤A◌◌◌◌║ 6
+║P│TO◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>Na zgornjem robu so prikazane koordinate x, ki naraščajo proti desni, na desnem robu pa koordinate y, ki naraščajo navzdol.</li>
+<li>Na mrežo so naključno postavljeni naslednji predmeti: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Drugi igralec vidi različico igralne plošče, na kateri so predmeti postavljeni na različna naključna mesta. Vi ne morete videti plošče drugega igralca, on pa ne more videti vaše.</p>
+<p><strong>Cilj:</strong></p>
+<p>Oba igralca morata premikati predmete na svojem ozadju tako, da se enaki predmeti znajdejo na istih koordinatah. Z drugim igralcem se morate dogovoriti o skupni ciljni konfiguraciji.</p>
+<p><strong>Pravila:</strong></p>
+<ul>
+<li>V vsakem krogu lahko pošljete natanko enega od naslednjih dveh ukazov:</li>
+<li><code>RECI: &lt;SPOROČILO&gt;</code>: za pošiljanje sporočila (vse do naslednjega preloma vrstice) drugemu igralcu. Posredoval ga bom vašemu partnerju.</li>
+<li><code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: za premik predmeta na novo mesto, pri čemer je <code>&lt;X&gt;</code> stolpec, <code>&lt;Y&gt;</code> pa vrstica. Obvestil vas bom, ali je bila vaša premestitev uspešna ali ne.</li>
+<li>Če se ne držite formata ali pošljete več ukazov hkrati, vas moram kaznovati.</li>
+<li>Če oba igralca zbereta več kot 16 kazni, oba izgubita igro.</li>
+<li>Pomembno je, da se z drugim igralcem pogovarjate o vašem ciljnem stanju! Svojo strategijo lahko drugemu igralcu posredujete <em>samo</em> z uporabo ukaza <code>RECI: &lt;SPOROČILO&gt;</code>!</li>
+</ul>
+<p><strong>Premikanje predmetov</strong></p>
+<ul>
+<li>Predmete lahko premikate le v celice znotraj meja mreže. Ciljna celica mora biti prazna, tj. vsebovati mora samo simbol '◌'.</li>
+<li>Če poskušate premakniti predmet na mesto, ki ni prazno, ali ga poskušate premakniti zunaj mreže, vas moram kaznovati. Dobili boste še en poskus.</li>
+<li>Pred premikom dvakrat preverite, ali je ciljno mesto prazno in v njem ni nobene črke, okvirja ali črte!</li>
+</ul>
+<p><strong>Konec igre</strong></p>
+<p>Če menite, da ste dosegli cilj in poravnali vse predmete, lahko drugega igralca pozovete, naj konča igro, tako da mu pošljete <code>RECI: končano?</code>. Če vas drugi igralec prosi, da končate igro, vi pa mu odgovorite z <code>RECI: končano!</code>, se igra konča.</p>
+<p>Oba igralca zmagata, če se igra konča v 28 krogih, pri čemer je en krog definiran tako, da dva igralca pošljeta vsak po en veljaven ukaz.</p>
+<p><strong>Točkovanje:</strong></p>
+<p>Bližje kot so enaki predmeti na obeh igralnih ploščah, več točk dobite. Kazni zmanjšajo število točk. Ali lahko premagate rekord?</p>
+<p>Pošljite sporočilo drugemu igralcu, da začnete igro!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Za začetek igre pošljem sporočilo drugemu igralcu, da se dogovorimo o skupni strategiji in ciljni konfiguraciji. Predlagam, da najprej določimo ciljne koordinate za vsak predmet, nato pa se lotimo premikanja.</p>
+<p><strong>Prvo sporočilo:</strong></p>
+<pre><code>RECI: Pozdravljeni! Predlagam, da se dogovorimo za ciljne koordinate za vsak predmet. Začnimo z enim predmetom naenkrat. Kje bi radi imeli 'P'? Jaz imam 'P' na (1,7).
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Za začetek igre pošljem sporočilo drugemu igralcu, da se dogovorimo o skupni strategiji in ciljni konfiguraciji. Predlagam, da najprej določimo ciljne koordinate za vsak predmet, nato pa se lotimo premikanja.</p>
+<p><strong>Prvo sporočilo:</strong></p>
+<pre><code>RECI: Pozdravljeni! Predlagam, da se dogovorimo za ciljne koordinate za vsak predmet. Začnimo z enim predmetom naenkrat. Kje bi radi imeli 'P'? Jaz imam 'P' na (1,7).
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Za začetek igre pošljem sporočilo drugemu igralcu, da se dogovorimo o skupni strategiji in ciljni konfiguraciji. Predlagam, da najprej določimo ciljne koordinate za vsak predmet, nato pa se lotimo premikanja.</p>
+<p><strong>Prvo sporočilo:</strong></p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 1 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Začnimo z dogovarjanjem o ciljnih koordinatah. Kje imate 'P'? Jaz imam 'P' na (1,7).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Začnimo z dogovarjanjem o ciljnih koordinatah. Kje imate 'P'? Jaz imam 'P' na (1,7).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jaz sem vaš vodja igre, vi pa igrate skupinsko igro z naslednjo mrežo kot igralno ploščo:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║T│◌│◌SO║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│D│◌║ 3
+║◌M◌├─┘◌║ 4
+║◌┌─┘◌P◌║ 5
+╟─┤◌A◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>Na zgornjem robu so prikazane koordinate x, ki naraščajo proti desni, na desnem robu pa koordinate y, ki naraščajo navzdol.</li>
+<li>Na mrežo so naključno postavljeni naslednji predmeti: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Drugi igralec vidi različico igralne plošče, na kateri so predmeti postavljeni na različna naključna mesta. Vi ne morete videti plošče drugega igralca, on pa ne more videti vaše.</p>
+<p><strong>Cilj:</strong></p>
+<p>Oba igralca morata premikati predmete na svojem ozadju tako, da se enaki predmeti znajdejo na istih koordinatah. Z drugim igralcem se morate dogovoriti o skupni ciljni konfiguraciji.</p>
+<p><strong>Pravila:</strong></p>
+<ul>
+<li>V vsakem krogu lahko pošljete natanko enega od naslednjih dveh ukazov:</li>
+<li><code>RECI: &lt;SPOROČILO&gt;</code>: za pošiljanje sporočila (vse do naslednjega preloma vrstice) drugemu igralcu. Posredoval ga bom vašemu partnerju.</li>
+<li><code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: za premik predmeta na novo mesto, pri čemer je <code>&lt;X&gt;</code> stolpec, <code>&lt;Y&gt;</code> pa vrstica. Obvestil vas bom, ali je bila vaša premestitev uspešna ali ne.</li>
+<li>Če se ne držite formata ali pošljete več ukazov hkrati, vas moram kaznovati.</li>
+<li>Če oba igralca zbereta več kot 16 kazni, oba izgubita igro.</li>
+<li>Pomembno je, da se z drugim igralcem pogovarjate o vašem ciljnem stanju! Svojo strategijo lahko drugemu igralcu posredujete <em>samo</em> z uporabo ukaza <code>RECI: &lt;SPOROČILO&gt;</code>!</li>
+</ul>
+<p><strong>Premikanje predmetov</strong></p>
+<ul>
+<li>Predmete lahko premikate le v celice znotraj meja mreže. Ciljna celica mora biti prazna, tj. vsebovati mora samo simbol '◌'.</li>
+<li>Če poskušate premakniti predmet na mesto, ki ni prazno, ali ga poskušate premakniti zunaj mreže, vas moram kaznovati. Dobili boste še en poskus.</li>
+<li>Pred premikom dvakrat preverite, ali je ciljno mesto prazno in v njem ni nobene črke, okvirja ali črte!</li>
+</ul>
+<p><strong>Konec igre</strong></p>
+<p>Če menite, da ste dosegli cilj in poravnali vse predmete, lahko drugega igralca pozovete, naj konča igro, tako da mu pošljete <code>RECI: končano?</code>. Če vas drugi igralec prosi, da končate igro, vi pa mu odgovorite z <code>RECI: končano!</code>, se igra konča.</p>
+<p>Oba igralca zmagata, če se igra konča v 28 krogih, pri čemer je en krog definiran tako, da dva igralca pošljeta vsak po en veljaven ukaz.</p>
+<p><strong>Točkovanje:</strong></p>
+<p>Bližje kot so enaki predmeti na obeh igralnih ploščah, več točk dobite. Kazni zmanjšajo število točk. Ali lahko premagate rekord?</p>
+<p>Drugi igralec je začel igro s tem sporočilom:</p>
+<p>"Začnimo z dogovarjanjem o ciljnih koordinatah. Kje imate 'P'? Jaz imam 'P' na (1,7)."</p>
+<p>Kakšen je vaš prvi ukaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Na podlagi začetnega sporočila drugega igralca, ki ima 'P' na (1,7), in moje začetne pozicije 'P' na (6,5), je smiselno začeti z dogovarjanjem o ciljnih koordinatah za vsak predmet. Ker je cilj, da se enaki predmeti ujemajo na istih koordinatah, bom predlagal ciljno pozicijo za 'P' in nato nadaljeval z drugimi predmeti.</p>
+<p>Prvi ukaz bo torej sporočilo, v katerem predlagam ciljno pozicijo za 'P' in vprašam za pozicijo drugega predmeta, npr. 'A':</p>
+<pre><code>RECI: Predlagam, da 'P' postavimo na (1,7). Kje imate 'A'? Jaz imam 'A' na (4,6).
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Na podlagi začetnega sporočila drugega igralca, ki ima 'P' na (1,7), in moje začetne pozicije 'P' na (6,5), je smiselno začeti z dogovarjanjem o ciljnih koordinatah za vsak predmet. Ker je cilj, da se enaki predmeti ujemajo na istih koordinatah, bom predlagal ciljno pozicijo za 'P' in nato nadaljeval z drugimi predmeti.</p>
+<p>Prvi ukaz bo torej sporočilo, v katerem predlagam ciljno pozicijo za 'P' in vprašam za pozicijo drugega predmeta, npr. 'A':</p>
+<pre><code>RECI: Predlagam, da 'P' postavimo na (1,7). Kje imate 'A'? Jaz imam 'A' na (4,6).
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Na podlagi začetnega sporočila drugega igralca, ki ima 'P' na (1,7), in moje začetne pozicije 'P' na (6,5), je smiselno začeti z dogovarjanjem o ciljnih koordinatah za vsak predmet. Ker je cilj, da se enaki predmeti ujemajo na istih koordinatah, bom predlagal ciljno pozicijo za 'P' in nato nadaljeval z drugimi predmeti.</p>
+<p>Prvi ukaz bo torej sporočilo, v katerem predlagam ciljno pozicijo za 'P' in vprašam za pozicijo drugega predmeta, npr. 'A':</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 2 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Razumem, takrat bom poslal samo ukaz brez dodatnih pojasnil.</p>
+<pre><code>RECI: Predlagam ciljno pozicijo za 'P' na (1,7). Kje je tvoj 'A'?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Razumem, takrat bom poslal samo ukaz brez dodatnih pojasnil.</p>
+<pre><code>RECI: Predlagam ciljno pozicijo za 'P' na (1,7). Kje je tvoj 'A'?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Razumem, takrat bom poslal samo ukaz brez dodatnih pojasnil.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 3 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Razumem, tokrat bom poslal samo čisto sporočilo brez dodatnih besed:</p>
+<pre><code>RECI: P na (1,7). Kje je A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Razumem, tokrat bom poslal samo čisto sporočilo brez dodatnih besed:</p>
+<pre><code>RECI: P na (1,7). Kje je A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Razumem, tokrat bom poslal samo čisto sporočilo brez dodatnih besed:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 4 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Oprostite za napake. Tokrat pošljem samo osnovno sporočilo v pravilni obliki:</p>
+<pre><code>RECI: P na (1,7). A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Oprostite za napake. Tokrat pošljem samo osnovno sporočilo v pravilni obliki:</p>
+<pre><code>RECI: P na (1,7). A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Oprostite za napake. Tokrat pošljem samo osnovno sporočilo v pravilni obliki:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 5 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>V redu, tokrat bom poslal samo najosnovnejše sporočilo brez kakršnihkoli dodatkov:</p>
+<pre><code>RECI: P(1,7) A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>V redu, tokrat bom poslal samo najosnovnejše sporočilo brez kakršnihkoli dodatkov:</p>
+<pre><code>RECI: P(1,7) A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'V redu, tokrat bom poslal samo najosnovnejše sporočilo brez kakršnihkoli dodatkov:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 6 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Razumem - tokrat bom poslal samo čisto sporočilo brez vseh dodatnih znakov:</p>
+<pre><code>RECI: P na 1,7 Kje je A
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Razumem - tokrat bom poslal samo čisto sporočilo brez vseh dodatnih znakov:</p>
+<pre><code>RECI: P na 1,7 Kje je A
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Razumem - tokrat bom poslal samo čisto sporočilo brez vseh dodatnih znakov:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 7 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Oprostite za težave. Tokrat bom poslal popolnoma osnovno sporočilo brez kakršnihkoli dodatnih besed ali znakov:</p>
+<pre><code>RECI: P 1,7 A?
+</code></pre>
+<p>Če tudi to ni v redu, mi prosim povejte, kako naj oblikujem sporočilo, da bo veljavno. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Oprostite za težave. Tokrat bom poslal popolnoma osnovno sporočilo brez kakršnihkoli dodatnih besed ali znakov:</p>
+<pre><code>RECI: P 1,7 A?
+</code></pre>
+<p>Če tudi to ni v redu, mi prosim povejte, kako naj oblikujem sporočilo, da bo veljavno. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Oprostite za težave. Tokrat bom poslal popolnoma osnovno sporočilo brez kakršnihkoli dodatnih besed ali znakov:</p>
+<p>'
+tail: '</p>
+<p>Če tudi to ni v redu, mi prosim povejte, kako naj oblikujem sporočilo, da bo veljavno. Hvala!'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 8 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Razumem - tokrat bom poslal samo čisto ukazno vrstico brez kakršnihkoli dodatnih vrstic ali pojasnil:</p>
+<p><code>RECI: P na (1,7). Kje je A?</code></p>
+<p>Če tudi to ni sprejemljivo, prosim za natančnejše navodilo kako oblikovati sporočilo. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Razumem - tokrat bom poslal samo čisto ukazno vrstico brez kakršnihkoli dodatnih vrstic ali pojasnil:</p>
+<p><code>RECI: P na (1,7). Kje je A?</code></p>
+<p>Če tudi to ni sprejemljivo, prosim za natančnejše navodilo kako oblikovati sporočilo. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Razumem - tokrat bom poslal samo čisto ukazno vrstico brez kakršnihkoli dodatnih vrstic ali pojasnil:</p>
+<p>'
+tail: '</p>
+<p>Če tudi to ni sprejemljivo, prosim za natančnejše navodilo kako oblikovati sporočilo. Hvala!'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 9 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Hvala za potrpežljivost. Zdaj popolnoma razumem - odgovor mora biti <em>samo</em> ukaz brez kakršnihkoli dodatnih znakov ali vrstic. Poskusil bom z najpreprostejšo možno obliko:</p>
+<pre><code>RECI: P(1,7)A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Hvala za potrpežljivost. Zdaj popolnoma razumem - odgovor mora biti <em>samo</em> ukaz brez kakršnihkoli dodatnih znakov ali vrstic. Poskusil bom z najpreprostejšo možno obliko:</p>
+<pre><code>RECI: P(1,7)A?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Hvala za potrpežljivost. Zdaj popolnoma razumem - odgovor mora biti <em>samo</em> ukaz brez kakršnihkoli dodatnih znakov ali vrstic. Poskusil bom z najpreprostejšo možno obliko:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ukazom!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 10 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Oprostite za vztrajne napake. Zdaj popolnoma razumem zahtevo - odgovor mora biti <strong>izključno</strong> ena sama vrstica v natančno predpisani obliki brez kakršnihkoli dodatkov. Poskusil bom z minimalnim sporočilom:</p>
+<pre><code>RECI: P1,7A
+</code></pre>
+<p>Če še vedno ni prav, bom naslednjič poslal samo:</p>
+<pre><code>RECI: P
+</code></pre>
+<p>in čakal na nadaljnje navodilo. Hvala za potrpežljivost.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Oprostite za vztrajne napake. Zdaj popolnoma razumem zahtevo - odgovor mora biti <strong>izključno</strong> ena sama vrstica v natančno predpisani obliki brez kakršnihkoli dodatkov. Poskusil bom z minimalnim sporočilom:</p>
+<pre><code>RECI: P1,7A
+</code></pre>
+<p>Če še vedno ni prav, bom naslednjič poslal samo:</p>
+<pre><code>RECI: P
+</code></pre>
+<p>in čakal na nadaljnje navodilo. Hvala za potrpežljivost.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Oprostite za vztrajne napake. Zdaj popolnoma razumem zahtevo - odgovor mora biti <strong>izključno</strong> ena sama vrstica v natančno predpisani obliki brez kakršnihkoli dodatkov. Poskusil bom z minimalnim sporočilom:</p>
+<p>RECI: P1,7A</p>
+<p>Če še vedno ni prav, bom naslednjič poslal samo:</p>
+<p>'
+tail: '</p>
+<p>in čakal na nadaljnje navodilo. Hvala za potrpežljivost.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 11 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Razumem - tokrat bom poslal <strong>samo</strong> osnovni ukaz brez kakršnihkoli dodatkov, tudi brez vprašanja:</p>
+<pre><code>RECI: P na (1,7)
+</code></pre>
+<p>Če tudi to ni v redu, mi prosim pošljite primer pravilno oblikovanega sporočila, da bom lahko sledil natančni obliki. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Razumem - tokrat bom poslal <strong>samo</strong> osnovni ukaz brez kakršnihkoli dodatkov, tudi brez vprašanja:</p>
+<pre><code>RECI: P na (1,7)
+</code></pre>
+<p>Če tudi to ni v redu, mi prosim pošljite primer pravilno oblikovanega sporočila, da bom lahko sledil natančni obliki. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Razumem - tokrat bom poslal <strong>samo</strong> osnovni ukaz brez kakršnihkoli dodatkov, tudi brez vprašanja:</p>
+<p>'
+tail: '</p>
+<p>Če tudi to ni v redu, mi prosim pošljite primer pravilno oblikovanega sporočila, da bom lahko sledil natančni obliki. Hvala!'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 12 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Hvala za potrpežljivost. Zdaj popolnoma razumem - odgovor mora biti <strong>izključno</strong> v obliki:</p>
+<pre><code>RECI: [brez dodatnih besed, samo čisto sporočilo]
+</code></pre>
+<p>Zato bom poslal preprosto:</p>
+<pre><code>RECI: P(1,7)
+</code></pre>
+<p>Če še vedno ni prav, bom naslednjič poslal samo:</p>
+<pre><code>RECI: P
+</code></pre>
+<p>in čakal na vaše navodilo. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Hvala za potrpežljivost. Zdaj popolnoma razumem - odgovor mora biti <strong>izključno</strong> v obliki:</p>
+<pre><code>RECI: [brez dodatnih besed, samo čisto sporočilo]
+</code></pre>
+<p>Zato bom poslal preprosto:</p>
+<pre><code>RECI: P(1,7)
+</code></pre>
+<p>Če še vedno ni prav, bom naslednjič poslal samo:</p>
+<pre><code>RECI: P
+</code></pre>
+<p>in čakal na vaše navodilo. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Hvala za potrpežljivost. Zdaj popolnoma razumem - odgovor mora biti <strong>izključno</strong> v obliki:</p>
+<p>RECI: [brez dodatnih besed, samo čisto sporočilo]</p>
+<p>Zato bom poslal preprosto:</p>
+<p>RECI: P(1,7)</p>
+<p>Če še vedno ni prav, bom naslednjič poslal samo:</p>
+<p>'
+tail: '</p>
+<p>in čakal na vaše navodilo. Hvala!'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 13 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Razumem - tokrat bom poslal <strong>čisto minimalno sporočilo</strong> brez oklepajev, vejic ali dodatnih znakov:</p>
+<pre><code>RECI: P 1 7
+</code></pre>
+<p>Če še vedno ni v redu, mi prosim pošljite <strong>konkretno primer pravilnega sporočila</strong>, da bom lahko natančno sledil zahtevani obliki. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Razumem - tokrat bom poslal <strong>čisto minimalno sporočilo</strong> brez oklepajev, vejic ali dodatnih znakov:</p>
+<pre><code>RECI: P 1 7
+</code></pre>
+<p>Če še vedno ni v redu, mi prosim pošljite <strong>konkretno primer pravilnega sporočila</strong>, da bom lahko natančno sledil zahtevani obliki. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Razumem - tokrat bom poslal <strong>čisto minimalno sporočilo</strong> brez oklepajev, vejic ali dodatnih znakov:</p>
+<p>'
+tail: '</p>
+<p>Če še vedno ni v redu, mi prosim pošljite <strong>konkretno primer pravilnega sporočila</strong>, da bom lahko natančno sledil zahtevani obliki. Hvala!'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 14 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Po tolikih kaznih razumem, da mora biti sporočilo <strong>popolnoma minimalno</strong> in v <strong>natančni obliki</strong>. Poskusil bom z naslednjim:</p>
+<pre><code>RECI: P17
+</code></pre>
+<p>Če to še vedno ni prav, bom naslednjič poslal samo:</p>
+<pre><code>RECI: P
+</code></pre>
+<p>in čakal na vaše navodilo o pravilni obliki. Hvala za razumevanje.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Po tolikih kaznih razumem, da mora biti sporočilo <strong>popolnoma minimalno</strong> in v <strong>natančni obliki</strong>. Poskusil bom z naslednjim:</p>
+<pre><code>RECI: P17
+</code></pre>
+<p>Če to še vedno ni prav, bom naslednjič poslal samo:</p>
+<pre><code>RECI: P
+</code></pre>
+<p>in čakal na vaše navodilo o pravilni obliki. Hvala za razumevanje.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Po tolikih kaznih razumem, da mora biti sporočilo <strong>popolnoma minimalno</strong> in v <strong>natančni obliki</strong>. Poskusil bom z naslednjim:</p>
+<p>RECI: P17</p>
+<p>Če to še vedno ni prav, bom naslednjič poslal samo:</p>
+<p>'
+tail: '</p>
+<p>in čakal na vaše navodilo o pravilni obliki. Hvala za razumevanje.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 15 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Razumem, da je situacija kritična (15/16 kazni). Tokrat bom poslal <strong>izključno</strong> točno naslednjo vrstico brez kakršnihkoli dodatkov:</p>
+<pre><code>RECI: Imam P na 6,5. Kje je tvoj?
+</code></pre>
+<p>Če tudi to ni sprejemljivo, mi prosim pošljite <strong>en sam primer pravilnega sporočila</strong>, da ga lahko kopiram. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Razumem, da je situacija kritična (15/16 kazni). Tokrat bom poslal <strong>izključno</strong> točno naslednjo vrstico brez kakršnihkoli dodatkov:</p>
+<pre><code>RECI: Imam P na 6,5. Kje je tvoj?
+</code></pre>
+<p>Če tudi to ni sprejemljivo, mi prosim pošljite <strong>en sam primer pravilnega sporočila</strong>, da ga lahko kopiram. Hvala!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Razumem, da je situacija kritična (15/16 kazni). Tokrat bom poslal <strong>izključno</strong> točno naslednjo vrstico brez kakršnihkoli dodatkov:</p>
+<p>'
+tail: '</p>
+<p>Če tudi to ni sprejemljivo, mi prosim pošljite <strong>en sam primer pravilnega sporočila</strong>, da ga lahko kopiram. Hvala!'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazen: Vaše sporočilo ne sme vsebovati ničesar pred ali po ukazu!</p>
+<p>Prepričajte se, da vaš odgovor vsebuje samo <code>RECI: &lt;SPOROČILO&gt;</code> ali <code>PREMAKNI SE: &lt;PREDMET&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> in nič drugega!</p>
+<p>Skupaj ste zbrali 16 od 16 kazni.
+Prosim, poskusite znova!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Obžalujem, da ste dosegli maksimalno število kazni. Da bi rešili situacijo, bom tokrat poslal <strong>izključno</strong> naslednji ukaz v najpreprostejši obliki, kot jo razumem iz pravil:</p>
+<pre><code>RECI: P65
+</code></pre>
+<p>Če še vedno ni prav, vam predlagam, da uporabite naslednjo obliko (ki bi morala biti v skladu s pravili):</p>
+<pre><code>PREMAKNI SE: P, (1,7)
+</code></pre>
+<p>To je ukaz za premik, ki bi lahko bil alternativen način komunikacije, če sporočila niso sprejemljiva. Hvala za potrpežljivost!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Obžalujem, da ste dosegli maksimalno število kazni. Da bi rešili situacijo, bom tokrat poslal <strong>izključno</strong> naslednji ukaz v najpreprostejši obliki, kot jo razumem iz pravil:</p>
+<pre><code>RECI: P65
+</code></pre>
+<p>Če še vedno ni prav, vam predlagam, da uporabite naslednjo obliko (ki bi morala biti v skladu s pravili):</p>
+<pre><code>PREMAKNI SE: P, (1,7)
+</code></pre>
+<p>To je ukaz za premik, ki bi lahko bil alternativen način komunikacije, če sporočila niso sprejemljiva. Hvala za potrpežljivost!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: Obžalujem, da ste dosegli maksimalno število kazni. Da bi rešili situacijo, bom tokrat poslal <strong>izključno</strong> naslednji ukaz v najpreprostejši obliki, kot jo razumem iz pravil:</p>
+<p>RECI: P65</p>
+<p>Če še vedno ni prav, vam predlagam, da uporabite naslednjo obliko (ki bi morala biti v skladu s pravili):</p>
+<p>PREMAKNI SE: P, (1,7)</p>
+<p>To je ukaz za premik, ki bi lahko bil alternativen način komunikacije, če sporočila niso sprejemljiva. Hvala za potrpežljivost!</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│MD◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║S◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤A◌◌◌◌║ 6
+║P│TO◌◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║T│◌│◌SO║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│D│◌║ 3
+║◌M◌├─┘◌║ 4
+║◌┌─┘◌P◌║ 5
+╟─┤◌A◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│MD◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║S◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤A◌◌◌◌║ 6
+║P│TO◌◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║T│◌│◌SO║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│D│◌║ 3
+║◌M◌├─┘◌║ 4
+║◌┌─┘◌P◌║ 5
+╟─┤◌A◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 0.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 31.73</li>
+<li>Init Distance Sum: 31.73</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 17.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 0.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

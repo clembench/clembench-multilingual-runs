@@ -1,0 +1,1329 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_5obj_zh', episode 2 with glm-5.2.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>我是你的游戏主持人，而你正在和另一位玩家进行一场协作游戏。 游戏的棋盘如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│◌C◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>上边缘显示 x 坐标，向右递增；右边缘显示 y 坐标，向下递增。</li>
+<li>你的棋盘上随机放置了以下物体：'W', 'I', 'T', 'C', 'H'。</li>
+</ul>
+<p>另一位玩家看到的是该棋盘的一个变体，其中物体的位置与你的不同。你无法看到对方的棋盘，对方也无法看到你的。</p>
+<p><strong>目标：</strong></p>
+<p>双方玩家需要移动各自棋盘上的物体，使得相同的物体最终位于相同的坐标位置。你需要与对方玩家沟通，以达成一致的目标配置。</p>
+<p><strong>规则</strong></p>
+<ul>
+<li>每一回合，你只能发送以下两个指令中的一个：</li>
+<li><code>发送：&lt;消息&gt;</code>：发送一条消息（直到换行之前的所有内容）给另一位玩家。我会将这条消息转发给你的搭档。</li>
+<li><code>移动：&lt;物体&gt;，（&lt;X&gt;，&lt;Y&gt;）</code>：将一个物体移动到一个新的位置，其中<code>&lt;X&gt;</code>表示列，<code>&lt;Y&gt;</code>表示行。我会告诉你这次移动是否成功。</li>
+<li>如果你没有遵守格式，或者一次发送了多个指令，我将不得不给你们惩罚。</li>
+<li>如果你们两位玩家累计超过<code>12</code>次惩罚，你们将输掉这场游戏。</li>
+<li>与另一位玩家沟通目标状态至关重要！例如，先约定每次只移动一个物体可能是个好主意。你和对方<strong>唯一</strong>可以传递策略的方式就是使用<code>发送：&lt;消息&gt;</code>指令！</li>
+</ul>
+<p><strong>移动物体</strong></p>
+<ul>
+<li>物体只能移动到网格范围内的空格，目标位置必须是空的，即只能包含符号“◌”。</li>
+<li>如果你将物体移动到了非空格子，或超出了网格范围，你将被记一次犯规，并需要重新尝试。</li>
+<li>在移动物体之前，请务必再次确认目标位置是空的，且<strong>没有任何字母、边框或线条</strong>！</li>
+</ul>
+<p><strong>游戏结束：</strong></p>
+<p>如果你认为已达到目标，可以发送<code>发送：结束了吗？</code>提议结束游戏。如果对方提议结束游戏，而你回复<code>发送：结束了！</code>，游戏将结束。</p>
+<p>如果游戏在<code>20</code>回合内结束（每回合定义为两位玩家各发送一个有效指令），则双方玩家获胜。</p>
+<p><strong>评分规则：</strong></p>
+<p>两个网格中相同的物体越接近，你获得的分数就越高。犯规会导致扣分。你们能打破纪录吗？</p>
+<p>请向另一位玩家发送一条消息以开始游戏！</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：你好，我这边物体初始位置是：W(6,5)、I(1,7)、T(6,3)、C(3,7)、H(2,4)。要不我们先交换初始位置，然后一起把目标定在中心区域？请告诉我你的位置。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：你好，我这边物体初始位置是：W(6,5)、I(1,7)、T(6,3)、C(3,7)、H(2,4)。要不我们先交换初始位置，然后一起把目标定在中心区域？请告诉我你的位置。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>我是你的游戏主持人，而你正在和另一位玩家进行一场协作游戏。 游戏的棋盘如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌W◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>上边缘显示 x 坐标，向右递增；右边缘显示 y 坐标，向下递增。</li>
+<li>你的棋盘上随机放置了以下物体：'W', 'I', 'T', 'C', 'H'。</li>
+</ul>
+<p>另一位玩家看到的是该棋盘的一个变体，其中物体的位置与你的不同。你无法看到对方的棋盘，对方也无法看到你的。</p>
+<p><strong>目标：</strong></p>
+<p>双方玩家需要移动各自棋盘上的物体，使得相同的物体最终位于相同的坐标位置。你需要与对方玩家沟通，以达成一致的目标配置。</p>
+<p><strong>规则</strong></p>
+<ul>
+<li>每一回合，你只能发送以下两个指令中的一个：</li>
+<li><code>发送：&lt;消息&gt;</code>：发送一条消息（直到换行之前的所有内容）给另一位玩家。我会将这条消息转发给你的搭档。</li>
+<li><code>移动：&lt;物体&gt;，（&lt;X&gt;，&lt;Y&gt;）</code>：将一个物体移动到一个新的位置，其中<code>&lt;X&gt;</code>表示列，<code>&lt;Y&gt;</code>表示行。我会告诉你这次移动是否成功。</li>
+<li>如果你没有遵守格式，或者一次发送了多个指令，我将不得不给你们惩罚。</li>
+<li>如果你们两位玩家累计超过<code>12</code>次惩罚，你们将输掉这场游戏。</li>
+<li>与另一位玩家沟通目标状态至关重要！例如，先约定每次只移动一个物体可能是个好主意。你和对方<strong>唯一</strong>可以传递策略的方式就是使用<code>发送：&lt;消息&gt;</code>指令！</li>
+</ul>
+<p><strong>移动物体</strong></p>
+<ul>
+<li>物体只能移动到网格范围内的空格，目标位置必须是空的，即只能包含符号“◌”。</li>
+<li>如果你将物体移动到了非空格子，或超出了网格范围，你将被记一次犯规，并需要重新尝试。</li>
+<li>在移动物体之前，请务必再次确认目标位置是空的，且<strong>没有任何字母、边框或线条</strong>！</li>
+</ul>
+<p><strong>游戏结束：</strong></p>
+<p>如果你认为已达到目标，可以发送<code>发送：结束了吗？</code>提议结束游戏。如果对方提议结束游戏，而你回复<code>发送：结束了！</code>，游戏将结束。</p>
+<p>如果游戏在<code>20</code>回合内结束（每回合定义为两位玩家各发送一个有效指令），则双方玩家获胜。</p>
+<p><strong>评分规则：</strong></p>
+<p>两个网格中相同的物体越接近，你获得的分数就越高。犯规会导致扣分。你们能打破纪录吗？</p>
+<p>另一位玩家开始了游戏并发送了以下消息：</p>
+<p>"你好，我这边物体初始位置是：W(6,5)、I(1,7)、T(6,3)、C(3,7)、H(2,4)。要不我们先交换初始位置，然后一起把目标定在中心区域？请告诉我你的位置。"</p>
+<p>你的第一条指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：你好，我这边初始位置是：W(2,6)、I(4,7)、T(5,5)、C(3,4)、H(7,6)。我同意先共享位置。不过请先确认哪些空格可达，再确定中心区域目标坐标，避免提议到不可移动的位置。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：你好，我这边初始位置是：W(2,6)、I(4,7)、T(5,5)、C(3,4)、H(7,6)。我同意先共享位置。不过请先确认哪些空格可达，再确定中心区域目标坐标，避免提议到不可移动的位置。</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第1回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"你好，我这边初始位置是：W(2,6)、I(4,7)、T(5,5)、C(3,4)、H(7,6)。我同意先共享位置。不过请先确认哪些空格可达，再确定中心区域目标坐标，避免提议到不可移动的位置。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：好的。我建议目标统一放在中心区域：T(4,4)、C(4,3)、H(3,3)、I(3,4)、W(4,5)。这些位置在我棋盘上都是空格且看起来可达。请你确认这些坐标在你那边也是空格可达；如果有冲突，我们可以微调。确认后我建议每回合各移动一个物体，并互相通报移动情况。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：好的。我建议目标统一放在中心区域：T(4,4)、C(4,3)、H(3,3)、I(3,4)、W(4,5)。这些位置在我棋盘上都是空格且看起来可达。请你确认这些坐标在你那边也是空格可达；如果有冲突，我们可以微调。确认后我建议每回合各移动一个物体，并互相通报移动情况。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第2回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"好的。我建议目标统一放在中心区域：T(4,4)、C(4,3)、H(3,3)、I(3,4)、W(4,5)。这些位置在我棋盘上都是空格且看起来可达。请你确认这些坐标在你那边也是空格可达；如果有冲突，我们可以微调。确认后我建议每回合各移动一个物体，并互相通报移动情况。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：抱歉，T(4,4)在我这边可达，但C(4,3)被横线阻挡，不可达。我确认空格可达的中心区有：T(4,4)、H(3,3)、W(4,5)、I(3,4)。C能否改到(2,3)、(4,5)或(3,5)？请确认后我们就开始移动。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，T(4,4)在我这边可达，但C(4,3)被横线阻挡，不可达。我确认空格可达的中心区有：T(4,4)、H(3,3)、W(4,5)、I(3,4)。C能否改到(2,3)、(4,5)或(3,5)？请确认后我们就开始移动。</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第2回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，T(4,4)在我这边可达，但C(4,3)被横线阻挡，不可达。我确认空格可达的中心区有：T(4,4)、H(3,3)、W(4,5)、I(3,4)。C能否改到(2,3)、(4,5)或(3,5)？请确认后我们就开始移动。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：谢谢确认。C(2,3)在我这边是空格且可达，我建议目标定为：T(4,4)、C(2,3)、H(3,3)、W(4,5)、I(3,4)。请你确认C(2,3)在你那边也可达。确认后我们就开始移动；我建议先移动C，我准备把C移动到(3,7)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：谢谢确认。C(2,3)在我这边是空格且可达，我建议目标定为：T(4,4)、C(2,3)、H(3,3)、W(4,5)、I(3,4)。请你确认C(2,3)在你那边也可达。确认后我们就开始移动；我建议先移动C，我准备把C移动到(3,7)。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第3回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"谢谢确认。C(2,3)在我这边是空格且可达，我建议目标定为：T(4,4)、C(2,3)、H(3,3)、W(4,5)、I(3,4)。请你确认C(2,3)在你那边也可达。确认后我们就开始移动；我建议先移动C，我准备把C移动到(3,7)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：我确认C(2,3)在我这边也是空格且可达。目标定为：T(4,4)、C(2,3)、H(3,3)、W(4,5)、I(3,4)。同意先移动C；我把C移动到(2,3)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：我确认C(2,3)在我这边也是空格且可达。目标定为：T(4,4)、C(2,3)、H(3,3)、W(4,5)、I(3,4)。同意先移动C；我把C移动到(2,3)。</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第3回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"我确认C(2,3)在我这边也是空格且可达。目标定为：T(4,4)、C(2,3)、H(3,3)、W(4,5)、I(3,4)。同意先移动C；我把C移动到(2,3)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（3，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（3，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (3, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第4回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：C，（2，3）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（2，3）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (2, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>已成功将“C”移动到 (3,7)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│C◌◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第4回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：我刚才把C移动到了(3,7)，但目标是C(2,3)，看来我需要分步移动。下一步我准备把C移动到(2,7)。请继续按你的计划移动。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：我刚才把C移动到了(3,7)，但目标是C(2,3)，看来我需要分步移动。下一步我准备把C移动到(2,7)。请继续按你的计划移动。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>已成功将“C”移动到 (2,3)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌C◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌W◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第5回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"我刚才把C移动到了(3,7)，但目标是C(2,3)，看来我需要分步移动。下一步我准备把C移动到(2,7)。请继续按你的计划移动。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：好的，你继续调整C。我下一步准备把W从(2,6)先移动到(3,5)，以便后续到达目标W(4,5)。请按你的计划继续。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：好的，你继续调整C。我下一步准备把W从(2,6)先移动到(3,5)，以便后续到达目标W(4,5)。请按你的计划继续。</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第5回合，最多共20回合。
+你和另一位玩家累计已犯规 0 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"好的，你继续调整C。我下一步准备把W从(2,6)先移动到(3,5)，以便后续到达目标W(4,5)。请按你的计划继续。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（2，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（2，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (2,7) 不为空，“│”在此位置。</p>
+<p>你和另一位玩家累计已犯规 1 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>犯规：单元格 (2,7) 不为空，“│”在此位置。</p>
+<p>你和另一位玩家累计已犯规 1 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：抱歉，(2,7)有边框不能走。我改把C移动到(4,7)，再绕到(2,3)。请继续你的W移动。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，(2,7)有边框不能走。我改把C移动到(4,7)，再绕到(2,3)。请继续你的W移动。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第6回合，最多共20回合。
+你和另一位玩家累计已犯规 1 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，(2,7)有边框不能走。我改把C移动到(4,7)，再绕到(2,3)。请继续你的W移动。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：W，（3，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：W，（3，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (3,5) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 2 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>犯规：单元格 (3,5) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 2 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：抱歉，我这边(3,5)有线条，不能走。我改把W从(2,6)移动到(2,5)。你继续C的路线。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，我这边(3,5)有线条，不能走。我改把W从(2,6)移动到(2,5)。你继续C的路线。</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第6回合，最多共20回合。
+你和另一位玩家累计已犯规 2 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，我这边(3,5)有线条，不能走。我改把W从(2,6)移动到(2,5)。你继续C的路线。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（4，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（4，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (4, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第7回合，最多共20回合。
+你和另一位玩家累计已犯规 2 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：W，（2，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：W，（2，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (2,5) 不为空，“┌”在此位置。</p>
+<p>你和另一位玩家累计已犯规 3 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>犯规：单元格 (2,5) 不为空，“┌”在此位置。</p>
+<p>你和另一位玩家累计已犯规 3 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：抱歉，我这边W从(2,6)出发，能走的空格只有(1,6)。我先移动W到(1,6)。你继续C的路线。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，我这边W从(2,6)出发，能走的空格只有(1,6)。我先移动W到(1,6)。你继续C的路线。</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>已成功将“C”移动到 (4,7)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│◌C◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第7回合，最多共20回合。
+你和另一位玩家累计已犯规 3 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，我这边W从(2,6)出发，能走的空格只有(1,6)。我先移动W到(1,6)。你继续C的路线。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：我已把C移到(4,7)。下一步我打算让C走(4,6)→(4,5)，但(4,5)是W的目标位置，所以之后W需要先到位或我再绕路。你的W先到(1,6)没问题。我先把C移到(4,6)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：我已把C移到(4,7)。下一步我打算让C走(4,6)→(4,5)，但(4,5)是W的目标位置，所以之后W需要先到位或我再绕路。你的W先到(1,6)没问题。我先把C移到(4,6)。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第8回合，最多共20回合。
+你和另一位玩家累计已犯规 3 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"我已把C移到(4,7)。下一步我打算让C走(4,6)→(4,5)，但(4,5)是W的目标位置，所以之后W需要先到位或我再绕路。你的W先到(1,6)没问题。我先把C移到(4,6)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：W，（1，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：W，（1，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (1,6) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 4 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>犯规：单元格 (1,6) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 4 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：我发现从棋盘看，W(2,6)所在行有边框阻挡，似乎无法向左移动。我需要仔细判断W的可达空格。请稍等，我先确认W可走的位置后再移动，避免继续犯规。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：我发现从棋盘看，W(2,6)所在行有边框阻挡，似乎无法向左移动。我需要仔细判断W的可达空格。请稍等，我先确认W可走的位置后再移动，避免继续犯规。</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第8回合，最多共20回合。
+你和另一位玩家累计已犯规 4 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"我发现从棋盘看，W(2,6)所在行有边框阻挡，似乎无法向左移动。我需要仔细判断W的可达空格。请稍等，我先确认W可走的位置后再移动，避免继续犯规。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：好的，你先确认W的路线。我这边先继续移动C，下一步把C从(4,7)移到(4,6)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：好的，你先确认W的路线。我这边先继续移动C，下一步把C从(4,7)移到(4,6)。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第9回合，最多共20回合。
+你和另一位玩家累计已犯规 4 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"好的，你先确认W的路线。我这边先继续移动C，下一步把C从(4,7)移到(4,6)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：我这边W(2,6)似乎被边框围住，暂时找不到安全移动路线。我先改移T：T从(5,5)到(5,4)。你继续C。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：我这边W(2,6)似乎被边框围住，暂时找不到安全移动路线。我先改移T：T从(5,5)到(5,4)。你继续C。</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第9回合，最多共20回合。
+你和另一位玩家累计已犯规 4 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"我这边W(2,6)似乎被边框围住，暂时找不到安全移动路线。我先改移T：T从(5,5)到(5,4)。你继续C。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（4，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（4，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (4, 6)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第10回合，最多共20回合。
+你和另一位玩家累计已犯规 4 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：T，（5，4）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：T，（5，4）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (5,4) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>犯规：单元格 (5,4) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：抱歉，(5,4)有线条。我改移T到(5,6)，再规划路线到(4,4)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，(5,4)有线条。我改移T到(5,6)，再规划路线到(4,4)。</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>已成功将“C”移动到 (4,6)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌C◌◌◌║ 6
+║I│◌◌◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第10回合，最多共20回合。
+你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，(5,4)有线条。我改移T到(5,6)，再规划路线到(4,4)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：好的，你继续移T。我这边C在(4,6)，下一步把C移到(3,6)，然后尝试到(2,3)。我会避免再有犯规。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：好的，你继续移T。我这边C在(4,6)，下一步把C移到(3,6)，然后尝试到(2,3)。我会避免再有犯规。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第11回合，最多共20回合。
+你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"好的，你继续移T。我这边C在(4,6)，下一步把C移到(3,6)，然后尝试到(2,3)。我会避免再有犯规。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：T，（5，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：T，（5，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (5, 6)</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第11回合，最多共20回合。
+你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（3，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（3，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (3, 6)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>已成功将“T”移动到 (5,6)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌C◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌WT◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第12回合，最多共20回合。
+你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：好的，T已在(5,6)。下一步我计划T走(5,6)→(5,5)→(4,5)，但(4,5)是W目标，所以W可能需要绕路或先占(4,5)。我仍需确认W(2,6)能否移动到(3,6)。你继续C。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：好的，T已在(5,6)。下一步我计划T走(5,6)→(5,5)→(4,5)，但(4,5)是W目标，所以W可能需要绕路或先占(4,5)。我仍需确认W(2,6)能否移动到(3,6)。你继续C。</p></p>
+    </div>
+</div><div class="game-round" data-round="12">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>已成功将“C”移动到 (3,6)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤C◌◌◌◌║ 6
+║I│◌◌◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第12回合，最多共20回合。
+你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"好的，T已在(5,6)。下一步我计划T走(5,6)→(5,5)→(4,5)，但(4,5)是W目标，所以W可能需要绕路或先占(4,5)。我仍需确认W(2,6)能否移动到(3,6)。你继续C。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：C现在在(3,6)。下一步我打算把C移到(1,6)，然后走(1,5)→(2,5)→(2,4)→(2,3)。关于W(4,5)：我这边W在(6,5)，可以移到(5,5)再到(4,5)，所以(4,5)我会让W占住。你那边T到(4,5)会冲突，建议T从(5,6)走(4,6)再到(4,4)。你确认后我继续移C。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：C现在在(3,6)。下一步我打算把C移到(1,6)，然后走(1,5)→(2,5)→(2,4)→(2,3)。关于W(4,5)：我这边W在(6,5)，可以移到(5,5)再到(4,5)，所以(4,5)我会让W占住。你那边T到(4,5)会冲突，建议T从(5,6)走(4,6)再到(4,4)。你确认后我继续移C。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第13回合，最多共20回合。
+你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"C现在在(3,6)。下一步我打算把C移到(1,6)，然后走(1,5)→(2,5)→(2,4)→(2,3)。关于W(4,5)：我这边W在(6,5)，可以移到(5,5)再到(4,5)，所以(4,5)我会让W占住。你那边T到(4,5)会冲突，建议T从(5,6)走(4,6)再到(4,4)。你确认后我继续移C。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：好的，我同意T走(4,6)→(4,4)。但我担心(4,6)有竖线阻挡，先尝试移动T到(4,6)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：好的，我同意T走(4,6)→(4,4)。但我担心(4,6)有竖线阻挡，先尝试移动T到(4,6)。</p></p>
+    </div>
+</div><div class="game-round" data-round="13">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第13回合，最多共20回合。
+你和另一位玩家累计已犯规 5 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"好的，我同意T走(4,6)→(4,4)。但我担心(4,6)有竖线阻挡，先尝试移动T到(4,6)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（1，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（1，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (1,6) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 6 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>犯规：单元格 (1,6) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 6 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：抱歉，(1,6)有横线不能走。我改把C从(3,6)移到(3,5)，再找路线到(2,3)。你先尝试T到(4,6)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，(1,6)有横线不能走。我改把C从(3,6)移到(3,5)，再找路线到(2,3)。你先尝试T到(4,6)。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第14回合，最多共20回合。
+你和另一位玩家累计已犯规 6 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，(1,6)有横线不能走。我改把C从(3,6)移到(3,5)，再找路线到(2,3)。你先尝试T到(4,6)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：T，（4，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：T，（4，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (4,6) 不为空，“W”在此位置。</p>
+<p>你和另一位玩家累计已犯规 7 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>犯规：单元格 (4,6) 不为空，“W”在此位置。</p>
+<p>你和另一位玩家累计已犯规 7 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：抱歉，我这边(4,6)有我的W。我改为把T从(5,6)移到(5,5)，然后尝试到(4,5)和(4,4)。请继续。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，我这边(4,6)有我的W。我改为把T从(5,6)移到(5,5)，然后尝试到(4,5)和(4,4)。请继续。</p></p>
+    </div>
+</div><div class="game-round" data-round="14">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第14回合，最多共20回合。
+你和另一位玩家累计已犯规 7 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，我这边(4,6)有我的W。我改为把T从(5,6)移到(5,5)，然后尝试到(4,5)和(4,4)。请继续。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（3，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（3，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (3,5) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>犯规：单元格 (3,5) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：抱歉，(3,5)也有横线。C目前在(3,6)，我重新看路线：可走(4,6)→(4,5)→(4,4)→(3,4)→(3,3)，但(4,5)是W目标。要不我们调整目标：C放(3,4)，W放(4,5)，T放(4,4)，H放(3,3)，I放(3,4)？等等I和C会冲突。请帮我确认你那边C还能到哪些空格，我们一起重新定目标。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，(3,5)也有横线。C目前在(3,6)，我重新看路线：可走(4,6)→(4,5)→(4,4)→(3,4)→(3,3)，但(4,5)是W目标。要不我们调整目标：C放(3,4)，W放(4,5)，T放(4,4)，H放(3,3)，I放(3,4)？等等I和C会冲突。请帮我确认你那边C还能到哪些空格，我们一起重新定目标。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第15回合，最多共20回合。
+你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，(3,5)也有横线。C目前在(3,6)，我重新看路线：可走(4,6)→(4,5)→(4,4)→(3,4)→(3,3)，但(4,5)是W目标。要不我们调整目标：C放(3,4)，W放(4,5)，T放(4,4)，H放(3,3)，I放(3,4)？等等I和C会冲突。请帮我确认你那边C还能到哪些空格，我们一起重新定目标。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：建议目标改为：C(2,3)、H(3,3)、I(3,4)、T(4,4)、W(4,5)，避免冲突。我已把C放到(2,3)。现在我先把T从(5,6)移到(5,5)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：建议目标改为：C(2,3)、H(3,3)、I(3,4)、T(4,4)、W(4,5)，避免冲突。我已把C放到(2,3)。现在我先把T从(5,6)移到(5,5)。</p></p>
+    </div>
+</div><div class="game-round" data-round="15">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第15回合，最多共20回合。
+你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"建议目标改为：C(2,3)、H(3,3)、I(3,4)、T(4,4)、W(4,5)，避免冲突。我已把C放到(2,3)。现在我先把T从(5,6)移到(5,5)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：好的，目标保持C(2,3)、H(3,3)、I(3,4)、T(4,4)、W(4,5)。我这边C在(3,6)，我尝试移到(4,6)，再想办法到(2,3)。你继续移T。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：好的，目标保持C(2,3)、H(3,3)、I(3,4)、T(4,4)、W(4,5)。我这边C在(3,6)，我尝试移到(4,6)，再想办法到(2,3)。你继续移T。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第16回合，最多共20回合。
+你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"好的，目标保持C(2,3)、H(3,3)、I(3,4)、T(4,4)、W(4,5)。我这边C在(3,6)，我尝试移到(4,6)，再想办法到(2,3)。你继续移T。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：T，（5，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：T，（5，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (5, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="16">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第16回合，最多共20回合。
+你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（4，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（4，6）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (4, 6)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>已成功将“T”移动到 (5,5)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌C◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘T◌◌║ 5
+╟─┤◌W◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第17回合，最多共20回合。
+你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：T已到(5,5)，下一步T计划到(5,4)，但可能被横线挡住。我会先尝试。你那边C到(4,6)后，请注意我这边W在(2,6)，(3,6)现在空了。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：T已到(5,5)，下一步T计划到(5,4)，但可能被横线挡住。我会先尝试。你那边C到(4,6)后，请注意我这边W在(2,6)，(3,6)现在空了。</p></p>
+    </div>
+</div><div class="game-round" data-round="17">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>已成功将“C”移动到 (4,6)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌C◌◌◌║ 6
+║I│◌◌◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第17回合，最多共20回合。
+你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"T已到(5,5)，下一步T计划到(5,4)，但可能被横线挡住。我会先尝试。你那边C到(4,6)后，请注意我这边W在(2,6)，(3,6)现在空了。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：C在(4,6)。我看C可走路线：(4,6)→(4,7)→(3,7)→(3,6)→(3,5)？但(3,5)有横线。让我试(4,7)→(5,7)→(6,7)绕路，或直接(4,6)→(4,7)→(2,7)？(2,7)有竖线。我先移C到(4,7)看看。你继续T。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：C在(4,6)。我看C可走路线：(4,6)→(4,7)→(3,7)→(3,6)→(3,5)？但(3,5)有横线。让我试(4,7)→(5,7)→(6,7)绕路，或直接(4,6)→(4,7)→(2,7)？(2,7)有竖线。我先移C到(4,7)看看。你继续T。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第18回合，最多共20回合。
+你和另一位玩家累计已犯规 8 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"C在(4,6)。我看C可走路线：(4,6)→(4,7)→(3,7)→(3,6)→(3,5)？但(3,5)有横线。让我试(4,7)→(5,7)→(6,7)绕路，或直接(4,6)→(4,7)→(2,7)？(2,7)有竖线。我先移C到(4,7)看看。你继续T。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：T，（5，4）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：T，（5，4）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (5,4) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 9 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>犯规：单元格 (5,4) 不为空，“─”在此位置。</p>
+<p>你和另一位玩家累计已犯规 9 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：抱歉(5,4)有横线。我改移T从(5,5)到(4,5)，再尝试到(4,4)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉(5,4)有横线。我改移T从(5,5)到(4,5)，再尝试到(4,4)。</p></p>
+    </div>
+</div><div class="game-round" data-round="18">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第18回合，最多共20回合。
+你和另一位玩家累计已犯规 9 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉(5,4)有横线。我改移T从(5,5)到(4,5)，再尝试到(4,4)。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>移动：C，（4，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：C，（4，7）</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (4, 7)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第19回合，最多共20回合。
+你和另一位玩家累计已犯规 9 次，最多允许 12 次犯规。
+另一位玩家移动了TA的网格上的一个物体。</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>移动：T，（4，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>移动：T，（4，5）</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>犯规：单元格 (4,5) 不为空，“┘”在此位置。</p>
+<p>你和另一位玩家累计已犯规 10 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>犯规：单元格 (4,5) 不为空，“┘”在此位置。</p>
+<p>你和另一位玩家累计已犯规 10 次，最多允许 12 次犯规。
+请重试！</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：抱歉，我这边(4,5)有拐角线，T无法从(5,5)到达(4,5)。T(4,4)似乎被周围线条围住，很难进入。我们可能需要调整目标位置。你那边T还能放到哪些空格？我建议改到更容易到达的位置。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：抱歉，我这边(4,5)有拐角线，T无法从(5,5)到达(4,5)。T(4,4)似乎被周围线条围住，很难进入。我们可能需要调整目标位置。你那边T还能放到哪些空格？我建议改到更容易到达的位置。</p></p>
+    </div>
+</div><div class="game-round" data-round="19">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>已成功将“C”移动到 (4,7)。更新后的网格如下所示：</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│◌C◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>你当前正在进行第19回合，最多共20回合。
+你和另一位玩家累计已犯规 10 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"抱歉，我这边(4,5)有拐角线，T无法从(5,5)到达(4,5)。T(4,4)似乎被周围线条围住，很难进入。我们可能需要调整目标位置。你那边T还能放到哪些空格？我建议改到更容易到达的位置。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>发送：时间不多了。我建议把目标改到当前或容易到的位置：T(3,3)、H(2,4)、I(1,7)、W(6,5)、C(4,7)。你那边这些位置可达吗？如果同意，我下回合直接提议结束。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：时间不多了。我建议把目标改到当前或容易到的位置：T(3,3)、H(2,4)、I(1,7)、W(6,5)、C(4,7)。你那边这些位置可达吗？如果同意，我下回合直接提议结束。</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>你的消息已发送给了其他玩家。</p>
+<p>你当前正在进行第20回合，最多共20回合。
+你和另一位玩家累计已犯规 10 次，最多允许 12 次犯规。
+另一位玩家发送了以下消息：</p>
+<p>"时间不多了。我建议把目标改到当前或容易到的位置：T(3,3)、H(2,4)、I(1,7)、W(6,5)、C(4,7)。你那边这些位置可达吗？如果同意，我下回合直接提议结束。"</p>
+<p>你的下一个指令是什么？</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>发送：我这边T(3,3)可达，H(2,4)有竖线不可达，C(4,7)可达但我的C已在(2,3)。建议最终目标改为：C(2,3)、T(3,3)、I(3,4)、W(4,5)。我尽量移动T到(3,3)。</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>发送：我这边T(3,3)可达，H(2,4)有竖线不可达，C(4,7)可达但我的C已在(2,3)。建议最终目标改为：C(2,3)、T(3,3)、I(3,4)、W(4,5)。我尽量移动T到(3,3)。</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of rounds reached</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│◌C◌◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌C├─┘◌║ 4
+║◌┌─┘◌T◌║ 5
+╟─┤◌W◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│T║ 3
+║◌H◌├─┘◌║ 4
+║◌┌─┘◌◌W║ 5
+╟─┤◌◌◌◌◌║ 6
+║I│◌C◌◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌C◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘T◌◌║ 5
+╟─┤◌W◌◌H║ 6
+║◌│◌I◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 4.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 18.85</li>
+<li>Init Distance Sum: 16.95</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 10.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 20.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

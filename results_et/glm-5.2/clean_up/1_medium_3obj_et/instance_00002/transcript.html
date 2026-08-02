@@ -1,0 +1,922 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_3obj_et', episode 2 with glm-5.2.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ma olen teie mängujuht ja te mängite ühismängu järgmise ruudustikuga mängulauana:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│C◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│P║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌L◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>Ülemisel serval on x-koordinaadid, mis suurenevad paremale, ja paremal serval y-koordinaadid, mis suurenevad allapoole.</li>
+<li>Järgmised objektid on teie ruudustikule juhuslikult paigutatud: 'C', 'L', 'P'.</li>
+</ul>
+<p>Teine mängija näeb mängulaua varianti, kus objektid on paigutatud erinevatesse juhuslikesse asukohtadesse. Te ei näe teise mängija mängulauda ja tema ei näe teie mängulauda.</p>
+<p><strong>Eesmärk:</strong></p>
+<p>Mõlemad mängijad peavad oma taustal olevaid objekte liigutama nii, et identsed objektid satuksid samadesse koordinaatidesse. Te peate teise mängijaga suhtlema, et kokku leppida ühises eesmärgi konfiguratsioonis.</p>
+<p><strong>Reeglid:</strong></p>
+<ul>
+<li>Igal käigul saate saata täpselt ühe kahest järgmisest käsust:</li>
+<li><code>ÜTLE: &lt;SÕNUM&gt;</code>: sõnumi (kõik kuni järgmise reavahetuseni) saatmiseks teisele mängijale. Ma edastan selle teie partnerile.</li>
+<li><code>LIIGUTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: objekti liigutamiseks uude asukohta, kus <code>&lt;X&gt;</code> on veerg ja <code>&lt;Y&gt;</code> on rida. Ma teatan teile, kas teie käik õnnestus või mitte.</li>
+<li>Kui te ei pea kinni formaadist või saadate mitu käsku korraga, pean teid karistama.</li>
+<li>Kui mõlemad mängijad koguvad rohkem kui 8 karistust, kaotate mõlemad mängu.</li>
+<li>On ülimalt oluline, et te suhtleksite teise mängijaga oma eesmärgi seisundi osas! <em>Ainus</em> viis, kuidas te saate oma strateegiat teisele mängijale edastada, on käsu <code>ÜTLE: &lt;SÕNUM&gt;</code> kasutamine!</li>
+</ul>
+<p><strong>Objektide liigutamine</strong></p>
+<ul>
+<li>Objekte saate liigutada ainult ruudustiku piirides olevatesse lahtritesse. Sihtlahter peab olema tühi, st see peab sisaldama ainult sümbolit '◌'.</li>
+<li>Kui püüate objekti liigutada kohta, mis ei ole tühi, või püüate seda liigutada väljaspool ruudustikku, pean teid karistama. Saate uue katse.</li>
+<li>Enne liigutamist kontrollige kahel korral, et sihtkoht on tühi ja ei sisalda ühtegi tähte, raami või joont!</li>
+</ul>
+<p><strong>Mängu lõpp</strong></p>
+<p>Kui arvate, et olete saavutanud kõigi objektide joondamise eesmärgi, võite paluda teisel mängijal mäng lõpetada, saates <code>ÜTLE: valmis?</code>. Kui teine mängija palub teil mängu lõpetada ja te vastate <code>ÜTLE: valmis!</code>, siis mäng lõpeb.</p>
+<p>Mõlemad mängijad võidavad, kui mäng lõpeb 12 vooru jooksul, kus üks voor on määratletud kahe mängija poolt ühe kehtiva käsu saatmisena.</p>
+<p><strong>Punktiarvestus:</strong></p>
+<p>Mida lähemal on identsed objektid mõlemal mängulaual, seda rohkem punkte saate. Karistused vähendavad teie punkte. Kas suudate rekordit ületada?</p>
+<p>Palun saada teisele mängijale sõnum, et mängu alustada!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Tere! Ma näen oma laual objekte C (koordinaatidel 5,1), L (3,7) ja P (7,3). Millised on sinu objektide asukohad? Esita need formaadis OBJEKT: (x,y). Lepime siis kokku ühises sihtkonfiguratsioonis ja liigutame objekte sinna.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Tere! Ma näen oma laual objekte C (koordinaatidel 5,1), L (3,7) ja P (7,3). Millised on sinu objektide asukohad? Esita need formaadis OBJEKT: (x,y). Lepime siis kokku ühises sihtkonfiguratsioonis ja liigutame objekte sinna.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ma olen teie mängujuht ja te mängite ühismängu järgmise ruudustikuga mängulauana:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│L║ 3
+║C◌◌├─┘P║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre>
+<ul>
+<li>Ülemisel serval on x-koordinaadid, mis suurenevad paremale, ja paremal serval y-koordinaadid, mis suurenevad allapoole.</li>
+<li>Järgmised objektid on teie ruudustikule juhuslikult paigutatud: 'C', 'L', 'P'.</li>
+</ul>
+<p>Teine mängija näeb mängulaua varianti, kus objektid on paigutatud erinevatesse juhuslikesse asukohtadesse. Te ei näe teise mängija mängulauda ja tema ei näe teie mängulauda.</p>
+<p><strong>Eesmärk:</strong></p>
+<p>Mõlemad mängijad peavad oma taustal olevaid objekte liigutama nii, et identsed objektid satuksid samadesse koordinaatidesse. Te peate teise mängijaga suhtlema, et kokku leppida ühises eesmärgi konfiguratsioonis.</p>
+<p><strong>Reeglid:</strong></p>
+<ul>
+<li>Igal käigul saate saata täpselt ühe kahest järgmisest käsust:</li>
+<li><code>ÜTLE: &lt;SÕNUM&gt;</code>: sõnumi (kõik kuni järgmise reavahetuseni) saatmiseks teisele mängijale. Ma edastan selle teie partnerile.</li>
+<li><code>LIIGUTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: objekti liigutamiseks uude asukohta, kus <code>&lt;X&gt;</code> on veerg ja <code>&lt;Y&gt;</code> on rida. Ma teatan teile, kas teie käik õnnestus või mitte.</li>
+<li>Kui te ei pea kinni formaadist või saadate mitu käsku korraga, pean teid karistama.</li>
+<li>Kui mõlemad mängijad koguvad rohkem kui 8 karistust, kaotate mõlemad mängu.</li>
+<li>On ülimalt oluline, et te suhtleksite teise mängijaga oma eesmärgi seisundi osas! <em>Ainus</em> viis, kuidas te saate oma strateegiat teisele mängijale edastada, on käsu <code>ÜTLE: &lt;SÕNUM&gt;</code> kasutamine!</li>
+</ul>
+<p><strong>Objektide liigutamine</strong></p>
+<ul>
+<li>Objekte saate liigutada ainult ruudustiku piirides olevatesse lahtritesse. Sihtlahter peab olema tühi, st see peab sisaldama ainult sümbolit '◌'.</li>
+<li>Kui püüate objekti liigutada kohta, mis ei ole tühi, või püüate seda liigutada väljaspool ruudustikku, pean teid karistama. Saate uue katse.</li>
+<li>Enne liigutamist kontrollige kahel korral, et sihtkoht on tühi ja ei sisalda ühtegi tähte, raami või joont!</li>
+</ul>
+<p><strong>Mängu lõpp</strong></p>
+<p>Kui arvate, et olete saavutanud kõigi objektide joondamise eesmärgi, võite paluda teisel mängijal mäng lõpetada, saates <code>ÜTLE: valmis?</code>. Kui teine mängija palub teil mängu lõpetada ja te vastate <code>ÜTLE: valmis!</code>, siis mäng lõpeb.</p>
+<p>Mõlemad mängijad võidavad, kui mäng lõpeb 12 vooru jooksul, kus üks voor on määratletud kahe mängija poolt ühe kehtiva käsu saatmisena.</p>
+<p><strong>Punktiarvestus:</strong></p>
+<p>Mida lähemal on identsed objektid mõlemal mängulaual, seda rohkem punkte saate. Karistused vähendavad teie punkte. Kas suudate rekordit ületada?</p>
+<p>Teine mängija alustas mängu selle sõnumi saatmisega:</p>
+<p>"Tere! Ma näen oma laual objekte C (koordinaatidel 5,1), L (3,7) ja P (7,3). Millised on sinu objektide asukohad? Esita need formaadis OBJEKT: (x,y). Lepime siis kokku ühises sihtkonfiguratsioonis ja liigutame objekte sinna."</p>
+<p>Mis on sinu esimene käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Tere! Minu laual on objektid järgmistel koordinaatidel: C: (1,4), L: (7,3), P: (6,4). Kuna meie objektide algasukohad erinevad, peame leidma ühise sihtkonfiguratsiooni ja sinna liikuma. Minu laual on tühjad ruudud näiteks (4,1), (5,2) ja (4,5). Millised on sinu laual tühjad ruudud? Esita need koordinaatidena, et saaksime valida kõigile kolmele objektile ühise sihtkoha.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Tere! Minu laual on objektid järgmistel koordinaatidel: C: (1,4), L: (7,3), P: (6,4). Kuna meie objektide algasukohad erinevad, peame leidma ühise sihtkonfiguratsiooni ja sinna liikuma. Minu laual on tühjad ruudud näiteks (4,1), (5,2) ja (4,5). Millised on sinu laual tühjad ruudud? Esita need koordinaatidena, et saaksime valida kõigile kolmele objektile ühise sihtkoha.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 1 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 0 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Tere! Minu laual on objektid järgmistel koordinaatidel: C: (1,4), L: (7,3), P: (6,4). Kuna meie objektide algasukohad erinevad, peame leidma ühise sihtkonfiguratsiooni ja sinna liikuma. Minu laual on tühjad ruudud näiteks (4,1), (5,2) ja (4,5). Millised on sinu laual tühjad ruudud? Esita need koordinaatidena, et saaksime valida kõigile kolmele objektile ühise sihtkoha."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Aitäh info eest! Minu laual on tühjad ruudud vähemalt: (1,1), (2,1), (1,2), (1,3), (2,3), (3,3), (4,3), (1,4), (2,4), (3,4), (5,4), (6,4), (1,5), (3,5), (4,5), (5,5), (6,5), (7,5), (1,6), (3,6), (4,6), (5,6), (6,6), (7,6), (1,7), (2,7), (4,7), (5,7), (6,7), (7,7). </p>
+<p>Kuna meil on vaja leida ühised tühjad ruudud mõlemal laual, siis valime sihtkohtadeks:
+- C → (1,1)
+- L → (1,3)<br />
+- P → (1,4)</p>
+<p>Palun kinnita, kas need sobivad ka sinule, või tee oma ettepanek. Kui oleme nõus, hakkame objekte liigutama.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Aitäh info eest! Minu laual on tühjad ruudud vähemalt: (1,1), (2,1), (1,2), (1,3), (2,3), (3,3), (4,3), (1,4), (2,4), (3,4), (5,4), (6,4), (1,5), (3,5), (4,5), (5,5), (6,5), (7,5), (1,6), (3,6), (4,6), (5,6), (6,6), (7,6), (1,7), (2,7), (4,7), (5,7), (6,7), (7,7). </p>
+<p>Kuna meil on vaja leida ühised tühjad ruudud mõlemal laual, siis valime sihtkohtadeks:
+- C → (1,1)
+- L → (1,3)<br />
+- P → (1,4)</p>
+<p>Palun kinnita, kas need sobivad ka sinule, või tee oma ettepanek. Kui oleme nõus, hakkame objekte liigutama.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>Kuna meil on vaja leida ühised tühjad ruudud mõlemal laual, siis valime sihtkohtadeks:
+- C → (1,1)
+- L → (1,3)<br />
+- P → (1,4)</p>
+<p>Palun kinnita, kas need sobivad ka sinule, või tee oma ettepanek. Kui oleme nõus, hakkame objekte liigutama.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Karistus: Teie sõnum ei tohi sisaldada midagi pärast käsku!</p>
+<p>Veendu, et sinu vastus sisaldab ainult kas <code>ÜTLE: &lt;SÕNUM&gt;</code> või <code>LIIGUTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> ja mitte midagi muud!</p>
+<p>Teil on kollektiivselt kogunenud 1 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Aitäh! Minu laual on tühjad ruudud vähemalt: (1,1), (2,1), (1,2), (1,3), (2,3), (3,3), (4,3), (1,4), (2,4), (3,4), (5,4), (6,4), (1,5), (3,5), (4,5), (5,5), (6,5), (7,5), (1,6), (3,6), (4,6), (5,6), (6,6), (7,6), (1,7), (2,7), (4,7), (5,7), (6,7), (7,7). Valime sihtkohtadeks: C → (1,1), L → (1,3), P → (1,4). Kas need sobivad ka sinule? Kui jah, alustame liigutamist.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Aitäh! Minu laual on tühjad ruudud vähemalt: (1,1), (2,1), (1,2), (1,3), (2,3), (3,3), (4,3), (1,4), (2,4), (3,4), (5,4), (6,4), (1,5), (3,5), (4,5), (5,5), (6,5), (7,5), (1,6), (3,6), (4,6), (5,6), (6,6), (7,6), (1,7), (2,7), (4,7), (5,7), (6,7), (7,7). Valime sihtkohtadeks: C → (1,1), L → (1,3), P → (1,4). Kas need sobivad ka sinule? Kui jah, alustame liigutamist.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 2 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 1 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Aitäh! Minu laual on tühjad ruudud vähemalt: (1,1), (2,1), (1,2), (1,3), (2,3), (3,3), (4,3), (1,4), (2,4), (3,4), (5,4), (6,4), (1,5), (3,5), (4,5), (5,5), (6,5), (7,5), (1,6), (3,6), (4,6), (5,6), (6,6), (7,6), (1,7), (2,7), (4,7), (5,7), (6,7), (7,7). Valime sihtkohtadeks: C → (1,1), L → (1,3), P → (1,4). Kas need sobivad ka sinule? Kui jah, alustame liigutamist."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Aitäh! Kahjuks on minu laual sihtkohad (1,3) ja (1,4) hõivatud. Minu laual on kindlasti tühjad: (1,1), (2,1), (3,1), (5,1), (6,1), (2,2), (5,2), (6,2), (5,3), (6,3), (2,5), (3,6), (6,6), (7,6), (6,7), (7,7). Palun vali uued sihtkohad C, L ja P minu tühjade ruutude hulgast.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Aitäh! Kahjuks on minu laual sihtkohad (1,3) ja (1,4) hõivatud. Minu laual on kindlasti tühjad: (1,1), (2,1), (3,1), (5,1), (6,1), (2,2), (5,2), (6,2), (5,3), (6,3), (2,5), (3,6), (6,6), (7,6), (6,7), (7,7). Palun vali uued sihtkohad C, L ja P minu tühjade ruutude hulgast.</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 2 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 1 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Aitäh! Kahjuks on minu laual sihtkohad (1,3) ja (1,4) hõivatud. Minu laual on kindlasti tühjad: (1,1), (2,1), (3,1), (5,1), (6,1), (2,2), (5,2), (6,2), (5,3), (6,3), (2,5), (3,6), (6,6), (7,6), (6,7), (7,7). Palun vali uued sihtkohad C, L ja P minu tühjade ruutude hulgast."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Sobival ühised tühjad ruudud on: (1,1), (2,2), (5,3), (6,6), (7,7). Valime sihtkohad: C → (1,1), L → (7,7), P → (6,6). Kas need sobivad? Kui jah, alustan liigutamist.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Sobival ühised tühjad ruudud on: (1,1), (2,2), (5,3), (6,6), (7,7). Valime sihtkohad: C → (1,1), L → (7,7), P → (6,6). Kas need sobivad? Kui jah, alustan liigutamist.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 3 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 1 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Sobival ühised tühjad ruudud on: (1,1), (2,2), (5,3), (6,6), (7,7). Valime sihtkohad: C → (1,1), L → (7,7), P → (6,6). Kas need sobivad? Kui jah, alustan liigutamist."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Sobib! Alustan liigutamist. Minu esimene käik on C → (2,2), sest minu C asub (1,4) ja (1,1) pole otse kättesaadav. Palun sina alusta samuti ja teavita mind, kui oled valmis järgmise sammuga.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Sobib! Alustan liigutamist. Minu esimene käik on C → (2,2), sest minu C asub (1,4) ja (1,1) pole otse kättesaadav. Palun sina alusta samuti ja teavita mind, kui oled valmis järgmise sammuga.</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 3 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 1 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Sobib! Alustan liigutamist. Minu esimene käik on C → (2,2), sest minu C asub (1,4) ja (1,1) pole otse kättesaadav. Palun sina alusta samuti ja teavita mind, kui oled valmis järgmise sammuga."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>LIIGUTA: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 4 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 1 karistust 8 karistusest.
+Teine mängija liigutas objekti oma ruudustikul.</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>LIIGUTA: C, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: C, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Karistus: (2,2) ei ole tühi, vaid sisaldab objekti '┴'.</p>
+<p>Teil on kollektiivselt kogunenud 2 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Karistus: (2,2) ei ole tühi, vaid sisaldab objekti '┴'.</p>
+<p>Teil on kollektiivselt kogunenud 2 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Vaband, eksisin. Minu laual ei olnud (2,2) tühi. Palun oota, ma kontrollin uuesti. Kas sina said oma esimese käigu tehtud? Esitan uue käigu alles pärast sinu kinnitust.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Vaband, eksisin. Minu laual ei olnud (2,2) tühi. Palun oota, ma kontrollin uuesti. Kas sina said oma esimese käigu tehtud? Esitan uue käigu alles pärast sinu kinnitust.</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Edukalt teisaldatud 'C' asukohta (1,1). Teie uuendatud ruudustik näeb välja selline:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║C│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│P║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌L◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Sa mängid praegu vooru 4 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 2 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Vaband, eksisin. Minu laual ei olnud (2,2) tühi. Palun oota, ma kontrollin uuesti. Kas sina said oma esimese käigu tehtud? Esitan uue käigu alles pärast sinu kinnitust."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Jah, ma liigutasin C → (1,1) edukalt. Minu laual on nüüd C kohas (1,1). Palun proovi nüüd C-d liikuda suunas (1,1) või tehke oma järgmine käik. Minu järgmine samm on L → (7,7) või P → (6,6). Teavita mind oma käigust.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Jah, ma liigutasin C → (1,1) edukalt. Minu laual on nüüd C kohas (1,1). Palun proovi nüüd C-d liikuda suunas (1,1) või tehke oma järgmine käik. Minu järgmine samm on L → (7,7) või P → (6,6). Teavita mind oma käigust.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 5 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 2 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Jah, ma liigutasin C → (1,1) edukalt. Minu laual on nüüd C kohas (1,1). Palun proovi nüüd C-d liikuda suunas (1,1) või tehke oma järgmine käik. Minu järgmine samm on L → (7,7) või P → (6,6). Teavita mind oma käigust."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Aitäh! Minu laual ei saa C otse (1,1) liikuda. Uurisin ruudustikku ja kuna (2,2) on mingi sümbol (┴), on ka see kinni. Esitan uue plaani: L → (6,3), sest see on minu laual tühi. Jätan C seni paigale ja liigutan P-d või L-d. Kas sina saad L → (6,3) või P → (6,6)? Minu järgmine käik on LIIGUTA: L, (6,3). Teavita mind, kas sa teed ka L → (6,3) või P → (6,6)? Oota kinnitust.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Aitäh! Minu laual ei saa C otse (1,1) liikuda. Uurisin ruudustikku ja kuna (2,2) on mingi sümbol (┴), on ka see kinni. Esitan uue plaani: L → (6,3), sest see on minu laual tühi. Jätan C seni paigale ja liigutan P-d või L-d. Kas sina saad L → (6,3) või P → (6,6)? Minu järgmine käik on LIIGUTA: L, (6,3). Teavita mind, kas sa teed ka L → (6,3) või P → (6,6)? Oota kinnitust.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: ÜTLE: Aitäh! Minu laual ei saa C otse (1,1) liikuda. Uurisin ruudustikku ja kuna (2,2) on mingi sümbol (┴), on ka see kinni. Esitan uue plaani: L → (6,3), sest see on minu laual tühi. Jätan C seni paigale ja liigutan P-d või L-d. Kas sina saad L → (6,3) või P → (6,6)? Minu järgmine käik on LIIGUTA: L, (6,3). Teavita mind, kas sa teed ka L → (6,3) või P → (6,6)? Oota kinnitust.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Karistus: Teie sõnum sisaldab rohkem kui üht käsku!</p>
+<p>Veendu, et sinu vastus sisaldab ainult kas <code>ÜTLE: &lt;SÕNUM&gt;</code> või <code>LIIGUTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> ja mitte midagi muud!</p>
+<p>Teil on kollektiivselt kogunenud 3 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Aitäh! Minu laual ei saa C otse (1,1) liikuda ja (2,2) on kinni. Uus plaan: L → (6,3). Palun kinnita, kas saab teha L → (6,3) või P → (6,6)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Aitäh! Minu laual ei saa C otse (1,1) liikuda ja (2,2) on kinni. Uus plaan: L → (6,3). Palun kinnita, kas saab teha L → (6,3) või P → (6,6)?</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 5 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 3 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Aitäh! Minu laual ei saa C otse (1,1) liikuda ja (2,2) on kinni. Uus plaan: L → (6,3). Palun kinnita, kas saab teha L → (6,3) või P → (6,6)?"</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Minu laual on L kohas (3,7) ja P kohas (7,3). Ma ei saa neid otse sihtkohtadesse (7,7) ja (6,6) liigutada ühe käiguga. Ma proovin nüüd liigutada P → (6,3). Kas see ruut on sinu jaoks tühi? Samuti palun tee oma käik ja teavita mind.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Minu laual on L kohas (3,7) ja P kohas (7,3). Ma ei saa neid otse sihtkohtadesse (7,7) ja (6,6) liigutada ühe käiguga. Ma proovin nüüd liigutada P → (6,3). Kas see ruut on sinu jaoks tühi? Samuti palun tee oma käik ja teavita mind.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 6 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 3 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Minu laual on L kohas (3,7) ja P kohas (7,3). Ma ei saa neid otse sihtkohtadesse (7,7) ja (6,6) liigutada ühe käiguga. Ma proovin nüüd liigutada P → (6,3). Kas see ruut on sinu jaoks tühi? Samuti palun tee oma käik ja teavita mind."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Jah, (6,3) on minu laual tühi. Kuid kuna meie sihtkoht on P → (6,6), siis (6,3) on vaid vahepealne. Et aega säästa, kui sa ei saa otse (6,6) liikuda, siis pigem proovi hoopis L → (7,7) või (6,3). Kas (6,6) on sinu laual tühi?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Jah, (6,3) on minu laual tühi. Kuid kuna meie sihtkoht on P → (6,6), siis (6,3) on vaid vahepealne. Et aega säästa, kui sa ei saa otse (6,6) liikuda, siis pigem proovi hoopis L → (7,7) või (6,3). Kas (6,6) on sinu laual tühi?</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 6 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 3 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Jah, (6,3) on minu laual tühi. Kuid kuna meie sihtkoht on P → (6,6), siis (6,3) on vaid vahepealne. Et aega säästa, kui sa ei saa otse (6,6) liikuda, siis pigem proovi hoopis L → (7,7) või (6,3). Kas (6,6) on sinu laual tühi?"</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Jah, (6,6) on minu laual tühi. Aga minu P asub kohas (7,3) ja ma ei tea, kas saab otse (6,6) minna. Proovin nüüd P → (6,6). Kui see ei õnnestu, proovin teisi ruute. Palun sina tee oma käik nüüd.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Jah, (6,6) on minu laual tühi. Aga minu P asub kohas (7,3) ja ma ei tea, kas saab otse (6,6) minna. Proovin nüüd P → (6,6). Kui see ei õnnestu, proovin teisi ruute. Palun sina tee oma käik nüüd.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 7 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 3 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Jah, (6,6) on minu laual tühi. Aga minu P asub kohas (7,3) ja ma ei tea, kas saab otse (6,6) minna. Proovin nüüd P → (6,6). Kui see ei õnnestu, proovin teisi ruute. Palun sina tee oma käik nüüd."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>LIIGUTA: L, (6, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: L, (6, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Karistus: (6,3) ei ole tühi, vaid sisaldab objekti '│'.</p>
+<p>Teil on kollektiivselt kogunenud 4 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Karistus: (6,3) ei ole tühi, vaid sisaldab objekti '│'.</p>
+<p>Teil on kollektiivselt kogunenud 4 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Vabistan, minu laual on (6,3) kinni. Uurisin uuesti ja leidsin, et (5,2) on kindlasti tühi. Kas sinu jaoks on (5,2) tühi? Kui jah, siis muudame sihtkohaks: C → (1,1), L → (5,2), P → (6,6). Palun kinnita, kas (5,2) sobib ja kas sa said P → (6,6) tehtud.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Vabistan, minu laual on (6,3) kinni. Uurisin uuesti ja leidsin, et (5,2) on kindlasti tühi. Kas sinu jaoks on (5,2) tühi? Kui jah, siis muudame sihtkohaks: C → (1,1), L → (5,2), P → (6,6). Palun kinnita, kas (5,2) sobib ja kas sa said P → (6,6) tehtud.</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 7 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 4 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Vabistan, minu laual on (6,3) kinni. Uurisin uuesti ja leidsin, et (5,2) on kindlasti tühi. Kas sinu jaoks on (5,2) tühi? Kui jah, siis muudame sihtkohaks: C → (1,1), L → (5,2), P → (6,6). Palun kinnita, kas (5,2) sobib ja kas sa said P → (6,6) tehtud."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Jah, (5,2) on minu laual tühi. Nõustun uute sihtkohtadega: C → (1,1), L → (5,2), P → (6,6). P → (6,6) ei õnnestunud minul veel. Proovin nüüd P → (6,6) uuesti. Palun sina liiguta L → (5,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Jah, (5,2) on minu laual tühi. Nõustun uute sihtkohtadega: C → (1,1), L → (5,2), P → (6,6). P → (6,6) ei õnnestunud minul veel. Proovin nüüd P → (6,6) uuesti. Palun sina liiguta L → (5,2).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 8 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 4 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Jah, (5,2) on minu laual tühi. Nõustun uute sihtkohtadega: C → (1,1), L → (5,2), P → (6,6). P → (6,6) ei õnnestunud minul veel. Proovin nüüd P → (6,6) uuesti. Palun sina liiguta L → (5,2)."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>LIIGUTA: L, (5, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: L, (5, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Karistus: (5,2) ei ole tühi, vaid sisaldab objekti '─'.</p>
+<p>Teil on kollektiivselt kogunenud 5 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Karistus: (5,2) ei ole tühi, vaid sisaldab objekti '─'.</p>
+<p>Teil on kollektiivselt kogunenud 5 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Vabandan, minu laual on (5,2) kinni joonega. Uurisin hoolikalt ja leidsin kindlasti tühjad ruudud: (4,5), (5,5), (6,5), (7,5), (3,6), (4,6), (7,6). Kas mõni neist sobib sinu lauale L sihtkohaks?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Vabandan, minu laual on (5,2) kinni joonega. Uurisin hoolikalt ja leidsin kindlasti tühjad ruudud: (4,5), (5,5), (6,5), (7,5), (3,6), (4,6), (7,6). Kas mõni neist sobib sinu lauale L sihtkohaks?</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 8 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 5 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Vabandan, minu laual on (5,2) kinni joonega. Uurisin hoolikalt ja leidsin kindlasti tühjad ruudud: (4,5), (5,5), (6,5), (7,5), (3,6), (4,6), (7,6). Kas mõni neist sobib sinu lauale L sihtkohaks?"</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Minu laual on tühjad: (4,5), (5,5), (6,5), (7,5), (3,6), (4,6), (7,6). Kõik need sobivad! Valime L → (5,5). Nüüd sihtkohad: C → (1,1), L → (5,5), P → (6,6). Palun kinnita ja alusta L liigutamist. Ma proovin P → (6,6).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Minu laual on tühjad: (4,5), (5,5), (6,5), (7,5), (3,6), (4,6), (7,6). Kõik need sobivad! Valime L → (5,5). Nüüd sihtkohad: C → (1,1), L → (5,5), P → (6,6). Palun kinnita ja alusta L liigutamist. Ma proovin P → (6,6).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 9 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 5 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Minu laual on tühjad: (4,5), (5,5), (6,5), (7,5), (3,6), (4,6), (7,6). Kõik need sobivad! Valime L → (5,5). Nüüd sihtkohad: C → (1,1), L → (5,5), P → (6,6). Palun kinnita ja alusta L liigutamist. Ma proovin P → (6,6)."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: Kinnitan! L → (5,5) sobib. Minu järgmine käik on LIIGUTA: L, (5,5).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Kinnitan! L → (5,5) sobib. Minu järgmine käik on LIIGUTA: L, (5,5).</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: ÜTLE: Kinnitan! L → (5,5) sobib. Minu järgmine käik on LIIGUTA: L, (5,5).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Karistus: Teie sõnum sisaldab rohkem kui üht käsku!</p>
+<p>Veendu, et sinu vastus sisaldab ainult kas <code>ÜTLE: &lt;SÕNUM&gt;</code> või <code>LIIGUTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> ja mitte midagi muud!</p>
+<p>Teil on kollektiivselt kogunenud 6 karistust 8 karistusest.
+Palun proovi uuesti!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>LIIGUTA: L, (5, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: L, (5, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (5, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 9 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 6 karistust 8 karistusest.
+Teine mängija liigutas objekti oma ruudustikul.</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>LIIGUTA: P, (6, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: P, (6, 6)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (6, 6)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Edukalt teisaldatud 'L' asukohta (5,5). Teie uuendatud ruudustik näeb välja selline:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║C◌◌├─┘P║ 4
+║◌┌─┘L◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Sa mängid praegu vooru 10 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 6 karistust 8 karistusest.
+Teine mängija liigutas objekti oma ruudustikul.</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: L on nüüd (5,5). Mis on sinu L ja P asukoht? Minu järgmine käik on C → (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: L on nüüd (5,5). Mis on sinu L ja P asukoht? Minu järgmine käik on C → (1,1).</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Edukalt teisaldatud 'P' asukohta (6,6). Teie uuendatud ruudustik näeb välja selline:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║C│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌P◌║ 6
+║◌│◌L◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Sa mängid praegu vooru 10 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 6 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"L on nüüd (5,5). Mis on sinu L ja P asukoht? Minu järgmine käik on C → (1,1)."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ÜTLE: Minu C on (1,1), P on nüüd (6,6), L on veel (3,7). Ma liigutan nüüd L → (5,5). Palun sina liiguta C → (1,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: Minu C on (1,1), P on nüüd (6,6), L on veel (3,7). Ma liigutan nüüd L → (5,5). Palun sina liiguta C → (1,1).</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 11 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 6 karistust 8 karistusest.
+Teine mängija saatis selle sõnumi:</p>
+<p>"Minu C on (1,1), P on nüüd (6,6), L on veel (3,7). Ma liigutan nüüd L → (5,5). Palun sina liiguta C → (1,1)."</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>LIIGUTA: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: C, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (1, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Sinu sõnum on teisele mängijale edastatud.</p>
+<p>Sa mängid praegu vooru 11 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 6 karistust 8 karistusest.
+Teine mängija liigutas objekti oma ruudustikul.</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>LIIGUTA: L, (5, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>LIIGUTA: L, (5, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>L moved to (5, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Edukalt teisaldatud 'C' asukohta (1,1). Teie uuendatud ruudustik näeb välja selline:</p>
+<pre><code> 1234567
+╔═╤═╤═══╗
+║C│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘P║ 4
+║◌┌─┘L◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+</code></pre>
+<p>Sa mängid praegu vooru 12 maksimaalsest 12 voorust.
+Teil on kollektiivselt kogunenud 6 karistust 8 karistusest.
+Teine mängija liigutas objekti oma ruudustikul.</p>
+<p>Mis on sinu järgmine käsk?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ÜTLE: valmis?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ÜTLE: valmis?</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of rounds reached</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│C◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│P║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌L◌◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║◌│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│L║ 3
+║C◌◌├─┘P║ 4
+║◌┌─┘◌◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═╤═══╗
+║C│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘◌║ 4
+║◌┌─┘L◌◌║ 5
+╟─┤◌◌◌P◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+
+
+Player 2:
+ 1234567
+╔═╤═╤═══╗
+║C│◌│◌◌◌║ 1
+╟─┴─┼─┬─╢ 2
+║◌◌◌│◌│◌║ 3
+║◌◌◌├─┘P║ 4
+║◌┌─┘L◌◌║ 5
+╟─┤◌◌◌◌◌║ 6
+║◌│◌◌◌◌◌║ 7
+╚═╧═════╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 4.00</li>
+<li>Max Shifts: 4.00</li>
+<li>Min Shifts: 2.00</li>
+<li>End Distance Sum: 2.24</li>
+<li>Init Distance Sum: 11.00</li>
+<li>Expected Distance Sum: 12.57</li>
+<li>Penalties: 6.00</li>
+<li>Max Penalties: 8.00</li>
+<li>Rounds: 12.00</li>
+<li>Max Rounds: 12.00</li>
+<li>Object Count: 3.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

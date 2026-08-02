@@ -1,0 +1,826 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_5obj_da', episode 3 with mistral-large-3-azure.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jeg er jeres spilleder, og I spiller et samarbejdsspil med følgende gitter som spilleplade:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║H│◌◌◌TI║ 1
+╟─┤◌◌◌◌◌║ 2
+║◌└─┐◌◌◌║ 3
+║◌◌◌├─┐◌║ 4
+║C◌◌│◌│◌║ 5
+╟─┬─┴─┼─╢ 6
+║◌│W◌◌│◌║ 7
+╚═╧═══╧═╝
+
+</code></pre>
+<ul>
+<li>Den øverste kant viser x-koordinater, der stiger mod højre, og den højre kant y-koordinater, der stiger nedad.</li>
+<li>Følgende objekter er tilfældigt placeret på dit gitter: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Den anden spiller ser en variant af spillepladen, hvor objekterne er placeret på forskellige tilfældige steder. Du kan ikke se den anden spillers bræt, og de kan ikke se dit.</p>
+<p><strong>Mål:</strong></p>
+<p>Begge spillere skal flytte objekterne på deres respektive baggrund, så identiske objekter ender på de samme koordinater. Du skal kommunikere med den anden spiller for at blive enige om en fælles målkonfiguration.</p>
+<p><strong>Regler:</strong></p>
+<ul>
+<li>I hver tur kan du sende præcis én af følgende to kommandoer:</li>
+<li><code>SIG: &lt;BESKED&gt;</code>: for at sende en besked (alt indtil næste linjeskift) til den anden spiller. Jeg sender den videre til din partner.</li>
+<li><code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: for at flytte et objekt til en ny position, hvor <code>&lt;X&gt;</code> er kolonnen og <code>&lt;Y&gt;</code> er rækken. Jeg vil informere dig om, hvorvidt din flytning var vellykket eller ej.</li>
+<li>Hvis du ikke holder dig til formatet eller sender flere kommandoer på én gang, er jeg nødt til at straffe dig.</li>
+<li>Hvis begge spillere akkumulerer mere end 12 straffe, taber I begge spillet.</li>
+<li>Det er vigtigt, at du kommunikerer med den anden spiller om din måltilstand! Den <em>eneste</em> måde, du kan formidle din strategi til den anden spiller på, er ved at bruge kommandoen <code>SIG: &lt;BESKED&gt;</code>!</li>
+</ul>
+<p><strong>Flytning af objekter</strong></p>
+<ul>
+<li>Du kan kun flytte objekter til celler inden for gitterets grænser. Målcellen skal være tom, dvs. den må kun indeholde symbolet '◌'.</li>
+<li>Hvis du forsøger at flytte et objekt til et sted, der ikke er tomt, eller forsøger at flytte det uden for gitteret, må jeg straffe dig. Du får et nyt forsøg.</li>
+<li>Før du foretager en flytning, skal du dobbelttjekke, at målstedet er tomt og ikke indeholder et bogstav, en ramme eller en linje!</li>
+</ul>
+<p><strong>Slut på spillet</strong></p>
+<p>Hvis du tror, at du har nået målet om at justere alle objekter, kan du bede den anden spiller om at afslutte spillet ved at sende <code>SIG: færdig?</code>. Hvis den anden spiller beder dig om at afslutte spillet, og du svarer med <code>SIG: færdig!</code>, er spillet slut.</p>
+<p>Begge spillere vinder, hvis spillet slutter inden for 20 runder, hvor en runde defineres som to spillere, der hver især sender en gyldig kommando.</p>
+<p><strong>Scoring:</strong></p>
+<p>Jo tættere de identiske objekter er på begge spilleplader, jo flere point får du. Straffe reducerer dine point. Kan du slå rekorden?</p>
+<p>Send en besked til den anden spiller for at starte spillet!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Lad os starte spillet med en klar kommunikationsstrategi! Her er min første besked til den anden spiller:</p>
+<pre><code>SIG: Hej! Lad os koordinere vores objekter. Jeg foreslår, at vi placerer dem i følgende rækkefølge fra venstre mod højre på række 1: H, C, W, T, I. Det vil sige:
+- H på (1,1)
+- C på (2,1)
+- W på (3,1)
+- T på (4,1)
+- I på (5,1)
+Er det en plan, du kan arbejde med? Hvis ja, så lad os starte med at flytte H til (1,1) på begge brætter.
+</code></pre>
+<p>Hvis du er enig, kan jeg nu forsøge at flytte <code>H</code> til <code>(1,1)</code> på mit bræt. Her er kommandoen:</p>
+<pre><code>FLYT: H, (1, 1)
+</code></pre>
+<p>Vent venligst på resultatet af flytningen, før vi fortsætter!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Lad os starte spillet med en klar kommunikationsstrategi! Her er min første besked til den anden spiller:</p>
+<pre><code>SIG: Hej! Lad os koordinere vores objekter. Jeg foreslår, at vi placerer dem i følgende rækkefølge fra venstre mod højre på række 1: H, C, W, T, I. Det vil sige:
+- H på (1,1)
+- C på (2,1)
+- W på (3,1)
+- T på (4,1)
+- I på (5,1)
+Er det en plan, du kan arbejde med? Hvis ja, så lad os starte med at flytte H til (1,1) på begge brætter.
+</code></pre>
+<p>Hvis du er enig, kan jeg nu forsøge at flytte <code>H</code> til <code>(1,1)</code> på mit bræt. Her er kommandoen:</p>
+<pre><code>FLYT: H, (1, 1)
+</code></pre>
+<p>Vent venligst på resultatet af flytningen, før vi fortsætter!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: Lad os starte spillet med en klar kommunikationsstrategi! Her er min første besked til den anden spiller:</p>
+<p>SIG: Hej! Lad os koordinere vores objekter. Jeg foreslår, at vi placerer dem i følgende rækkefølge fra venstre mod højre på række 1: H, C, W, T, I. Det vil sige:
+- H på (1,1)
+- C på (2,1)
+- W på (3,1)
+- T på (4,1)
+- I på (5,1)
+Er det en plan, du kan arbejde med? Hvis ja, så lad os starte med at flytte H til (1,1) på begge brætter.</p>
+<p>Hvis du er enig, kan jeg nu forsøge at flytte H til (1,1) på mit bræt. Her er kommandoen:</p>
+<p>FLYT: H, (1, 1)</p>
+<p>Vent venligst på resultatet af flytningen, før vi fortsætter!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: Din besked indeholder mere end én kommando!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 1 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Undskyld fejlen! Her er en korrekt besked til den anden spiller:</p>
+<pre><code>SIG: Hej! Lad os placere objekterne i række 1 fra venstre: H(1,1), C(2,1), W(3,1), T(4,1), I(5,1). Er du med?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Undskyld fejlen! Her er en korrekt besked til den anden spiller:</p>
+<pre><code>SIG: Hej! Lad os placere objekterne i række 1 fra venstre: H(1,1), C(2,1), W(3,1), T(4,1), I(5,1). Er du med?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Undskyld fejlen! Her er en korrekt besked til den anden spiller:</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget før kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 2 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Forslag: H(1,1), C(2,1), W(3,1), T(4,1), I(5,1). OK?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Forslag: H(1,1), C(2,1), W(3,1), T(4,1), I(5,1). OK?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jeg er jeres spilleder, og I spiller et samarbejdsspil med følgende gitter som spilleplade:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+╟─┤◌◌◌H◌║ 2
+║◌└─┐◌◌◌║ 3
+║T◌I├─┐◌║ 4
+║◌◌◌│C│◌║ 5
+╟─┬─┴─┼─╢ 6
+║◌│◌◌◌│W║ 7
+╚═╧═══╧═╝
+
+</code></pre>
+<ul>
+<li>Den øverste kant viser x-koordinater, der stiger mod højre, og den højre kant y-koordinater, der stiger nedad.</li>
+<li>Følgende objekter er tilfældigt placeret på dit gitter: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Den anden spiller ser en variant af spillepladen, hvor objekterne er placeret på forskellige tilfældige steder. Du kan ikke se den anden spillers bræt, og de kan ikke se dit.</p>
+<p><strong>Mål:</strong></p>
+<p>Begge spillere skal flytte objekterne på deres respektive baggrund, så identiske objekter ender på de samme koordinater. Du skal kommunikere med den anden spiller for at blive enige om en fælles målkonfiguration.</p>
+<p><strong>Regler:</strong></p>
+<ul>
+<li>I hver tur kan du sende præcis én af følgende to kommandoer:</li>
+<li><code>SIG: &lt;BESKED&gt;</code>: for at sende en besked (alt indtil næste linjeskift) til den anden spiller. Jeg sender den videre til din partner.</li>
+<li><code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: for at flytte et objekt til en ny position, hvor <code>&lt;X&gt;</code> er kolonnen og <code>&lt;Y&gt;</code> er rækken. Jeg vil informere dig om, hvorvidt din flytning var vellykket eller ej.</li>
+<li>Hvis du ikke holder dig til formatet eller sender flere kommandoer på én gang, er jeg nødt til at straffe dig.</li>
+<li>Hvis begge spillere akkumulerer mere end 12 straffe, taber I begge spillet.</li>
+<li>Det er vigtigt, at du kommunikerer med den anden spiller om din måltilstand! Den <em>eneste</em> måde, du kan formidle din strategi til den anden spiller på, er ved at bruge kommandoen <code>SIG: &lt;BESKED&gt;</code>!</li>
+</ul>
+<p><strong>Flytning af objekter</strong></p>
+<ul>
+<li>Du kan kun flytte objekter til celler inden for gitterets grænser. Målcellen skal være tom, dvs. den må kun indeholde symbolet '◌'.</li>
+<li>Hvis du forsøger at flytte et objekt til et sted, der ikke er tomt, eller forsøger at flytte det uden for gitteret, må jeg straffe dig. Du får et nyt forsøg.</li>
+<li>Før du foretager en flytning, skal du dobbelttjekke, at målstedet er tomt og ikke indeholder et bogstav, en ramme eller en linje!</li>
+</ul>
+<p><strong>Slut på spillet</strong></p>
+<p>Hvis du tror, at du har nået målet om at justere alle objekter, kan du bede den anden spiller om at afslutte spillet ved at sende <code>SIG: færdig?</code>. Hvis den anden spiller beder dig om at afslutte spillet, og du svarer med <code>SIG: færdig!</code>, er spillet slut.</p>
+<p>Begge spillere vinder, hvis spillet slutter inden for 20 runder, hvor en runde defineres som to spillere, der hver især sender en gyldig kommando.</p>
+<p><strong>Scoring:</strong></p>
+<p>Jo tættere de identiske objekter er på begge spilleplader, jo flere point får du. Straffe reducerer dine point. Kan du slå rekorden?</p>
+<p>Den anden spiller startede spillet ved at sende denne besked:</p>
+<p>"Forslag: H(1,1), C(2,1), W(3,1), T(4,1), I(5,1). OK?"</p>
+<p>Hvad er din første kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Her er min første kommando som svar på den anden spillers forslag:</p>
+<pre><code>SIG: Jeg foreslår en alternativ konfiguration: H(1,7), I(2,7), T(3,7), C(4,7), W(5,7). Det giver mere plads til manøvrering og undgår rammerne. Hvad synes du?
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Den anden spillers forslag placerer alle objekter i række 1, som er tæt på den øverste ramme (hvor flytninger kan være vanskelige på grund af begrænset plads).
+2. Mit forslag placerer objekterne i bunden af gitteret (række 7), hvor der er mere plads og færre rammer/linjer at navigere rundt.
+3. Jeg prioriterer at undgå rammer (<code>║</code>, <code>╟</code>, <code>╢</code> osv.), da de kan blokere flytninger.
+4. Jeg nævner specifikt koordinaterne for at gøre det klart, hvilken konfiguration jeg foreslår.</p>
+<p>Dette er en <strong>kommunikationsbesked</strong> (<code>SIG</code>), så vi kan blive enige om en fælles målkonfiguration, før vi begynder at flytte objekter. Jeg venter på den anden spillers svar, før jeg eventuelt foretager en flytning.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Her er min første kommando som svar på den anden spillers forslag:</p>
+<pre><code>SIG: Jeg foreslår en alternativ konfiguration: H(1,7), I(2,7), T(3,7), C(4,7), W(5,7). Det giver mere plads til manøvrering og undgår rammerne. Hvad synes du?
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Den anden spillers forslag placerer alle objekter i række 1, som er tæt på den øverste ramme (hvor flytninger kan være vanskelige på grund af begrænset plads).
+2. Mit forslag placerer objekterne i bunden af gitteret (række 7), hvor der er mere plads og færre rammer/linjer at navigere rundt.
+3. Jeg prioriterer at undgå rammer (<code>║</code>, <code>╟</code>, <code>╢</code> osv.), da de kan blokere flytninger.
+4. Jeg nævner specifikt koordinaterne for at gøre det klart, hvilken konfiguration jeg foreslår.</p>
+<p>Dette er en <strong>kommunikationsbesked</strong> (<code>SIG</code>), så vi kan blive enige om en fælles målkonfiguration, før vi begynder at flytte objekter. Jeg venter på den anden spillers svar, før jeg eventuelt foretager en flytning.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Her er min første kommando som svar på den anden spillers forslag:</p>
+<p>'
+tail: '</p>
+<p><strong>Begrundelse:</strong>
+1. Den anden spillers forslag placerer alle objekter i række 1, som er tæt på den øverste ramme (hvor flytninger kan være vanskelige på grund af begrænset plads).
+2. Mit forslag placerer objekterne i bunden af gitteret (række 7), hvor der er mere plads og færre rammer/linjer at navigere rundt.
+3. Jeg prioriterer at undgå rammer (║, ╟, ╢ osv.), da de kan blokere flytninger.
+4. Jeg nævner specifikt koordinaterne for at gøre det klart, hvilken konfiguration jeg foreslår.</p>
+<p>Dette er en <strong>kommunikationsbesked</strong> (SIG), så vi kan blive enige om en fælles målkonfiguration, før vi begynder at flytte objekter. Jeg venter på den anden spillers svar, før jeg eventuelt foretager en flytning.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget før eller efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 3 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: Jeg foreslår: H(1,7), I(2,7), T(3,7), C(4,7), W(5,7). OK?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Jeg foreslår: H(1,7), I(2,7), T(3,7), C(4,7), W(5,7). OK?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 1 af maksimalt 20.
+I har samlet set akkumuleret 3 af 12 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Jeg foreslår: H(1,7), I(2,7), T(3,7), C(4,7), W(5,7). OK?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><pre><code>SIG: Lad os finde et kompromis. Hvad med H(1,1), I(2,1), T(3,1), C(4,1), W(5,1)?
+</code></pre>
+<p>(Jeg foreslår en ny rækkefølge på række 1, som kombinerer vores to ideer. Hvis det ikke virker, kan vi prøve at placere dem på række 7 i stedet.)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>SIG: Lad os finde et kompromis. Hvad med H(1,1), I(2,1), T(3,1), C(4,1), W(5,1)?
+</code></pre>
+<p>(Jeg foreslår en ny rækkefølge på række 1, som kombinerer vores to ideer. Hvis det ikke virker, kan vi prøve at placere dem på række 7 i stedet.)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>(Jeg foreslår en ny rækkefølge på række 1, som kombinerer vores to ideer. Hvis det ikke virker, kan vi prøve at placere dem på række 7 i stedet.)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 4 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: Kompromis: H(1,1), I(2,1), T(3,1), C(4,1), W(5,1). OK?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: Kompromis: H(1,1), I(2,1), T(3,1), C(4,1), W(5,1). OK?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 2 af maksimalt 20.
+I har samlet set akkumuleret 4 af 12 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"Kompromis: H(1,1), I(2,1), T(3,1), C(4,1), W(5,1). OK?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>SIG: Accepterer. Flytter nu H til (1,1). Bekræft?
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Jeg accepterer den anden spillers kompromisforslag for at undgå yderligere uenighed.
+2. Jeg starter med at flytte <strong>H</strong> til (1,1), da det er det første objekt i rækken og tættest på sin nuværende position (H er på (6,2) på mit bræt).
+3. Jeg beder om bekræftelse for at sikre, at den anden spiller er klar til at matche flytningen på deres bræt.</p>
+<p>Næste skridt: Hvis den anden spiller bekræfter, vil jeg fortsætte med at flytte de resterende objekter i rækkefølgen I → T → C → W.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>SIG: Accepterer. Flytter nu H til (1,1). Bekræft?
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Jeg accepterer den anden spillers kompromisforslag for at undgå yderligere uenighed.
+2. Jeg starter med at flytte <strong>H</strong> til (1,1), da det er det første objekt i rækken og tættest på sin nuværende position (H er på (6,2) på mit bræt).
+3. Jeg beder om bekræftelse for at sikre, at den anden spiller er klar til at matche flytningen på deres bræt.</p>
+<p>Næste skridt: Hvis den anden spiller bekræfter, vil jeg fortsætte med at flytte de resterende objekter i rækkefølgen I → T → C → W.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><strong>Begrundelse:</strong>
+1. Jeg accepterer den anden spillers kompromisforslag for at undgå yderligere uenighed.
+2. Jeg starter med at flytte <strong>H</strong> til (1,1), da det er det første objekt i rækken og tættest på sin nuværende position (H er på (6,2) på mit bræt).
+3. Jeg beder om bekræftelse for at sikre, at den anden spiller er klar til at matche flytningen på deres bræt.</p>
+<p>Næste skridt: Hvis den anden spiller bekræfter, vil jeg fortsætte med at flytte de resterende objekter i rækkefølgen I → T → C → W.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 5 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYT: H, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: H, (1,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (1, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 2 af maksimalt 20.
+I har samlet set akkumuleret 5 af 12 straffe.
+Den anden spiller flyttede et objekt på sit felt.</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><pre><code>FLYT: H, (1, 1)
+</code></pre>
+<p>(Jeg forsøger at flytte H til den foreslåede position (1,1) på mit bræt. Håber det lykkes!)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>FLYT: H, (1, 1)
+</code></pre>
+<p>(Jeg forsøger at flytte H til den foreslåede position (1,1) på mit bræt. Håber det lykkes!)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>(Jeg forsøger at flytte H til den foreslåede position (1,1) på mit bræt. Håber det lykkes!)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 6 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYT: H, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: H, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (1,1) er ikke tom, men indeholder 'H'.</p>
+<p>I har samlet set akkumuleret 7 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: (1,1) er ikke tom, men indeholder 'H'.</p>
+<p>I har samlet set akkumuleret 7 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SIG: H er allerede på (1,1) hos mig. Skal vi prøve at flytte et andet objekt først? Jeg starter med C til (4,1)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: H er allerede på (1,1) hos mig. Skal vi prøve at flytte et andet objekt først? Jeg starter med C til (4,1)?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Flyttede 'H' til (1,1) med succes. Dit opdaterede gitter ser sådan ud:</p>
+<pre><code> 1234567
+╔═╤═════╗
+║H│◌◌◌◌◌║ 1
+╟─┤◌◌◌◌◌║ 2
+║◌└─┐◌◌◌║ 3
+║T◌I├─┐◌║ 4
+║◌◌◌│C│◌║ 5
+╟─┬─┴─┼─╢ 6
+║◌│◌◌◌│W║ 7
+╚═╧═══╧═╝
+</code></pre>
+<p>Du spiller i øjeblikket runde 3 af maksimalt 20.
+I har samlet set akkumuleret 7 af 12 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"H er allerede på (1,1) hos mig. Skal vi prøve at flytte et andet objekt først? Jeg starter med C til (4,1)?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>SIG: God idé. Jeg flytter I til (2,1) som næste trin.
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Den anden spiller bekræfter, at H allerede er på plads hos dem, så vi kan fokusere på de resterende objekter.
+2. Jeg foreslår at flytte <strong>I</strong> til (2,1) som næste skridt, da det følger den aftalte rækkefølge (H → I → T → C → W).
+3. Dette holder kommunikationen klar og undgår yderligere straffe ved at holde beskeden kort og præcis.</p>
+<p>Næste trin: Hvis den anden spiller accepterer, vil jeg udføre flytningen i næste runde.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>SIG: God idé. Jeg flytter I til (2,1) som næste trin.
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Den anden spiller bekræfter, at H allerede er på plads hos dem, så vi kan fokusere på de resterende objekter.
+2. Jeg foreslår at flytte <strong>I</strong> til (2,1) som næste skridt, da det følger den aftalte rækkefølge (H → I → T → C → W).
+3. Dette holder kommunikationen klar og undgår yderligere straffe ved at holde beskeden kort og præcis.</p>
+<p>Næste trin: Hvis den anden spiller accepterer, vil jeg udføre flytningen i næste runde.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><strong>Begrundelse:</strong>
+1. Den anden spiller bekræfter, at H allerede er på plads hos dem, så vi kan fokusere på de resterende objekter.
+2. Jeg foreslår at flytte <strong>I</strong> til (2,1) som næste skridt, da det følger den aftalte rækkefølge (H → I → T → C → W).
+3. Dette holder kommunikationen klar og undgår yderligere straffe ved at holde beskeden kort og præcis.</p>
+<p>Næste trin: Hvis den anden spiller accepterer, vil jeg udføre flytningen i næste runde.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 8 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYT: I, (2,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: I, (2,1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (2,1) er ikke tom, men indeholder '│'.</p>
+<p>I har samlet set akkumuleret 9 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: (2,1) er ikke tom, men indeholder '│'.</p>
+<p>I har samlet set akkumuleret 9 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>SIG: Fejl: (2,1) blokeret. Forslag: I til (2,2)?
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Jeg opdager, at (2,1) er blokeret af en lodret linje (<code>│</code>), så jeg foreslår et alternativ.
+2. (2,2) er fri (<code>◌</code>) og tæt på den ønskede position (2,1), så det er et logisk næste skridt.
+3. Jeg kommunikerer dette som en <strong>SIG</strong>-besked for at undgå yderligere straffe ved forkert flytning.</p>
+<p>Hvis den anden spiller accepterer, vil jeg udføre flytningen i næste runde.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>SIG: Fejl: (2,1) blokeret. Forslag: I til (2,2)?
+</code></pre>
+<p><strong>Begrundelse:</strong>
+1. Jeg opdager, at (2,1) er blokeret af en lodret linje (<code>│</code>), så jeg foreslår et alternativ.
+2. (2,2) er fri (<code>◌</code>) og tæt på den ønskede position (2,1), så det er et logisk næste skridt.
+3. Jeg kommunikerer dette som en <strong>SIG</strong>-besked for at undgå yderligere straffe ved forkert flytning.</p>
+<p>Hvis den anden spiller accepterer, vil jeg udføre flytningen i næste runde.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><strong>Begrundelse:</strong>
+1. Jeg opdager, at (2,1) er blokeret af en lodret linje (│), så jeg foreslår et alternativ.
+2. (2,2) er fri (◌) og tæt på den ønskede position (2,1), så det er et logisk næste skridt.
+3. Jeg kommunikerer dette som en <strong>SIG</strong>-besked for at undgå yderligere straffe ved forkert flytning.</p>
+<p>Hvis den anden spiller accepterer, vil jeg udføre flytningen i næste runde.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 10 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SIG: I til (2,2)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SIG: I til (2,2)?</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Din besked er blevet videresendt til den anden spiller.</p>
+<p>Du spiller i øjeblikket runde 3 af maksimalt 20.
+I har samlet set akkumuleret 10 af 12 straffe.
+Den anden spiller sendte denne besked:</p>
+<p>"I til (2,2)?"</p>
+<p>Hvad er din næste kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><pre><code>FLYT: I, (2, 2)
+</code></pre>
+<p>(Jeg forsøger at flytte I til (2,2) for at matche deres forslag. Håber det er tomt!)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>FLYT: I, (2, 2)
+</code></pre>
+<p>(Jeg forsøger at flytte I til (2,2) for at matche deres forslag. Håber det er tomt!)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>(Jeg forsøger at flytte I til (2,2) for at matche deres forslag. Håber det er tomt!)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: Din besked må ikke indeholde noget efter kommandoen!</p>
+<p>Sørg for, at dit svar kun indeholder enten <code>SIG: &lt;BESKED&gt;</code> eller <code>FLYT: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, og intet andet!</p>
+<p>I har samlet set akkumuleret 11 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYT: I, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYT: I, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straf: (2,2) er ikke tom, men indeholder '┤'.</p>
+<p>I har samlet set akkumuleret 12 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straf: (2,2) er ikke tom, men indeholder '┤'.</p>
+<p>I har samlet set akkumuleret 12 af 12 straffe.
+Prøv venligst igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><pre><code>SIG: Vi har nået max straffe! Lad os prøve en ny strategi: Flyt alle objekter til række 7 i rækkefølgen H(1,7), I(2,7), T(3,7), C(4,7), W(5,7). Er du med?
+</code></pre>
+<p>(Hvis vi ikke vinder nu, taber vi på straffe. Jeg foreslår at samle alle på række 7, som den anden spiller tidligere foreslog, men med vores rækkefølge. Dette burde være muligt, da række 7 ser fri ud på mit bræt).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>SIG: Vi har nået max straffe! Lad os prøve en ny strategi: Flyt alle objekter til række 7 i rækkefølgen H(1,7), I(2,7), T(3,7), C(4,7), W(5,7). Er du med?
+</code></pre>
+<p>(Hvis vi ikke vinder nu, taber vi på straffe. Jeg foreslår at samle alle på række 7, som den anden spiller tidligere foreslog, men med vores rækkefølge. Dette burde være muligt, da række 7 ser fri ud på mit bræt).</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>(Hvis vi ikke vinder nu, taber vi på straffe. Jeg foreslår at samle alle på række 7, som den anden spiller tidligere foreslog, men med vores rækkefølge. Dette burde være muligt, da række 7 ser fri ud på mit bræt).</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═════╗
+║H│◌◌◌TI║ 1
+╟─┤◌◌◌◌◌║ 2
+║◌└─┐◌◌◌║ 3
+║◌◌◌├─┐◌║ 4
+║C◌◌│◌│◌║ 5
+╟─┬─┴─┼─╢ 6
+║◌│W◌◌│◌║ 7
+╚═╧═══╧═╝
+
+
+Player 2:
+ 1234567
+╔═╤═════╗
+║◌│◌◌◌◌◌║ 1
+╟─┤◌◌◌H◌║ 2
+║◌└─┐◌◌◌║ 3
+║T◌I├─┐◌║ 4
+║◌◌◌│C│◌║ 5
+╟─┬─┴─┼─╢ 6
+║◌│◌◌◌│W║ 7
+╚═╧═══╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═╤═════╗
+║H│◌◌◌TI║ 1
+╟─┤◌◌◌◌◌║ 2
+║◌└─┐◌◌◌║ 3
+║◌◌◌├─┐◌║ 4
+║C◌◌│◌│◌║ 5
+╟─┬─┴─┼─╢ 6
+║◌│W◌◌│◌║ 7
+╚═╧═══╧═╝
+
+
+Player 2:
+ 1234567
+╔═╤═════╗
+║H│◌◌◌◌◌║ 1
+╟─┤◌◌◌◌◌║ 2
+║◌└─┐◌◌◌║ 3
+║T◌I├─┐◌║ 4
+║◌◌◌│C│◌║ 5
+╟─┬─┴─┼─╢ 6
+║◌│◌◌◌│W║ 7
+╚═╧═══╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 0.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 18.83</li>
+<li>Init Distance Sum: 23.93</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 13.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 3.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

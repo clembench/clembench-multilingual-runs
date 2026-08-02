@@ -1,0 +1,1516 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '1_medium_7obj_cs', episode 1 with glm-5.2.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jsem váš herní mistr a hrajete společnou hru s následující mřížkou jako herním plánem:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║◌P│◌M│◌║ 1
+╟──┼──┴─╢ 2
+║◌◌│◌S◌O║ 3
+╟──┘◌A◌◌║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║T◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Horní okraj zobrazuje souřadnice x rostoucí doprava a pravý okraj souřadnice y rostoucí dolů.</li>
+<li>Na vaší mřížce jsou náhodně umístěny následující objekty: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Druhý hráč vidí variantu herní desky, kde jsou objekty umístěny na různých náhodných místech. Vy nevidíte desku druhého hráče a on nevidí tu vaši.</p>
+<p><strong>Cíl:</strong></p>
+<p>Oba hráči musí přesunout objekty na svém pozadí tak, aby stejné objekty skončily na stejných souřadnicích. Musíte komunikovat s druhým hráčem, abyste se dohodli na společné cílové konfiguraci.</p>
+<p><strong>Pravidla:</strong></p>
+<ul>
+<li>V každém tahu můžete poslat přesně jeden z následujících dvou příkazů:</li>
+<li><code>ŘEKNI: &lt;ZPRÁVA&gt;</code>: odeslání zprávy (vše až do dalšího zalomení řádku) druhému hráči. Přepošlu ji vašemu partnerovi.</li>
+<li><code>POHYB: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: přesun objektu na novou pozici, kde <code>&lt;X&gt;</code> je sloupec a <code>&lt;Y&gt;</code> je řádek. Budu vás informovat, zda byl váš přesun úspěšný, nebo ne.</li>
+<li>Pokud nedodržíte formát nebo pošlete několik příkazů najednou, musím vás penalizovat.</li>
+<li>Pokud oba hráči nasbírají více než 16 penalizací, oba prohrajete hru.</li>
+<li>Je nezbytné, abyste s druhým hráčem komunikovali ohledně vašeho cílového stavu! <em>Jediný</em> způsob, jak můžete druhému hráči předat svou strategii, je použití příkazu <code>ŘEKNI: &lt;ZPRÁVA&gt;</code>!</li>
+</ul>
+<p><strong>Přesouvání objektů</strong></p>
+<ul>
+<li>Objekty lze přesouvat pouze do buněk v rámci hranic mřížky. Cílová buňka musí být prázdná, tj. musí obsahovat pouze symbol '◌'.</li>
+<li>Pokud se pokusíte přesunout objekt na místo, které není prázdné, nebo se ho pokusíte přesunout mimo mřížku, musím vás penalizovat. Dostanete další pokus.</li>
+<li>Před provedením přesunu dvakrát zkontrolujte, zda je cílové místo prázdné a zda se v něm nenachází žádné písmeno, rámeček nebo čára!</li>
+</ul>
+<p><strong>Konec hry</strong></p>
+<p>Pokud si myslíte, že jste dosáhli cíle zarovnání všech objektů, můžete druhého hráče požádat o ukončení hry odesláním <code>ŘEKNI: hotovo?</code>. Pokud vás druhý hráč požádá o ukončení hry a vy odpovíte <code>ŘEKNI: hotovo!</code>, hra skončí.</p>
+<p>Oba hráči vyhrají, pokud hra skončí během 28 kol, přičemž jedno kolo je definováno jako odeslání platného příkazu oběma hráči.</p>
+<p><strong>Bodování:</strong></p>
+<p>Čím blíže jsou stejné objekty na obou herních deskách, tím více bodů získáte. Penalizace vám body snižují. Podaří se vám překonat rekord?</p>
+<p>Pošlete prosím zprávu druhému hráči a začněte hru!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: Ahoj, navrhuji následující cílovou konfiguraci pro všechny objekty (souřadnice X,Y): P=(1,1), O=(5,1), T=(3,1), S=(3,2), D=(1,3), A=(3,3), M=(5,3). Prosím, přesuň své objekty tak, aby odpovídaly těmto souřadnicím, a dej mi vědět, až to budeš mít hotovo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Ahoj, navrhuji následující cílovou konfiguraci pro všechny objekty (souřadnice X,Y): P=(1,1), O=(5,1), T=(3,1), S=(3,2), D=(1,3), A=(3,3), M=(5,3). Prosím, přesuň své objekty tak, aby odpovídaly těmto souřadnicím, a dej mi vědět, až to budeš mít hotovo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jsem váš herní mistr a hrajete společnou hru s následující mřížkou jako herním plánem:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║◌◌│◌◌│T║ 1
+╟──┼──┴─╢ 2
+║◌◌│◌S◌P║ 3
+╟──┘◌◌MO║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│A│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Horní okraj zobrazuje souřadnice x rostoucí doprava a pravý okraj souřadnice y rostoucí dolů.</li>
+<li>Na vaší mřížce jsou náhodně umístěny následující objekty: 'P', 'O', 'T', 'S', 'D', 'A', 'M'.</li>
+</ul>
+<p>Druhý hráč vidí variantu herní desky, kde jsou objekty umístěny na různých náhodných místech. Vy nevidíte desku druhého hráče a on nevidí tu vaši.</p>
+<p><strong>Cíl:</strong></p>
+<p>Oba hráči musí přesunout objekty na svém pozadí tak, aby stejné objekty skončily na stejných souřadnicích. Musíte komunikovat s druhým hráčem, abyste se dohodli na společné cílové konfiguraci.</p>
+<p><strong>Pravidla:</strong></p>
+<ul>
+<li>V každém tahu můžete poslat přesně jeden z následujících dvou příkazů:</li>
+<li><code>ŘEKNI: &lt;ZPRÁVA&gt;</code>: odeslání zprávy (vše až do dalšího zalomení řádku) druhému hráči. Přepošlu ji vašemu partnerovi.</li>
+<li><code>POHYB: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: přesun objektu na novou pozici, kde <code>&lt;X&gt;</code> je sloupec a <code>&lt;Y&gt;</code> je řádek. Budu vás informovat, zda byl váš přesun úspěšný, nebo ne.</li>
+<li>Pokud nedodržíte formát nebo pošlete několik příkazů najednou, musím vás penalizovat.</li>
+<li>Pokud oba hráči nasbírají více než 16 penalizací, oba prohrajete hru.</li>
+<li>Je nezbytné, abyste s druhým hráčem komunikovali ohledně vašeho cílového stavu! <em>Jediný</em> způsob, jak můžete druhému hráči předat svou strategii, je použití příkazu <code>ŘEKNI: &lt;ZPRÁVA&gt;</code>!</li>
+</ul>
+<p><strong>Přesouvání objektů</strong></p>
+<ul>
+<li>Objekty lze přesouvat pouze do buněk v rámci hranic mřížky. Cílová buňka musí být prázdná, tj. musí obsahovat pouze symbol '◌'.</li>
+<li>Pokud se pokusíte přesunout objekt na místo, které není prázdné, nebo se ho pokusíte přesunout mimo mřížku, musím vás penalizovat. Dostanete další pokus.</li>
+<li>Před provedením přesunu dvakrát zkontrolujte, zda je cílové místo prázdné a zda se v něm nenachází žádné písmeno, rámeček nebo čára!</li>
+</ul>
+<p><strong>Konec hry</strong></p>
+<p>Pokud si myslíte, že jste dosáhli cíle zarovnání všech objektů, můžete druhého hráče požádat o ukončení hry odesláním <code>ŘEKNI: hotovo?</code>. Pokud vás druhý hráč požádá o ukončení hry a vy odpovíte <code>ŘEKNI: hotovo!</code>, hra skončí.</p>
+<p>Oba hráči vyhrají, pokud hra skončí během 28 kol, přičemž jedno kolo je definováno jako odeslání platného příkazu oběma hráči.</p>
+<p><strong>Bodování:</strong></p>
+<p>Čím blíže jsou stejné objekty na obou herních deskách, tím více bodů získáte. Penalizace vám body snižují. Podaří se vám překonat rekord?</p>
+<p>Druhý hráč zahájil hru odesláním této zprávy:</p>
+<p>"Ahoj, navrhuji následující cílovou konfiguraci pro všechny objekty (souřadnice X,Y): P=(1,1), O=(5,1), T=(3,1), S=(3,2), D=(1,3), A=(3,3), M=(5,3). Prosím, přesuň své objekty tak, aby odpovídaly těmto souřadnicím, a dej mi vědět, až to budeš mít hotovo."</p>
+<p>Jaký je váš první příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Ahoj, přijímám tvou cílovou konfiguraci. Začínám přesuny: M na (5,1), pak S na (3,2), A na (3,3) a D na (1,3). Dej mi vědět, jak jsi na tom.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Ahoj, přijímám tvou cílovou konfiguraci. Začínám přesuny: M na (5,1), pak S na (3,2), A na (3,3) a D na (1,3). Dej mi vědět, jak jsi na tom.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 1 z maximálně 28.
+Dohromady jste nasbírali 0 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Ahoj, přijímám tvou cílovou konfiguraci. Začínám přesuny: M na (5,1), pak S na (3,2), A na (3,3) a D na (1,3). Dej mi vědět, jak jsi na tom."</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: M, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: M, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (5,1) není prázdný, ale obsahuje 'M'.</p>
+<p>Dohromady jste nasbírali 1 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (5,1) není prázdný, ale obsahuje 'M'.</p>
+<p>Dohromady jste nasbírali 1 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: O, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: O, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (5,1) není prázdný, ale obsahuje 'M'.</p>
+<p>Dohromady jste nasbírali 2 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (5,1) není prázdný, ale obsahuje 'M'.</p>
+<p>Dohromady jste nasbírali 2 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Jsem omlouvám za zmatky. Nejprve si ujasním aktuální stav mé desky:</p>
+<ul>
+<li>M je na (4,1), takže prostě zůstane na místě.</li>
+<li>S je na (4,3), ale musí být přesunuto na (3,2).</li>
+<li>A je na (5,4), musí být přesunuto na (3,3).</li>
+<li>D je na (1,5), musí být přesunuto na (1,3).</li>
+<li>O je na (7,3), musí být přesunuto na (5,1). Přesunu M na (7,3), abych uvolnil (5,1) pro O.</li>
+</ul>
+<p>POHYB: M, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Jsem omlouvám za zmatky. Nejprve si ujasním aktuální stav mé desky:</p>
+<ul>
+<li>M je na (4,1), takže prostě zůstane na místě.</li>
+<li>S je na (4,3), ale musí být přesunuto na (3,2).</li>
+<li>A je na (5,4), musí být přesunuto na (3,3).</li>
+<li>D je na (1,5), musí být přesunuto na (1,3).</li>
+<li>O je na (7,3), musí být přesunuto na (5,1). Přesunu M na (7,3), abych uvolnil (5,1) pro O.</li>
+</ul>
+<p>POHYB: M, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Jsem omlouvám za zmatky. Nejprve si ujasním aktuální stav mé desky:</p>
+<ul>
+<li>M je na (4,1), takže prostě zůstane na místě.</li>
+<li>S je na (4,3), ale musí být přesunuto na (3,2).</li>
+<li>A je na (5,4), musí být přesunuto na (3,3).</li>
+<li>D je na (1,5), musí být přesunuto na (1,3).</li>
+<li>O je na (7,3), musí být přesunuto na (5,1). Přesunu M na (7,3), abych uvolnil (5,1) pro O.</li>
+</ul>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Trest: Vaše zpráva nesmí obsahovat nic před příkazem!</p>
+<p>Ujistěte se, že vaše odpověď obsahuje pouze <code>ŘEKNI: &lt;ZPRÁVA&gt;</code> nebo <code>POHYB: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> a nic jiného!</p>
+<p>Dohromady jste nasbírali 3 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: M, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: M, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (7,3) není prázdný, ale obsahuje 'O'.</p>
+<p>Dohromady jste nasbírali 4 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (7,3) není prázdný, ale obsahuje 'O'.</p>
+<p>Dohromady jste nasbírali 4 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: Problém: O je na (7,3). M je na (4,1). Měli jsme si nejdřív ujasnit desku. Nový plán: M z (4,1) na (5,4). O z (7,3) na (4,1). T z (1,7) na (1,1). P z (2,1) na (2,3). S z (4,3) na (3,2). A z (5,4) na (7,3) - ale až po M. D z (1,5) na (1,3). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Problém: O je na (7,3). M je na (4,1). Měli jsme si nejdřív ujasnit desku. Nový plán: M z (4,1) na (5,4). O z (7,3) na (4,1). T z (1,7) na (1,1). P z (2,1) na (2,3). S z (4,3) na (3,2). A z (5,4) na (7,3) - ale až po M. D z (1,5) na (1,3). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 2 z maximálně 28.
+Dohromady jste nasbírali 4 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Problém: O je na (7,3). M je na (4,1). Měli jsme si nejdřív ujasnit desku. Nový plán: M z (4,1) na (5,4). O z (7,3) na (4,1). T z (1,7) na (1,1). P z (2,1) na (2,3). S z (4,3) na (3,2). A z (5,4) na (7,3) - ale až po M. D z (1,5) na (1,3). Souhlasíš?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Souhlasím s tvým novým plánem. M=(5,4), O=(4,1), T=(1,1), P=(2,3), S=(3,2), A=(7,3), D=(1,3). Pro svou desku to vidím takto: M(5,4) je na (6,4)→(5,4), O(7,3) je na (5,4)→(7,3), T(1,1) je na (7,1)→(1,1), P(2,3) je na (7,3)→(2,3), S(3,2) je na (5,3)→(3,2), A(7,3) je na (5,7)→(7,3), D(1,3) je na (1,5)→(1,3). Začínám přesunem M z (6,4) na (5,4).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Souhlasím s tvým novým plánem. M=(5,4), O=(4,1), T=(1,1), P=(2,3), S=(3,2), A=(7,3), D=(1,3). Pro svou desku to vidím takto: M(5,4) je na (6,4)→(5,4), O(7,3) je na (5,4)→(7,3), T(1,1) je na (7,1)→(1,1), P(2,3) je na (7,3)→(2,3), S(3,2) je na (5,3)→(3,2), A(7,3) je na (5,7)→(7,3), D(1,3) je na (1,5)→(1,3). Začínám přesunem M z (6,4) na (5,4).</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 2 z maximálně 28.
+Dohromady jste nasbírali 4 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Souhlasím s tvým novým plánem. M=(5,4), O=(4,1), T=(1,1), P=(2,3), S=(3,2), A=(7,3), D=(1,3). Pro svou desku to vidím takto: M(5,4) je na (6,4)→(5,4), O(7,3) je na (5,4)→(7,3), T(1,1) je na (7,1)→(1,1), P(2,3) je na (7,3)→(2,3), S(3,2) je na (5,3)→(3,2), A(7,3) je na (5,7)→(7,3), D(1,3) je na (1,5)→(1,3). Začínám přesunem M z (6,4) na (5,4)."</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: M, (5, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: M, (5, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (5,4) není prázdný, ale obsahuje 'A'.</p>
+<p>Dohromady jste nasbírali 5 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (5,4) není prázdný, ale obsahuje 'A'.</p>
+<p>Dohromady jste nasbírali 5 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: A, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: A, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (7,3) není prázdný, ale obsahuje 'O'.</p>
+<p>Dohromady jste nasbírali 6 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (7,3) není prázdný, ale obsahuje 'O'.</p>
+<p>Dohromady jste nasbírali 6 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: O, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: O, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (4, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 3 z maximálně 28.
+Dohromady jste nasbírali 6 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: M, (5, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: M, (5, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>M moved to (5, 4)</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'O' do (4,1). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║◌P│OM│◌║ 1
+╟──┼──┴─╢ 2
+║◌◌│◌S◌◌║ 3
+╟──┘◌A◌◌║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║T◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 3 z maximálně 28.
+Dohromady jste nasbírali 6 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: P, (2, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: P, (2, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (2, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Úspěšně přesunuto 'M' do (5,4). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║◌◌│◌◌│T║ 1
+╟──┼──┴─╢ 2
+║◌◌│◌S◌P║ 3
+╟──┘◌M◌O║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│A│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 4 z maximálně 28.
+Dohromady jste nasbírali 6 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: T, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: T, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (1, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'P' do (2,3). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║◌◌│OM│◌║ 1
+╟──┼──┴─╢ 2
+║◌P│◌S◌◌║ 3
+╟──┘◌A◌◌║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║T◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 4 z maximálně 28.
+Dohromady jste nasbírali 6 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>D moved to (1, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Úspěšně přesunuto 'T' do (1,1). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║◌◌│◌S◌P║ 3
+╟──┘◌M◌O║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│A│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 5 z maximálně 28.
+Dohromady jste nasbírali 6 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: D, (1, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>D moved to (1, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'D' do (1,3). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║◌◌│OM│◌║ 1
+╟──┼──┴─╢ 2
+║DP│◌S◌◌║ 3
+╟──┘◌A◌◌║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║T◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 5 z maximálně 28.
+Dohromady jste nasbírali 6 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: T, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: T, (1, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (1, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Úspěšně přesunuto 'D' do (1,3). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║D◌│◌S◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│A│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 6 z maximálně 28.
+Dohromady jste nasbírali 6 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: S, (3, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: S, (3, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (3,2) není prázdný, ale obsahuje '┼'.</p>
+<p>Dohromady jste nasbírali 7 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalizace: (3,2) není prázdný, ale obsahuje '┼'.</p>
+<p>Dohromady jste nasbírali 7 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: S, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: S, (3, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (3,3) není prázdný, ale obsahuje '│'.</p>
+<p>Dohromady jste nasbírali 8 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalizace: (3,3) není prázdný, ale obsahuje '│'.</p>
+<p>Dohromady jste nasbírali 8 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: S, (2, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: S, (2, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>S moved to (2, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'T' do (1,1). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│OM│◌║ 1
+╟──┼──┴─╢ 2
+║DP│◌S◌◌║ 3
+╟──┘◌A◌◌║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 6 z maximálně 28.
+Dohromady jste nasbírali 8 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: A, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: A, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (5,1) není prázdný, ale obsahuje 'M'.</p>
+<p>Dohromady jste nasbírali 9 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (5,1) není prázdný, ale obsahuje 'M'.</p>
+<p>Dohromady jste nasbírali 9 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: A, (5, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: A, (5, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>A moved to (5, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Úspěšně přesunuto 'S' do (2,3). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║DS│◌◌◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│A│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 7 z maximálně 28.
+Dohromady jste nasbírali 9 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Pozor, S nemůžu dát na (3,2) ani (3,3) kvůli stěnám. S je teď na (2,3). Návrh: přesuňme P na (3,2) a S nechme na (2,3). Tedy finální: S=(2,3), P=(3,2). Ostatní zůstávají. Souhlasíš? Teď přesunu A na (7,3).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Pozor, S nemůžu dát na (3,2) ani (3,3) kvůli stěnám. S je teď na (2,3). Návrh: přesuňme P na (3,2) a S nechme na (2,3). Tedy finální: S=(2,3), P=(3,2). Ostatní zůstávají. Souhlasíš? Teď přesunu A na (7,3).</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'A' do (5,5). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│OM│◌║ 1
+╟──┼──┴─╢ 2
+║DP│◌S◌◌║ 3
+╟──┘◌◌◌◌║ 4
+║◌◌◌◌A◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 7 z maximálně 28.
+Dohromady jste nasbírali 9 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Pozor, S nemůžu dát na (3,2) ani (3,3) kvůli stěnám. S je teď na (2,3). Návrh: přesuňme P na (3,2) a S nechme na (2,3). Tedy finální: S=(2,3), P=(3,2). Ostatní zůstávají. Souhlasíš? Teď přesunu A na (7,3)."</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: P, (3, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: P, (3, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (3,2) není prázdný, ale obsahuje '┼'.</p>
+<p>Dohromady jste nasbírali 10 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (3,2) není prázdný, ale obsahuje '┼'.</p>
+<p>Dohromady jste nasbírali 10 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: Tak (3,2) je u mě křižovatka '┼' a nejde tam. Navrhuji jednodušší a bezpečnější finální pozice bez konfliktů se stěnami: S=(4,2), P=(2,2), A=(7,3), M=(5,4), D=(1,3), T=(1,1), O=(4,1). Všechno by mělo být prázdné. Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Tak (3,2) je u mě křižovatka '┼' a nejde tam. Navrhuji jednodušší a bezpečnější finální pozice bez konfliktů se stěnami: S=(4,2), P=(2,2), A=(7,3), M=(5,4), D=(1,3), T=(1,1), O=(4,1). Všechno by mělo být prázdné. Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 8 z maximálně 28.
+Dohromady jste nasbírali 10 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Tak (3,2) je u mě křižovatka '┼' a nejde tam. Navrhuji jednodušší a bezpečnější finální pozice bez konfliktů se stěnami: S=(4,2), P=(2,2), A=(7,3), M=(5,4), D=(1,3), T=(1,1), O=(4,1). Všechno by mělo být prázdné. Souhlasíš?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Souhlasím s tvým návrhem: S=(4,2), P=(2,2), A=(7,3), M=(5,4), D=(1,3), T=(1,1), O=(4,1). Zkouším přesunout S na (4,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Souhlasím s tvým návrhem: S=(4,2), P=(2,2), A=(7,3), M=(5,4), D=(1,3), T=(1,1), O=(4,1). Zkouším přesunout S na (4,2).</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 8 z maximálně 28.
+Dohromady jste nasbírali 10 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Souhlasím s tvým návrhem: S=(4,2), P=(2,2), A=(7,3), M=(5,4), D=(1,3), T=(1,1), O=(4,1). Zkouším přesunout S na (4,2)."</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: S, (4, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: S, (4, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (4,2) není prázdný, ale obsahuje '─'.</p>
+<p>Dohromady jste nasbírali 11 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (4,2) není prázdný, ale obsahuje '─'.</p>
+<p>Dohromady jste nasbírali 11 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: Tak (4,2) je u mě '─' (horní hrana). Prosím, upravme plán tak, abychom použili jen zaručeně prázdná políčka '◌' z mé mřížky. Návrh: P=(1,5), S=(1,2), A=(7,3), M=(5,4), D=(2,5), T=(1,1), O=(4,1). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Tak (4,2) je u mě '─' (horní hrana). Prosím, upravme plán tak, abychom použili jen zaručeně prázdná políčka '◌' z mé mřížky. Návrh: P=(1,5), S=(1,2), A=(7,3), M=(5,4), D=(2,5), T=(1,1), O=(4,1). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 9 z maximálně 28.
+Dohromady jste nasbírali 11 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Tak (4,2) je u mě '─' (horní hrana). Prosím, upravme plán tak, abychom použili jen zaručeně prázdná políčka '◌' z mé mřížky. Návrh: P=(1,5), S=(1,2), A=(7,3), M=(5,4), D=(2,5), T=(1,1), O=(4,1). Souhlasíš?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Souhlasím s tvým návrhem: P=(1,5), S=(1,2), A=(7,3), M=(5,4), D=(2,5), T=(1,1), O=(4,1). Zkouším přesunout S na (1,2).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Souhlasím s tvým návrhem: P=(1,5), S=(1,2), A=(7,3), M=(5,4), D=(2,5), T=(1,1), O=(4,1). Zkouším přesunout S na (1,2).</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 9 z maximálně 28.
+Dohromady jste nasbírali 11 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Souhlasím s tvým návrhem: P=(1,5), S=(1,2), A=(7,3), M=(5,4), D=(2,5), T=(1,1), O=(4,1). Zkouším přesunout S na (1,2)."</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: S, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: S, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (1,2) není prázdný, ale obsahuje '─'.</p>
+<p>Dohromady jste nasbírali 12 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (1,2) není prázdný, ale obsahuje '─'.</p>
+<p>Dohromady jste nasbírali 12 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: Moje deska má mnoho čar. Bezpečná prázdná políčka '◌' jsou např. (1,5), (2,5), (1,6), (2,6), (7,7). Aktuálně: P(2,3), D(1,3), S(4,3), A(5,5), T(1,1), O(4,1), M(5,1). Propojme symetricky přes střed: T=(1,1), D=(1,3), P=(2,3), O=(4,1), M=(5,1), S=(4,3), A=(5,5). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Moje deska má mnoho čar. Bezpečná prázdná políčka '◌' jsou např. (1,5), (2,5), (1,6), (2,6), (7,7). Aktuálně: P(2,3), D(1,3), S(4,3), A(5,5), T(1,1), O(4,1), M(5,1). Propojme symetricky přes střed: T=(1,1), D=(1,3), P=(2,3), O=(4,1), M=(5,1), S=(4,3), A=(5,5). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 10 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Moje deska má mnoho čar. Bezpečná prázdná políčka '◌' jsou např. (1,5), (2,5), (1,6), (2,6), (7,7). Aktuálně: P(2,3), D(1,3), S(4,3), A(5,5), T(1,1), O(4,1), M(5,1). Propojme symetricky přes střed: T=(1,1), D=(1,3), P=(2,3), O=(4,1), M=(5,1), S=(4,3), A=(5,5). Souhlasíš?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: S, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: S, (4, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>S moved to (4, 3)</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 10 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: Ahoj, zkusme to jednoduše: nech věci tam, kde jsou. Můj plán: M na (5,4), O na (7,3), T na (1,7), P na (2,1), S na (4,3), A na (5,4) - ale to je konflikt. Takže: M na (6,4), O na (7,3), T na (1,7), P na (2,1), S na (4,3), A na (5,4), D na (1,5). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Ahoj, zkusme to jednoduše: nech věci tam, kde jsou. Můj plán: M na (5,4), O na (7,3), T na (1,7), P na (2,1), S na (4,3), A na (5,4) - ale to je konflikt. Takže: M na (6,4), O na (7,3), T na (1,7), P na (2,1), S na (4,3), A na (5,4), D na (1,5). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Úspěšně přesunuto 'S' do (4,3). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║D◌│S◌◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│A│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 11 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Ahoj, zkusme to jednoduše: nech věci tam, kde jsou. Můj plán: M na (5,4), O na (7,3), T na (1,7), P na (2,1), S na (4,3), A na (5,4) - ale to je konflikt. Takže: M na (6,4), O na (7,3), T na (1,7), P na (2,1), S na (4,3), A na (5,4), D na (1,5). Souhlasíš?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Počkej, to nedává smysl - M a A na stejných souřadnicích u tebe. Navrhuji vyřešit to jednoduše: M=(5,4), A=(5,7), O=(7,4), T=(1,1), P=(7,3), S=(4,3), D=(1,3). U mě už jsou T, D, S, M na místě. Zbývá přesunout O, P, A. Souhlasíš s touto konfigurací?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Počkej, to nedává smysl - M a A na stejných souřadnicích u tebe. Navrhuji vyřešit to jednoduše: M=(5,4), A=(5,7), O=(7,4), T=(1,1), P=(7,3), S=(4,3), D=(1,3). U mě už jsou T, D, S, M na místě. Zbývá přesunout O, P, A. Souhlasíš s touto konfigurací?</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 11 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Počkej, to nedává smysl - M a A na stejných souřadnicích u tebe. Navrhuji vyřešit to jednoduše: M=(5,4), A=(5,7), O=(7,4), T=(1,1), P=(7,3), S=(4,3), D=(1,3). U mě už jsou T, D, S, M na místě. Zbývá přesunout O, P, A. Souhlasíš s touto konfigurací?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: Tvůj plán: M=(5,4), A=(5,7), O=(7,4), T=(1,1), P=(7,3), S=(4,3), D=(1,3). Mám T(1,1), D(1,3), S(4,3) už hotovo. Zbývá mi přesunout M, A, O, P. Problém: O je na (4,1) a ty ho chceš na (7,4), ale (7,4) je u mě prázdné. P je na (2,3) a má jít na (7,3), což je prázdné. M je na (5,1), jde na (5,4) - prázdné. A je na (5,5), jde na (5,7) - prázdné. Začnu přesunem M na (5,4). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Tvůj plán: M=(5,4), A=(5,7), O=(7,4), T=(1,1), P=(7,3), S=(4,3), D=(1,3). Mám T(1,1), D(1,3), S(4,3) už hotovo. Zbývá mi přesunout M, A, O, P. Problém: O je na (4,1) a ty ho chceš na (7,4), ale (7,4) je u mě prázdné. P je na (2,3) a má jít na (7,3), což je prázdné. M je na (5,1), jde na (5,4) - prázdné. A je na (5,5), jde na (5,7) - prázdné. Začnu přesunem M na (5,4). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 12 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Tvůj plán: M=(5,4), A=(5,7), O=(7,4), T=(1,1), P=(7,3), S=(4,3), D=(1,3). Mám T(1,1), D(1,3), S(4,3) už hotovo. Zbývá mi přesunout M, A, O, P. Problém: O je na (4,1) a ty ho chceš na (7,4), ale (7,4) je u mě prázdné. P je na (2,3) a má jít na (7,3), což je prázdné. M je na (5,1), jde na (5,4) - prázdné. A je na (5,5), jde na (5,7) - prázdné. Začnu přesunem M na (5,4). Souhlasíš?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Ano, souhlasím! Posouvám P z (7,3) na (7,3) - už je tam. Přesunu O z (7,4) na (7,4) - už je tam. A přesunu A z (5,7) na (5,7) - už je tam. Vše mám na místě. Jak jsi na ty?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Ano, souhlasím! Posouvám P z (7,3) na (7,3) - už je tam. Přesunu O z (7,4) na (7,4) - už je tam. A přesunu A z (5,7) na (5,7) - už je tam. Vše mám na místě. Jak jsi na ty?</p></p>
+    </div>
+</div><div class="game-round" data-round="12">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 12 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Ano, souhlasím! Posouvám P z (7,3) na (7,3) - už je tam. Přesunu O z (7,4) na (7,4) - už je tam. A přesunu A z (5,7) na (5,7) - už je tam. Vše mám na místě. Jak jsi na ty?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: M, (5, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: M, (5, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>M moved to (5, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 13 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Mám všechny objekty na cílových pozicích: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Jak jsi na ty? Jsou u tebe M, O, P, A taky na místě?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Mám všechny objekty na cílových pozicích: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Jak jsi na ty? Jsou u tebe M, O, P, A taky na místě?</p></p>
+    </div>
+</div><div class="game-round" data-round="13">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'M' do (5,4). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│O◌│◌║ 1
+╟──┼──┴─╢ 2
+║DP│◌S◌◌║ 3
+╟──┘◌M◌◌║ 4
+║◌◌◌◌A◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 13 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Mám všechny objekty na cílových pozicích: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Jak jsi na ty? Jsou u tebe M, O, P, A taky na místě?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: O, (7, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: O, (7, 4)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>O moved to (7, 4)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 14 z maximálně 28.
+Dohromady jste nasbírali 12 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: P, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: P, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (7,3) není prázdný, ale obsahuje 'P'.</p>
+<p>Dohromady jste nasbírali 13 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Penalizace: (7,3) není prázdný, ale obsahuje 'P'.</p>
+<p>Dohromady jste nasbírali 13 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>P je už na (7,3), takže přesun není potřeba. Počkám na zprávu od druhého hráče.</p>
+<p>ŘEKNI: P je už na (7,3) a O je už na (7,4) - žádný přesun nepotřebný. U mě je vše hotovo: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Jak jsi na ty? Můžeš potvrdit, že máš M, O, P, A na místě?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>P je už na (7,3), takže přesun není potřeba. Počkám na zprávu od druhého hráče.</p>
+<p>ŘEKNI: P je už na (7,3) a O je už na (7,4) - žádný přesun nepotřebný. U mě je vše hotovo: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Jak jsi na ty? Můžeš potvrdit, že máš M, O, P, A na místě?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'P je už na (7,3), takže přesun není potřeba. Počkám na zprávu od druhého hráče.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Trest: Vaše zpráva nesmí obsahovat nic před příkazem!</p>
+<p>Ujistěte se, že vaše odpověď obsahuje pouze <code>ŘEKNI: &lt;ZPRÁVA&gt;</code> nebo <code>POHYB: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> a nic jiného!</p>
+<p>Dohromady jste nasbírali 14 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: P je už na (7,3) a O na (7,4). U mě vše hotovo: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Potvrď, že máš M, O, P, A na místě.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: P je už na (7,3) a O na (7,4). U mě vše hotovo: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Potvrď, že máš M, O, P, A na místě.</p></p>
+    </div>
+</div><div class="game-round" data-round="14">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'O' do (7,4). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║DP│◌S◌◌║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌◌A◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 14 z maximálně 28.
+Dohromady jste nasbírali 14 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"P je už na (7,3) a O na (7,4). U mě vše hotovo: T=(1,1), D=(1,3), S=(4,3), M=(5,4), O=(7,4), P=(7,3), A=(5,7). Potvrď, že máš M, O, P, A na místě."</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: P, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: P, (7, 3)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>P moved to (7, 3)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 15 z maximálně 28.
+Dohromady jste nasbírali 14 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Mám všechny objekty na cílových pozicích. Jsou u tebe všechny na místě? Můžeš potvrdit M=(5,4), O=(7,4), P=(7,3), A=(5,7)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Mám všechny objekty na cílových pozicích. Jsou u tebe všechny na místě? Můžeš potvrdit M=(5,4), O=(7,4), P=(7,3), A=(5,7)?</p></p>
+    </div>
+</div><div class="game-round" data-round="15">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'P' do (7,3). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║D◌│◌S◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌◌A◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 15 z maximálně 28.
+Dohromady jste nasbírali 14 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Mám všechny objekty na cílových pozicích. Jsou u tebe všechny na místě? Můžeš potvrdit M=(5,4), O=(7,4), P=(7,3), A=(5,7)?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: A, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: A, (5, 7)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Penalizace: (5,7) není prázdný, ale obsahuje '│'.</p>
+<p>Dohromady jste nasbírali 15 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Penalizace: (5,7) není prázdný, ale obsahuje '│'.</p>
+<p>Dohromady jste nasbírali 15 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: A nemůžu dát na (5,7), je tam '│'. Moje A je na (5,5). Bezpečná prázdná místa: (4,5), (7,5), (7,7). Navrhuji A=(4,5). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: A nemůžu dát na (5,7), je tam '│'. Moje A je na (5,5). Bezpečná prázdná místa: (4,5), (7,5), (7,7). Navrhuji A=(4,5). Souhlasíš?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 16 z maximálně 28.
+Dohromady jste nasbírali 15 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"A nemůžu dát na (5,7), je tam '│'. Moje A je na (5,5). Bezpečná prázdná místa: (4,5), (7,5), (7,7). Navrhuji A=(4,5). Souhlasíš?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: Souhlasím s A=(4,5). U mě je A na (5,7), přesunu ho na (4,5). Jak jsi na ty s M, O, P?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: Souhlasím s A=(4,5). U mě je A na (5,7), přesunu ho na (4,5). Jak jsi na ty s M, O, P?</p></p>
+    </div>
+</div><div class="game-round" data-round="16">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 16 z maximálně 28.
+Dohromady jste nasbírali 15 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"Souhlasím s A=(4,5). U mě je A na (5,7), přesunu ho na (4,5). Jak jsi na ty s M, O, P?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POHYB: A, (4, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: A, (4, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>A moved to (4, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaše zpráva byla předána druhému hráči.</p>
+<p>Právě hrajete kolo 17 z maximálně 28.
+Dohromady jste nasbírali 15 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POHYB: A, (4, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POHYB: A, (4, 5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>A moved to (4, 5)</p></p>
+    </div>
+</div><div class="game-round" data-round="17">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Úspěšně přesunuto 'A' do (4,5). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║D◌│◌S◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌A◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 17 z maximálně 28.
+Dohromady jste nasbírali 15 z 16 pokut.
+Druhý hráč přesunul objekt na své mřížce.</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Všechny objekty jsou nyní na dohodnutých pozicích:
+- T=(1,1)
+- D=(1,3)
+- S=(4,3)
+- M=(5,4)
+- O=(7,4)
+- P=(7,3)
+- A=(4,5)</p>
+<p>Jsem si jistý, že jsem dosáhl cíle, a chci požádat druhého hráče o ukončení hry.</p>
+<p>ŘEKNI: hotovo?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Všechny objekty jsou nyní na dohodnutých pozicích:
+- T=(1,1)
+- D=(1,3)
+- S=(4,3)
+- M=(5,4)
+- O=(7,4)
+- P=(7,3)
+- A=(4,5)</p>
+<p>Jsem si jistý, že jsem dosáhl cíle, a chci požádat druhého hráče o ukončení hry.</p>
+<p>ŘEKNI: hotovo?</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head is not empty: 'Všechny objekty jsou nyní na dohodnutých pozicích:
+- T=(1,1)
+- D=(1,3)
+- S=(4,3)
+- M=(5,4)
+- O=(7,4)
+- P=(7,3)
+- A=(4,5)</p>
+<p>Jsem si jistý, že jsem dosáhl cíle, a chci požádat druhého hráče o ukončení hry.</p>
+<p>'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Trest: Vaše zpráva nesmí obsahovat nic před příkazem!</p>
+<p>Ujistěte se, že vaše odpověď obsahuje pouze <code>ŘEKNI: &lt;ZPRÁVA&gt;</code> nebo <code>POHYB: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code> a nic jiného!</p>
+<p>Dohromady jste nasbírali 16 z 16 pokut.
+Zkuste to prosím znovu!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>ŘEKNI: hotovo?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: hotovo?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Úspěšně přesunuto 'A' do (4,5). Vaše aktualizovaná mřížka vypadá takto:</p>
+<pre><code> 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║D◌│S◌◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌A◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Právě hrajete kolo 18 z maximálně 28.
+Dohromady jste nasbírali 16 z 16 pokut.
+Druhý hráč poslal tuto zprávu:</p>
+<p>"hotovo?"</p>
+<p>Jaký je váš další příkaz?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>ŘEKNI: hotovo!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>ŘEKNI: hotovo!</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤══╤═╗
+║◌P│◌M│◌║ 1
+╟──┼──┴─╢ 2
+║◌◌│◌S◌O║ 3
+╟──┘◌A◌◌║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║T◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔══╤══╤═╗
+║◌◌│◌◌│T║ 1
+╟──┼──┴─╢ 2
+║◌◌│◌S◌P║ 3
+╟──┘◌◌MO║ 4
+║D◌◌◌◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│A│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║D◌│◌S◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌A◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔══╤══╤═╗
+║T◌│◌◌│◌║ 1
+╟──┼──┴─╢ 2
+║D◌│S◌◌P║ 3
+╟──┘◌M◌O║ 4
+║◌◌◌A◌◌◌║ 5
+║◌◌┌─┬──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 12.00</li>
+<li>Max Shifts: 12.00</li>
+<li>Min Shifts: 6.00</li>
+<li>End Distance Sum: 1.00</li>
+<li>Init Distance Sum: 21.20</li>
+<li>Expected Distance Sum: 29.33</li>
+<li>Penalties: 16.00</li>
+<li>Max Penalties: 16.00</li>
+<li>Rounds: 18.00</li>
+<li>Max Rounds: 28.00</li>
+<li>Object Count: 7.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

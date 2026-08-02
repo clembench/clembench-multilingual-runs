@@ -1,0 +1,987 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '2_hard_5obj_sv', episode 1 with mistral-large-3-azure.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Jag är din spelledare och du spelar ett samarbetsspel med följande rutnät som spelplan:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌I│W│◌║ 1
+║◌◌◌└─┤◌║ 2
+║◌◌◌TC├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│H│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Den övre kanten visar x-koordinater som ökar åt höger, och den högra kanten y-koordinater som ökar nedåt.</li>
+<li>Följande objekt är slumpmässigt placerade på ditt rutnät: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Den andra spelaren ser en variant av spelplanen, där objekten är placerade på olika slumpmässiga platser. Du kan inte se den andra spelarens plan, och de kan inte se din.</p>
+<p><strong>Mål:</strong></p>
+<p>Båda spelarna måste flytta objekten på sin respektive bakgrund så att identiska objekt hamnar på samma koordinater. Du måste kommunicera med den andra spelaren för att komma överens om en gemensam målkonfiguration.</p>
+<p><strong>Regler:</strong></p>
+<ul>
+<li>I varje tur kan du skicka exakt ett av följande två kommandon:</li>
+<li><code>SÄG: &lt;MEDDELANDE&gt;</code>: för att skicka ett meddelande (allt fram till nästa radbrytning) till den andra spelaren. Jag kommer att vidarebefordra det till din partner.</li>
+<li><code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: för att flytta ett objekt till en ny position, där <code>&lt;X&gt;</code> är kolumnen och <code>&lt;Y&gt;</code> är raden. Jag kommer att informera dig om ditt drag var framgångsrikt eller inte.</li>
+<li>Om du inte håller dig till formatet, eller skickar flera kommandon samtidigt, måste jag straffa dig.</li>
+<li>Om båda spelarna samlar på sig mer än 12 straff, förlorar ni båda spelet.</li>
+<li>Det är viktigt att du kommunicerar med den andra spelaren om ditt måltillstånd! Det <em>enda</em> sättet du kan överföra din strategi till den andra spelaren är genom att använda kommandot <code>SÄG: &lt;MEDDELANDE&gt;</code>!</li>
+</ul>
+<p><strong>Flytta objekt</strong></p>
+<ul>
+<li>Du kan bara flytta objekt till celler inom rutnätets gränser. Målcellen måste vara tom, d.v.s. den får bara innehålla symbolen '◌'.</li>
+<li>Om du försöker flytta ett objekt till en plats som inte är tom, eller försöker flytta det utanför rutnätet, måste jag straffa dig. Du får göra ett nytt försök.</li>
+<li>Innan du gör en förflyttning ska du dubbelkolla att målplatsen är tom och inte innehåller någon bokstav, ram eller linje!</li>
+</ul>
+<p><strong>Slut på spelet</strong></p>
+<p>Om du tror att du har nått målet att få alla objekt i linje kan du be den andra spelaren att avsluta spelet genom att skicka <code>SÄG: färdig?</code>. Om den andra spelaren ber dig att avsluta spelet och du svarar med <code>SÄG: färdig!</code>, avslutas spelet.</p>
+<p>Båda spelarna vinner om spelet avslutas inom 20 rundor, där en runda definieras som att två spelare var skickar ett giltigt kommando.</p>
+<p><strong>Poäng:</strong></p>
+<p>Ju närmare de identiska objekten är på båda spelplanerna, desto fler poäng får du. Straff minskar dina poäng. Kan du slå rekordet?</p>
+<p>Skicka ett meddelande till den andra spelaren för att starta spelet!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>Då kör vi! Jag börjar med att skicka ett meddelande till min medspelare för att etablera en kommunikationsstrategi och dela min startsituation. Här är mitt första kommando:</p>
+<pre><code>SÄG: Hej! Här är positionerna för mina objekt:
+- W: (4,1)
+- I: (3,1)
+- T: (4,3)
+- C: (5,3)
+- H: (5,7)
+
+Vi borde börja med att bestämma ett gemensamt måltillstånd för varje objekt. Jag föreslår att vi placerar objekten i ordning från vänster till höger på rad 5 (y=5), eftersom den verkar ha flest lediga celler. Till exempel:
+- W: (2,5)
+- I: (3,5)
+- T: (4,5)
+- C: (5,5)
+- H: (6,5)
+
+Vad tycker du? Har du några andra förslag eller kan du dela dina startpositioner?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Då kör vi! Jag börjar med att skicka ett meddelande till min medspelare för att etablera en kommunikationsstrategi och dela min startsituation. Här är mitt första kommando:</p>
+<pre><code>SÄG: Hej! Här är positionerna för mina objekt:
+- W: (4,1)
+- I: (3,1)
+- T: (4,3)
+- C: (5,3)
+- H: (5,7)
+
+Vi borde börja med att bestämma ett gemensamt måltillstånd för varje objekt. Jag föreslår att vi placerar objekten i ordning från vänster till höger på rad 5 (y=5), eftersom den verkar ha flest lediga celler. Till exempel:
+- W: (2,5)
+- I: (3,5)
+- T: (4,5)
+- C: (5,5)
+- H: (6,5)
+
+Vad tycker du? Har du några andra förslag eller kan du dela dina startpositioner?
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Då kör vi! Jag börjar med att skicka ett meddelande till min medspelare för att etablera en kommunikationsstrategi och dela min startsituation. Här är mitt första kommando:</p>
+<p>'
+tail: '
+- W: (4,1)
+- I: (3,1)
+- T: (4,3)
+- C: (5,3)
+- H: (5,7)</p>
+<p>Vi borde börja med att bestämma ett gemensamt måltillstånd för varje objekt. Jag föreslår att vi placerar objekten i ordning från vänster till höger på rad 5 (y=5), eftersom den verkar ha flest lediga celler. Till exempel:
+- W: (2,5)
+- I: (3,5)
+- T: (4,5)
+- C: (5,5)
+- H: (6,5)</p>
+<p>Vad tycker du? Har du några andra förslag eller kan du dela dina startpositioner?'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straff: Ditt meddelande får inte innehålla något före eller efter kommandot!</p>
+<p>Se till att ditt svar endast innehåller antingen <code>SÄG: &lt;MEDDELANDE&gt;</code> eller <code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, och inget annat!</p>
+<p>Ni har tillsammans ackumulerat 1 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SÄG: Hej! Mina objekt: W(4,1), I(3,1), T(4,3), C(5,3), H(5,7). Föreslår mål: W(2,5), I(3,5), T(4,5), C(5,5), H(6,5). Dina startpositioner?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: Hej! Mina objekt: W(4,1), I(3,1), T(4,3), C(5,3), H(5,7). Föreslår mål: W(2,5), I(3,5), T(4,5), C(5,5), H(6,5). Dina startpositioner?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Jag är din spelledare och du spelar ett samarbetsspel med följande rutnät som spelplan:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌W◌└─┤C║ 2
+║T◌◌◌◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│H│I║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre>
+<ul>
+<li>Den övre kanten visar x-koordinater som ökar åt höger, och den högra kanten y-koordinater som ökar nedåt.</li>
+<li>Följande objekt är slumpmässigt placerade på ditt rutnät: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Den andra spelaren ser en variant av spelplanen, där objekten är placerade på olika slumpmässiga platser. Du kan inte se den andra spelarens plan, och de kan inte se din.</p>
+<p><strong>Mål:</strong></p>
+<p>Båda spelarna måste flytta objekten på sin respektive bakgrund så att identiska objekt hamnar på samma koordinater. Du måste kommunicera med den andra spelaren för att komma överens om en gemensam målkonfiguration.</p>
+<p><strong>Regler:</strong></p>
+<ul>
+<li>I varje tur kan du skicka exakt ett av följande två kommandon:</li>
+<li><code>SÄG: &lt;MEDDELANDE&gt;</code>: för att skicka ett meddelande (allt fram till nästa radbrytning) till den andra spelaren. Jag kommer att vidarebefordra det till din partner.</li>
+<li><code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: för att flytta ett objekt till en ny position, där <code>&lt;X&gt;</code> är kolumnen och <code>&lt;Y&gt;</code> är raden. Jag kommer att informera dig om ditt drag var framgångsrikt eller inte.</li>
+<li>Om du inte håller dig till formatet, eller skickar flera kommandon samtidigt, måste jag straffa dig.</li>
+<li>Om båda spelarna samlar på sig mer än 12 straff, förlorar ni båda spelet.</li>
+<li>Det är viktigt att du kommunicerar med den andra spelaren om ditt måltillstånd! Det <em>enda</em> sättet du kan överföra din strategi till den andra spelaren är genom att använda kommandot <code>SÄG: &lt;MEDDELANDE&gt;</code>!</li>
+</ul>
+<p><strong>Flytta objekt</strong></p>
+<ul>
+<li>Du kan bara flytta objekt till celler inom rutnätets gränser. Målcellen måste vara tom, d.v.s. den får bara innehålla symbolen '◌'.</li>
+<li>Om du försöker flytta ett objekt till en plats som inte är tom, eller försöker flytta det utanför rutnätet, måste jag straffa dig. Du får göra ett nytt försök.</li>
+<li>Innan du gör en förflyttning ska du dubbelkolla att målplatsen är tom och inte innehåller någon bokstav, ram eller linje!</li>
+</ul>
+<p><strong>Slut på spelet</strong></p>
+<p>Om du tror att du har nått målet att få alla objekt i linje kan du be den andra spelaren att avsluta spelet genom att skicka <code>SÄG: färdig?</code>. Om den andra spelaren ber dig att avsluta spelet och du svarar med <code>SÄG: färdig!</code>, avslutas spelet.</p>
+<p>Båda spelarna vinner om spelet avslutas inom 20 rundor, där en runda definieras som att två spelare var skickar ett giltigt kommando.</p>
+<p><strong>Poäng:</strong></p>
+<p>Ju närmare de identiska objekten är på båda spelplanerna, desto fler poäng får du. Straff minskar dina poäng. Kan du slå rekordet?</p>
+<p>Den andra spelaren startade spelet genom att skicka detta meddelande:</p>
+<p>"Hej! Mina objekt: W(4,1), I(3,1), T(4,3), C(5,3), H(5,7). Föreslår mål: W(2,5), I(3,5), T(4,5), C(5,5), H(6,5). Dina startpositioner?"</p>
+<p>Vad är ditt första kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>Här är mitt första kommando för att svara på den andra spelarens meddelande och föreslå en gemensam målkonfiguration baserat på mina startpositioner:</p>
+<pre><code>SÄG: Hej! Mina objekt: W(2,2), I(7,5), T(1,3), C(6,2), H(4,5). Ditt föreslagna mål låter bra, men jag föreslår en liten justering: W(2,5), I(3,5), T(4,5), C(5,5), H(6,5). Om du håller med kan vi börja flytta objekten mot dessa positioner. Vad tycker du?
+</code></pre>
+<p>Detta kommando:
+1. Delar mina startpositioner med den andra spelaren.
+2. Bekräftar deras föreslagna målkonfiguration (med samma koordinater) för att undvika förvirring.
+3. Frågar om de är överens om målet innan vi börjar flytta.</p>
+<p>Om de godkänner förslaget kan vi börja med att flytta objekten i nästa tur. Om de har invändningar kan vi justera målet gemensamt.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>Här är mitt första kommando för att svara på den andra spelarens meddelande och föreslå en gemensam målkonfiguration baserat på mina startpositioner:</p>
+<pre><code>SÄG: Hej! Mina objekt: W(2,2), I(7,5), T(1,3), C(6,2), H(4,5). Ditt föreslagna mål låter bra, men jag föreslår en liten justering: W(2,5), I(3,5), T(4,5), C(5,5), H(6,5). Om du håller med kan vi börja flytta objekten mot dessa positioner. Vad tycker du?
+</code></pre>
+<p>Detta kommando:
+1. Delar mina startpositioner med den andra spelaren.
+2. Bekräftar deras föreslagna målkonfiguration (med samma koordinater) för att undvika förvirring.
+3. Frågar om de är överens om målet innan vi börjar flytta.</p>
+<p>Om de godkänner förslaget kan vi börja med att flytta objekten i nästa tur. Om de har invändningar kan vi justera målet gemensamt.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: head and tail are not empty
+head: 'Här är mitt första kommando för att svara på den andra spelarens meddelande och föreslå en gemensam målkonfiguration baserat på mina startpositioner:</p>
+<p>'
+tail: '</p>
+<p>Detta kommando:
+1. Delar mina startpositioner med den andra spelaren.
+2. Bekräftar deras föreslagna målkonfiguration (med samma koordinater) för att undvika förvirring.
+3. Frågar om de är överens om målet innan vi börjar flytta.</p>
+<p>Om de godkänner förslaget kan vi börja med att flytta objekten i nästa tur. Om de har invändningar kan vi justera målet gemensamt.'</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straff: Ditt meddelande får inte innehålla något före eller efter kommandot!</p>
+<p>Se till att ditt svar endast innehåller antingen <code>SÄG: &lt;MEDDELANDE&gt;</code> eller <code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, och inget annat!</p>
+<p>Ni har tillsammans ackumulerat 2 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SÄG: Mina objekt: W(2,2), I(7,5), T(1,3), C(6,2), H(4,5). Ditt mål ser bra ut. Är vi överens om W(2,5), I(3,5), T(4,5), C(5,5), H(6,5)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: Mina objekt: W(2,2), I(7,5), T(1,3), C(6,2), H(4,5). Ditt mål ser bra ut. Är vi överens om W(2,5), I(3,5), T(4,5), C(5,5), H(6,5)?</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 1 av maximalt 20.
+Ni har tillsammans ackumulerat 2 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"Mina objekt: W(2,2), I(7,5), T(1,3), C(6,2), H(4,5). Ditt mål ser bra ut. Är vi överens om W(2,5), I(3,5), T(4,5), C(5,5), H(6,5)?"</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SÄG: Perfekt, vi är överens! Jag börjar flytta I till (3,5). Därefter flyttar jag W till (2,5) om platsen är ledig. Bekräfta när du är klar med dina första drag så synkar vi.</p>
+<pre><code>
+*(Jag kommer nu försöka flytta I först, eftersom (3,5) är ledig på min plan. W ligger på (4,1) och måste vänta tills (2,5) blir ledig.)*
+
+Nästa kommando (i nästa tur):
+</code></pre>
+<p>FLYTTA: I, (3,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: Perfekt, vi är överens! Jag börjar flytta I till (3,5). Därefter flyttar jag W till (2,5) om platsen är ledig. Bekräfta när du är klar med dina första drag så synkar vi.</p>
+<pre><code>
+*(Jag kommer nu försöka flytta I först, eftersom (3,5) är ledig på min plan. W ligger på (4,1) och måste vänta tills (2,5) blir ledig.)*
+
+Nästa kommando (i nästa tur):
+</code></pre>
+<p>FLYTTA: I, (3,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format: SÄG: Perfekt, vi är överens! Jag börjar flytta I till (3,5). Därefter flyttar jag W till (2,5) om platsen är ledig. Bekräfta när du är klar med dina första drag så synkar vi.</p>
+<p><em>(Jag kommer nu försöka flytta I först, eftersom (3,5) är ledig på min plan. W ligger på (4,1) och måste vänta tills (2,5) blir ledig.)</em></p>
+<p>Nästa kommando (i nästa tur):</p>
+<p>FLYTTA: I, (3,5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straff: Ditt meddelande innehåller mer än ett kommando!</p>
+<p>Se till att ditt svar endast innehåller antingen <code>SÄG: &lt;MEDDELANDE&gt;</code> eller <code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, och inget annat!</p>
+<p>Ni har tillsammans ackumulerat 3 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYTTA: I, (3,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: I, (3,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (3, 5)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 2 av maximalt 20.
+Ni har tillsammans ackumulerat 3 av 12 straff.
+Den andra spelaren flyttade ett objekt på sitt rutnät.</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>FLYTTA: W, (2,5)
+</code></pre>
+<p>Jag försöker flytta <strong>W</strong> till den överenskomna målpositionen (2,5). Om rutan är tom (◌) kommer flytten att lyckas. Om inte får jag ett straff och måste försöka igen.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>FLYTTA: W, (2,5)
+</code></pre>
+<p>Jag försöker flytta <strong>W</strong> till den överenskomna målpositionen (2,5). Om rutan är tom (◌) kommer flytten att lyckas. Om inte får jag ett straff och måste försöka igen.</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>Jag försöker flytta <strong>W</strong> till den överenskomna målpositionen (2,5). Om rutan är tom (◌) kommer flytten att lyckas. Om inte får jag ett straff och måste försöka igen.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straff: Ditt meddelande får inte innehålla något efter kommandot!</p>
+<p>Se till att ditt svar endast innehåller antingen <code>SÄG: &lt;MEDDELANDE&gt;</code> eller <code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, och inget annat!</p>
+<p>Ni har tillsammans ackumulerat 4 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYTTA: W, (2,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: W, (2,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straff: (2,5) är inte tomt, utan innehåller '│'.</p>
+<p>Ni har tillsammans ackumulerat 5 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straff: (2,5) är inte tomt, utan innehåller '│'.</p>
+<p>Ni har tillsammans ackumulerat 5 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SÄG: Okej, (2,5) är en linje. Föreslår att vi flyttar W till (3,1) istället? Eller ska vi prova (2,4)?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: Okej, (2,5) är en linje. Föreslår att vi flyttar W till (3,1) istället? Eller ska vi prova (2,4)?</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Flyttade 'I' till (3,5) framgångsrikt. Ditt uppdaterade rutnät ser ut så här:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│W│◌║ 1
+║◌◌◌└─┤◌║ 2
+║◌◌◌TC├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│I│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│H│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Du spelar för närvarande runda 2 av maximalt 20.
+Ni har tillsammans ackumulerat 5 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"Okej, (2,5) är en linje. Föreslår att vi flyttar W till (3,1) istället? Eller ska vi prova (2,4)?"</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><pre><code>SÄG: (2,5) är ledig på min plan! Men om din (2,5) är blockerad, låt oss prova W till (2,4) istället. Jag flyttar W dit nu om det funkar för dig. Bekräfta när du är klar.
+</code></pre>
+<p><em>(Om meddelandet godkänns kommer jag i nästa tur försöka flytta W till (2,4) om den är ledig på min plan.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>SÄG: (2,5) är ledig på min plan! Men om din (2,5) är blockerad, låt oss prova W till (2,4) istället. Jag flyttar W dit nu om det funkar för dig. Bekräfta när du är klar.
+</code></pre>
+<p><em>(Om meddelandet godkänns kommer jag i nästa tur försöka flytta W till (2,4) om den är ledig på min plan.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><em>(Om meddelandet godkänns kommer jag i nästa tur försöka flytta W till (2,4) om den är ledig på min plan.)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straff: Ditt meddelande får inte innehålla något efter kommandot!</p>
+<p>Se till att ditt svar endast innehåller antingen <code>SÄG: &lt;MEDDELANDE&gt;</code> eller <code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, och inget annat!</p>
+<p>Ni har tillsammans ackumulerat 6 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SÄG: Flyttar W till (2,4) istället. Bekräfta när du är klar.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: Flyttar W till (2,4) istället. Bekräfta när du är klar.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 3 av maximalt 20.
+Ni har tillsammans ackumulerat 6 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"Flyttar W till (2,4) istället. Bekräfta när du är klar."</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYTTA: W, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: W, (2,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straff: (2,4) är inte tomt, utan innehåller '┐'.</p>
+<p>Ni har tillsammans ackumulerat 7 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straff: (2,4) är inte tomt, utan innehåller '┐'.</p>
+<p>Ni har tillsammans ackumulerat 7 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SÄG: (2,4) är en hörnlinje. Kan vi prova (3,2) för W? Eller ska vi justera målet?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: (2,4) är en hörnlinje. Kan vi prova (3,2) för W? Eller ska vi justera målet?</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 3 av maximalt 20.
+Ni har tillsammans ackumulerat 7 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"(2,4) är en hörnlinje. Kan vi prova (3,2) för W? Eller ska vi justera målet?"</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><pre><code>FLYTTA: W, (3,2)
+</code></pre>
+<p><em>(Testar att flytta W till (3,2) som föreslagits, eftersom den är ledig på min plan. Om det misslyckas föreslår jag att vi justerar målet gemensamt i nästa meddelande.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>FLYTTA: W, (3,2)
+</code></pre>
+<p><em>(Testar att flytta W till (3,2) som föreslagits, eftersom den är ledig på min plan. Om det misslyckas föreslår jag att vi justerar målet gemensamt i nästa meddelande.)</em></p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p><em>(Testar att flytta W till (3,2) som föreslagits, eftersom den är ledig på min plan. Om det misslyckas föreslår jag att vi justerar målet gemensamt i nästa meddelande.)</em></p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straff: Ditt meddelande får inte innehålla något efter kommandot!</p>
+<p>Se till att ditt svar endast innehåller antingen <code>SÄG: &lt;MEDDELANDE&gt;</code> eller <code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, och inget annat!</p>
+<p>Ni har tillsammans ackumulerat 8 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYTTA: W, (3,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: W, (3,2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (3, 2)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 4 av maximalt 20.
+Ni har tillsammans ackumulerat 8 av 12 straff.
+Den andra spelaren flyttade ett objekt på sitt rutnät.</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><pre><code>FLYTTA: T, (4,5)
+</code></pre>
+<p>Jag försöker flytta <strong>T</strong> till den överenskomna målpositionen (4,5) för att närma oss målet. Om rutan är tom (◌) bör det fungera!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><pre><code>FLYTTA: T, (4,5)
+</code></pre>
+<p>Jag försöker flytta <strong>T</strong> till den överenskomna målpositionen (4,5) för att närma oss målet. Om rutan är tom (◌) bör det fungera!</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid format: tail is not empty: '</p>
+<p>Jag försöker flytta <strong>T</strong> till den överenskomna målpositionen (4,5) för att närma oss målet. Om rutan är tom (◌) bör det fungera!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straff: Ditt meddelande får inte innehålla något efter kommandot!</p>
+<p>Se till att ditt svar endast innehåller antingen <code>SÄG: &lt;MEDDELANDE&gt;</code> eller <code>FLYTTA: &lt;OBJEKT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>, och inget annat!</p>
+<p>Ni har tillsammans ackumulerat 9 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYTTA: T, (4,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: T, (4,5)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straff: (4,5) är inte tomt, utan innehåller '│'.</p>
+<p>Ni har tillsammans ackumulerat 10 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straff: (4,5) är inte tomt, utan innehåller '│'.</p>
+<p>Ni har tillsammans ackumulerat 10 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SÄG: (4,5) är en linje. Föreslår att vi flyttar T till (4,4) istället? Eller ska vi justera målet för T?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: (4,5) är en linje. Föreslår att vi flyttar T till (4,4) istället? Eller ska vi justera målet för T?</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Flyttade 'W' till (3,2) framgångsrikt. Ditt uppdaterade rutnät ser ut så här:</p>
+<pre><code> 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌◌W└─┤◌║ 2
+║◌◌◌TC├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│I│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│H│◌║ 7
+╚═╧═╧═╧═╝
+</code></pre>
+<p>Du spelar för närvarande runda 4 av maximalt 20.
+Ni har tillsammans ackumulerat 10 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"(4,5) är en linje. Föreslår att vi flyttar T till (4,4) istället? Eller ska vi justera målet för T?"</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SÄG: (4,4) är ledig på min plan. Jag flyttar T dit. Om det funkar för dig, flytta du också T till (4,4). Annars föreslår jag nytt mål för T.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: (4,4) är ledig på min plan. Jag flyttar T dit. Om det funkar för dig, flytta du också T till (4,4). Annars föreslår jag nytt mål för T.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 5 av maximalt 20.
+Ni har tillsammans ackumulerat 10 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"(4,4) är ledig på min plan. Jag flyttar T dit. Om det funkar för dig, flytta du också T till (4,4). Annars föreslår jag nytt mål för T."</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>FLYTTA: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: T, (4,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straff: (4,4) är inte tomt, utan innehåller '┌'.</p>
+<p>Ni har tillsammans ackumulerat 11 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Straff: (4,4) är inte tomt, utan innehåller '┌'.</p>
+<p>Ni har tillsammans ackumulerat 11 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SÄG: (4,4) är en hörnlinje. Jag föreslår att vi flyttar T till (4,3) istället - det är tomt på min plan. Om det funkar för dig?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: (4,4) är en hörnlinje. Jag föreslår att vi flyttar T till (4,3) istället - det är tomt på min plan. Om det funkar för dig?</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 5 av maximalt 20.
+Ni har tillsammans ackumulerat 11 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"(4,4) är en hörnlinje. Jag föreslår att vi flyttar T till (4,3) istället - det är tomt på min plan. Om det funkar för dig?"</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYTTA: T, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: T, (4,3)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straff: (4,3) är inte tomt, utan innehåller 'T'.</p>
+<p>Ni har tillsammans ackumulerat 12 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straff: (4,3) är inte tomt, utan innehåller 'T'.</p>
+<p>Ni har tillsammans ackumulerat 12 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>SÄG: Oj! T är redan på (4,3) på min plan. Föreslår nytt mål för T: (4,6). Är det ledigt hos dig?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: Oj! T är redan på (4,3) på min plan. Föreslår nytt mål för T: (4,6). Är det ledigt hos dig?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 6 av maximalt 20.
+Ni har tillsammans ackumulerat 12 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"Oj! T är redan på (4,3) på min plan. Föreslår nytt mål för T: (4,6). Är det ledigt hos dig?"</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>SÄG: (4,6) är en linje (─) hos mig. Mitt förslag: T till (5,4). Är det ledigt hos dig?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>SÄG: (4,6) är en linje (─) hos mig. Mitt förslag: T till (5,4). Är det ledigt hos dig?</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ditt meddelande har vidarebefordrats till den andra spelaren.</p>
+<p>Du spelar för närvarande runda 6 av maximalt 20.
+Ni har tillsammans ackumulerat 12 av 12 straff.
+Den andra spelaren skickade detta meddelande:</p>
+<p>"(4,6) är en linje (─) hos mig. Mitt förslag: T till (5,4). Är det ledigt hos dig?"</p>
+<p>Vad är ditt nästa kommando?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>FLYTTA: T, (5,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>FLYTTA: T, (5,4)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Straff: (5,4) är inte tomt, utan innehåller '─'.</p>
+<p>Ni har tillsammans ackumulerat 13 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Straff: (5,4) är inte tomt, utan innehåller '─'.</p>
+<p>Ni har tillsammans ackumulerat 13 av 12 straff.
+Vänligen försök igen!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p><strong>GAME OVER</strong> – Ni har ackumulerat <strong>13 straff</strong> (överskred maxgränsen på 12).</p>
+<hr />
+<h3><strong>Sammanfattning av spelet:</strong></h3>
+<ul>
+<li><strong>Felkällor:</strong></li>
+<li>Missförstånd om lediga celler (linjer/ramar räknas inte som "tomma").</li>
+<li>Försök att flytta objekt till redan ockuperade positioner (t.ex. T på (4,3)).</li>
+<li>
+<p>Bristande koordinatverifikation innan flytt.</p>
+</li>
+<li>
+<p><strong>Lärdomar:</strong></p>
+</li>
+<li><strong>Alltid dubbelkolla</strong> om målcellen är <em>fysiskt tom</em> (endast <code>◌</code>).</li>
+<li>Undvik att föreslå mål på linjer (<code>─</code>, <code>│</code>, <code>└</code>, etc.) eller ramar (<code>║</code>, <code>═</code>).</li>
+<li>Kommunicera tydligt om <em>exakta koordinater</em> och bekräfta lediga platser.</li>
+</ul>
+<hr />
+<h3><strong>Förslag till förbättring:</strong></h3>
+<ol>
+<li><strong>Prioritera säkra mål:</strong></li>
+<li>Exempelvis rad <strong>7</strong> (helt fri från linjer) eller kolumn <strong>1</strong> (bara <code>║</code> till vänster).</li>
+<li><strong>Använd "SÄG" för att verifiera:</strong></li>
+<li><em>"Är (X,Y) ledig hos dig? Den är '◌' hos mig."</em></li>
+<li><strong>Flytta ett objekt i taget:</strong></li>
+<li>Vänta på bekräftelse innan nästa flytt.</li>
+</ol>
+<p>Vill ni försöka igen? Jag kan generera en ny spelplan! 😊</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p><strong>GAME OVER</strong> – Ni har ackumulerat <strong>13 straff</strong> (överskred maxgränsen på 12).</p>
+<hr />
+<h3><strong>Sammanfattning av spelet:</strong></h3>
+<ul>
+<li><strong>Felkällor:</strong></li>
+<li>Missförstånd om lediga celler (linjer/ramar räknas inte som "tomma").</li>
+<li>Försök att flytta objekt till redan ockuperade positioner (t.ex. T på (4,3)).</li>
+<li>
+<p>Bristande koordinatverifikation innan flytt.</p>
+</li>
+<li>
+<p><strong>Lärdomar:</strong></p>
+</li>
+<li><strong>Alltid dubbelkolla</strong> om målcellen är <em>fysiskt tom</em> (endast <code>◌</code>).</li>
+<li>Undvik att föreslå mål på linjer (<code>─</code>, <code>│</code>, <code>└</code>, etc.) eller ramar (<code>║</code>, <code>═</code>).</li>
+<li>Kommunicera tydligt om <em>exakta koordinater</em> och bekräfta lediga platser.</li>
+</ul>
+<hr />
+<h3><strong>Förslag till förbättring:</strong></h3>
+<ol>
+<li><strong>Prioritera säkra mål:</strong></li>
+<li>Exempelvis rad <strong>7</strong> (helt fri från linjer) eller kolumn <strong>1</strong> (bara <code>║</code> till vänster).</li>
+<li><strong>Använd "SÄG" för att verifiera:</strong></li>
+<li><em>"Är (X,Y) ledig hos dig? Den är '◌' hos mig."</em></li>
+<li><strong>Flytta ett objekt i taget:</strong></li>
+<li>Vänta på bekräftelse innan nästa flytt.</li>
+</ol>
+<p>Vill ni försöka igen? Jag kan generera en ny spelplan! 😊</p></p>
+    </div>
+
+    <div speaker="Game Master: parse_error" class="msg gm-gm" style="">
+        <p><p>Invalid response format</p></p>
+    </div>
+
+    <div speaker="Game Master: end" class="msg gm-gm" style="">
+        <p><p>Maximum number of penalties exceeded</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌I│W│◌║ 1
+║◌◌◌└─┤◌║ 2
+║◌◌◌TC├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│H│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌W◌└─┤C║ 2
+║T◌◌◌◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│H│I║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌◌W└─┤◌║ 2
+║◌◌◌TC├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│I│◌│◌║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│H│◌║ 7
+╚═╧═╧═╧═╝
+
+
+Player 2:
+ 1234567
+╔═══╤═╤═╗
+║◌◌◌│◌│◌║ 1
+║◌W◌└─┤C║ 2
+║T◌◌◌◌├─╢ 3
+╟─┐◌┌─┤◌║ 4
+║◌│◌│H│I║ 5
+╟─┼─┼─┼─╢ 6
+║◌│◌│◌│◌║ 7
+╚═╧═╧═╧═╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: False</li>
+<li>lose: False</li>
+<li>aborted: True</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 1.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 12.24</li>
+<li>Init Distance Sum: 16.06</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 14.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 6.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

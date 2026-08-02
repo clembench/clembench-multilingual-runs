@@ -1,0 +1,880 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <style>
+        /* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */ 
+
+* {margin: 0; box-sizing: border-box;}
+
+body {
+  background-color: rgb(157, 152, 150);
+}
+
+.top-info {
+	text-align: center;
+	font: 1.25rem/1.5 sans-serif;
+	display: flex;
+	flex-direction: column;
+	padding: 1.25em;
+	width: 80%;
+  max-width: 1200px;
+	margin: auto;
+	background: #3f3e3e;
+	color: #fff;
+}
+
+.chat {
+  --rad: 1.5rem;
+  --rad-sm: .3rem;
+  font: 1rem/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  width: 80%;
+  max-width: 1200px;
+  margin: auto;
+  background: #fff;
+}
+
+.msg {
+  position: relative;
+  padding: .6rem 1.2rem;
+  margin-inline: 1rem;
+  margin-block: 2rem;
+}
+
+.game-round {
+  padding: 1.5rem 0 1.5rem 0;
+  background-color: #f0f8ff; /* light background for content */
+  position: relative; /* Important to position the badge */
+  border-radius: 1rem;
+  margin: 1rem;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1);
+}
+
+/* Badge in top-right corner */
+.game-round::before {
+  content: "Round " attr(data-round);
+  position: absolute;
+  top: .35rem;
+  right: 1.5rem;
+  color: #c4c3c3;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* For fenced code/monospace blocks */
+pre {
+  background: #e0e0e0;
+  border-left: .2rem solid #f36d33;
+  border-radius: .2rem;
+  color: #666;
+  font-family: monospace;
+  line-height: 1.0;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.5rem 0.2rem;
+}/* This CSS is based on a stack overflow answer by Roko C. Buljan in https://stackoverflow.com/a/71155446 */
+
+.msg.player-gm.p1 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f39109;
+  color: #fff;
+  margin-right: 40%;
+}
+
+.msg.player-gm.p2 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #874aaf;
+  color: #fff;
+  margin-left: 40%;
+}
+.msg.player-gm::before {
+  right: 1rem;
+}
+
+.msg.gm-player {
+  background: #c4c3c3;
+  color: #0c0c0c;
+}
+
+.msg.gm-player.p1 {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  margin-right: 20%;
+  margin-left: 10%;
+}
+
+.msg.gm-player.p2 {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  margin-right: 10%;
+  margin-left: 20%;
+}
+
+.msg.gm-gm {
+  border-radius: var(--rad-sm) var(--rad-sm) var(--rad-sm) var(--rad-sm);
+  background: #f1f1f1;
+  color: #373636;
+  margin-left: 20%;
+  margin-right: 20%;
+  font-size: 0.8rem;
+
+}
+
+/* speaker labels */
+
+.msg::before {
+  content: attr(speaker);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+
+}
+
+/* Message info displayed on the right for GM to Player 1 */
+.msg.gm-player.a::before {
+  right: 1rem;
+}
+
+/* All other cases: message info on the left */
+.msg.player-gm.a::before, .msg.gm-player.b::before, .msg.gm-gm::before {
+  left: 1rem;
+}
+    </style>
+</head>
+<body>
+
+<br/>
+
+<div class="top-info">
+    <p>Interaction Transcript for game 'clean_up', experiment '0_easy_5obj_sr', episode 3 with glm-5.2.</p>
+</div>
+
+<br/>
+
+<div class="chat">
+<div class="game-round" data-round="0">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Ja sam vaš vođa igre, i igrate kolaborativnu igru sa sledećom mrežom kao tablom za igru:</p>
+<pre><code> 1234567
+╔════╤══╗
+║H◌◌◌│◌◌║ 1
+║◌W◌◌│◌◌║ 2
+║◌C◌◌│◌◌║ 3
+║T◌◌◌│I◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Gornja ivica prikazuje x-koordinate koje rastu nadesno, a desna ivica y-koordinate koje rastu nadole.</li>
+<li>Sledeći objekti su nasumično raspoređeni na vašoj mreži: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Drugi igrač vidi varijaciju table za igru, gde su objekti postavljeni na različita nasumična mesta. Vi ne možete da vidite tablu drugog igrača, a ni oni ne mogu da vide vašu.</p>
+<p><strong>Cilj:</strong></p>
+<p>Oba igrača treba da pomeraju objekte na svojoj pozadini tako da identični objekti završe na istim koordinatama. Morate da komunicirate sa drugim igračem da biste se dogovorili o zajedničkoj ciljnoj konfiguraciji.</p>
+<p><strong>Pravila:</strong></p>
+<ul>
+<li>U svakom potezu možete poslati tačno jednu od sledeće dve komande:</li>
+<li><code>RECI: &lt;PORUKA&gt;</code>: da pošaljete poruku (sve do sledećeg preloma reda) drugom igraču. Ja ću je proslediti vašem partneru.</li>
+<li><code>POMERI: &lt;OBJEKAT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: da pomerite objekat na novu poziciju, gde je <code>&lt;X&gt;</code> kolona a <code>&lt;Y&gt;</code> red. Obavestiću vas da li je vaš potez bio uspešan ili ne.</li>
+<li>Ako se ne pridržavate formata ili pošaljete više komandi odjednom, moram da vas kaznim.</li>
+<li>Ako oba igrača skupe više od 12 kazni, oba gubite igru.</li>
+<li>Veoma je važno da komunicirate sa drugim igračem u vezi sa vašim ciljnim stanjem! <em>Jedini</em> način da prenesete svoju strategiju drugom igraču jeste pomoću komande <code>RECI: &lt;PORUKA&gt;</code>!</li>
+</ul>
+<p><strong>Pomeranje objekata</strong></p>
+<ul>
+<li>Objekte možete pomerati samo u polja unutar granica mreže. Ciljno polje mora biti prazno, tj. mora sadržati samo simbol '◌'.</li>
+<li>Ako pokušate da pomerite objekat na mesto koje nije prazno ili da ga pomerite van mreže, moram da vas kaznim. Dobijate još jedan pokušaj.</li>
+<li>Pre nego što napravite potez, dvaput proverite da je ciljno mesto prazno i da ne sadrži nijedno slovo, okvir ili liniju!</li>
+</ul>
+<p><strong>Kraj igre</strong></p>
+<p>Ako mislite da ste postigli cilj poravnanja svih objekata, možete zamoliti drugog igrača da završi igru slanjem <code>RECI: završeno?</code>. Ako drugi igrač zamoli vas da završite igru, i vi odgovorite sa <code>RECI: završeno!</code>, igra će se završiti.</p>
+<p>Oba igrača pobeđuju ako se igra završi u okviru 20 rundi, gde se jedna runda definiše kao slanje po jedne važeće komande od strane oba igrača.</p>
+<p><strong>Bodovanje:</strong></p>
+<p>Što su identični objekti bliži na obe table za igru, to dobijate više poena. Kazne smanjuju vaše poene. Možete li oboriti rekord?</p>
+<p>Molimo pošaljite poruku drugom igraču da započnete igru!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Zdravo! Moj predlog za ciljne pozicije svih 5 objekata je: W na (5,1), I na (7,2), T na (1,3), C na (5,3) i H na (1,4). Molim te potvrdi da li te pozicije odgovaraju i da li ih možeš postaviti na svojoj tabli.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Zdravo! Moj predlog za ciljne pozicije svih 5 objekata je: W na (5,1), I na (7,2), T na (1,3), C na (5,3) i H na (1,4). Molim te potvrdi da li te pozicije odgovaraju i da li ih možeš postaviti na svojoj tabli.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Ja sam vaš vođa igre, i igrate kolaborativnu igru sa sledećom mrežom kao tablom za igru:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌◌◌T│◌◌║ 1
+║◌◌◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║W◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║H◌├─┼──╢ 6
+║I◌│◌│◌C║ 7
+╚══╧═╧══╝
+
+</code></pre>
+<ul>
+<li>Gornja ivica prikazuje x-koordinate koje rastu nadesno, a desna ivica y-koordinate koje rastu nadole.</li>
+<li>Sledeći objekti su nasumično raspoređeni na vašoj mreži: 'W', 'I', 'T', 'C', 'H'.</li>
+</ul>
+<p>Drugi igrač vidi varijaciju table za igru, gde su objekti postavljeni na različita nasumična mesta. Vi ne možete da vidite tablu drugog igrača, a ni oni ne mogu da vide vašu.</p>
+<p><strong>Cilj:</strong></p>
+<p>Oba igrača treba da pomeraju objekte na svojoj pozadini tako da identični objekti završe na istim koordinatama. Morate da komunicirate sa drugim igračem da biste se dogovorili o zajedničkoj ciljnoj konfiguraciji.</p>
+<p><strong>Pravila:</strong></p>
+<ul>
+<li>U svakom potezu možete poslati tačno jednu od sledeće dve komande:</li>
+<li><code>RECI: &lt;PORUKA&gt;</code>: da pošaljete poruku (sve do sledećeg preloma reda) drugom igraču. Ja ću je proslediti vašem partneru.</li>
+<li><code>POMERI: &lt;OBJEKAT&gt;, (&lt;X&gt;, &lt;Y&gt;)</code>: da pomerite objekat na novu poziciju, gde je <code>&lt;X&gt;</code> kolona a <code>&lt;Y&gt;</code> red. Obavestiću vas da li je vaš potez bio uspešan ili ne.</li>
+<li>Ako se ne pridržavate formata ili pošaljete više komandi odjednom, moram da vas kaznim.</li>
+<li>Ako oba igrača skupe više od 12 kazni, oba gubite igru.</li>
+<li>Veoma je važno da komunicirate sa drugim igračem u vezi sa vašim ciljnim stanjem! <em>Jedini</em> način da prenesete svoju strategiju drugom igraču jeste pomoću komande <code>RECI: &lt;PORUKA&gt;</code>!</li>
+</ul>
+<p><strong>Pomeranje objekata</strong></p>
+<ul>
+<li>Objekte možete pomerati samo u polja unutar granica mreže. Ciljno polje mora biti prazno, tj. mora sadržati samo simbol '◌'.</li>
+<li>Ako pokušate da pomerite objekat na mesto koje nije prazno ili da ga pomerite van mreže, moram da vas kaznim. Dobijate još jedan pokušaj.</li>
+<li>Pre nego što napravite potez, dvaput proverite da je ciljno mesto prazno i da ne sadrži nijedno slovo, okvir ili liniju!</li>
+</ul>
+<p><strong>Kraj igre</strong></p>
+<p>Ako mislite da ste postigli cilj poravnanja svih objekata, možete zamoliti drugog igrača da završi igru slanjem <code>RECI: završeno?</code>. Ako drugi igrač zamoli vas da završite igru, i vi odgovorite sa <code>RECI: završeno!</code>, igra će se završiti.</p>
+<p>Oba igrača pobeđuju ako se igra završi u okviru 20 rundi, gde se jedna runda definiše kao slanje po jedne važeće komande od strane oba igrača.</p>
+<p><strong>Bodovanje:</strong></p>
+<p>Što su identični objekti bliži na obe table za igru, to dobijate više poena. Kazne smanjuju vaše poene. Možete li oboriti rekord?</p>
+<p>Drugi igrač je započeo igru slanjem ove poruke:</p>
+<p>"Zdravo! Moj predlog za ciljne pozicije svih 5 objekata je: W na (5,1), I na (7,2), T na (1,3), C na (5,3) i H na (1,4). Molim te potvrdi da li te pozicije odgovaraju i da li ih možeš postaviti na svojoj tabli."</p>
+<p>Koja je vaša prva komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Zdravo! Tvoj predlog je odličan - sve pozicije su prazne i na mojoj tabli i mogu ih postaviti. Prihvatam cilj: W(5,1), I(7,2), T(1,3), C(5,3), H(1,4). Ja ću kretati redom po abecedi, osim C koji je već blizu. Molim te, pomeri najpre W, pa H, pa T, pa I, pa C. Slanjem ove poruke ja započinjem prvi korak i sad idem da pomerim W.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Zdravo! Tvoj predlog je odličan - sve pozicije su prazne i na mojoj tabli i mogu ih postaviti. Prihvatam cilj: W(5,1), I(7,2), T(1,3), C(5,3), H(1,4). Ja ću kretati redom po abecedi, osim C koji je već blizu. Molim te, pomeri najpre W, pa H, pa T, pa I, pa C. Slanjem ove poruke ja započinjem prvi korak i sad idem da pomerim W.</p></p>
+    </div>
+</div><div class="game-round" data-round="1">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 1 od maksimalno 20.
+Zajednički ste skupili 0 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Zdravo! Tvoj predlog je odličan - sve pozicije su prazne i na mojoj tabli i mogu ih postaviti. Prihvatam cilj: W(5,1), I(7,2), T(1,3), C(5,3), H(1,4). Ja ću kretati redom po abecedi, osim C koji je već blizu. Molim te, pomeri najpre W, pa H, pa T, pa I, pa C. Slanjem ove poruke ja započinjem prvi korak i sad idem da pomerim W."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POMERI: W, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: W, (5, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazna: (5,1) nije prazno, već sadrži '│'.</p>
+<p>Zajednički ste skupili 1 od 12 kazni.
+Molimo pokušajte ponovo!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Kazna: (5,1) nije prazno, već sadrži '│'.</p>
+<p>Zajednički ste skupili 1 od 12 kazni.
+Molimo pokušajte ponovo!</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Predlažem nove ciljne pozicije koje su sigurno prazne i bez linija na mojoj tabli: W na (6,1), I na (7,1), T na (2,3), C na (4,3) i H na (3,1). Molim te potvrdi da li su ta polja prazna i na tvojoj tabli.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Predlažem nove ciljne pozicije koje su sigurno prazne i bez linija na mojoj tabli: W na (6,1), I na (7,1), T na (2,3), C na (4,3) i H na (3,1). Molim te potvrdi da li su ta polja prazna i na tvojoj tabli.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 2 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Predlažem nove ciljne pozicije koje su sigurno prazne i bez linija na mojoj tabli: W na (6,1), I na (7,1), T na (2,3), C na (4,3) i H na (3,1). Molim te potvrdi da li su ta polja prazna i na tvojoj tabli."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Tvoj novi predlog je problematičan za mene: (6,1) i (7,1) su zaleđena - na mojoj tabli to su polja unutar gornjeg desnog zida, a (4,3) mi se čini unutar unutrašnje linije. Hajde da koristimo provereno prazna polja bez linija iz mog prvog predloga: W(5,1), I(7,2), T(1,3), C(5,3), H(1,4) - sve sam pažljivo proverio i na mojoj tabli su slobodna. Molim te potvrdi da li su i kod tebe prazna, pa da krenemo sa pomeranjem.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Tvoj novi predlog je problematičan za mene: (6,1) i (7,1) su zaleđena - na mojoj tabli to su polja unutar gornjeg desnog zida, a (4,3) mi se čini unutar unutrašnje linije. Hajde da koristimo provereno prazna polja bez linija iz mog prvog predloga: W(5,1), I(7,2), T(1,3), C(5,3), H(1,4) - sve sam pažljivo proverio i na mojoj tabli su slobodna. Molim te potvrdi da li su i kod tebe prazna, pa da krenemo sa pomeranjem.</p></p>
+    </div>
+</div><div class="game-round" data-round="2">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 2 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Tvoj novi predlog je problematičan za mene: (6,1) i (7,1) su zaleđena - na mojoj tabli to su polja unutar gornjeg desnog zida, a (4,3) mi se čini unutar unutrašnje linije. Hajde da koristimo provereno prazna polja bez linija iz mog prvog predloga: W(5,1), I(7,2), T(1,3), C(5,3), H(1,4) - sve sam pažljivo proverio i na mojoj tabli su slobodna. Molim te potvrdi da li su i kod tebe prazna, pa da krenemo sa pomeranjem."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Nažalost, na mojoj tabli su (5,1) i (7,2) blokirane unutrašnjim linijama zida '│'. Zato ti predlažem sledeće ciljno stanje koje kod mene ima potpuno prazna polja: W na (6,1), I na (6,2), T na (2,3), C na (4,3) i H na (3,1). Molim te proveri da li su ta polja na tvojoj tabli prazna i bez linija, pa da se dogovorimo.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Nažalost, na mojoj tabli su (5,1) i (7,2) blokirane unutrašnjim linijama zida '│'. Zato ti predlažem sledeće ciljno stanje koje kod mene ima potpuno prazna polja: W na (6,1), I na (6,2), T na (2,3), C na (4,3) i H na (3,1). Molim te proveri da li su ta polja na tvojoj tabli prazna i bez linija, pa da se dogovorimo.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 3 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Nažalost, na mojoj tabli su (5,1) i (7,2) blokirane unutrašnjim linijama zida '│'. Zato ti predlažem sledeće ciljno stanje koje kod mene ima potpuno prazna polja: W na (6,1), I na (6,2), T na (2,3), C na (4,3) i H na (3,1). Molim te proveri da li su ta polja na tvojoj tabli prazna i bez linija, pa da se dogovorimo."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Nažalost, (6,1), (6,2) i (4,3) su na mojoj tabli unutar zidova/linija, tako da ne mogu tamo. Hajde da pokušamo sa ovim provereno praznim poljima kod mene: W na (5,4), I na (4,6), T na (1,1), C na (3,1) i H na (3,2). Molim te, proveri da li su ta polja prazna i bez linija na tvojoj tabli i javi mi.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Nažalost, (6,1), (6,2) i (4,3) su na mojoj tabli unutar zidova/linija, tako da ne mogu tamo. Hajde da pokušamo sa ovim provereno praznim poljima kod mene: W na (5,4), I na (4,6), T na (1,1), C na (3,1) i H na (3,2). Molim te, proveri da li su ta polja prazna i bez linija na tvojoj tabli i javi mi.</p></p>
+    </div>
+</div><div class="game-round" data-round="3">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 3 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Nažalost, (6,1), (6,2) i (4,3) su na mojoj tabli unutar zidova/linija, tako da ne mogu tamo. Hajde da pokušamo sa ovim provereno praznim poljima kod mene: W na (5,4), I na (4,6), T na (1,1), C na (3,1) i H na (3,2). Molim te, proveri da li su ta polja prazna i bez linija na tvojoj tabli i javi mi."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Tvoje polje (4,6) je na mojoj tabli blokirano unutrašnjom prečkom '─', a (1,1) sadrži 'H'. Pogledaj moj predlog ciljeva iz donjeg reda 7 gde su sigurno prazna polja kod mene: W na (2,7), I na (4,7), T na (1,7), C na (5,7) i H na (6,7). Molim te proveri da li su ta polja prazna i bez linija kod tebe?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Tvoje polje (4,6) je na mojoj tabli blokirano unutrašnjom prečkom '─', a (1,1) sadrži 'H'. Pogledaj moj predlog ciljeva iz donjeg reda 7 gde su sigurno prazna polja kod mene: W na (2,7), I na (4,7), T na (1,7), C na (5,7) i H na (6,7). Molim te proveri da li su ta polja prazna i bez linija kod tebe?</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 4 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Tvoje polje (4,6) je na mojoj tabli blokirano unutrašnjom prečkom '─', a (1,1) sadrži 'H'. Pogledaj moj predlog ciljeva iz donjeg reda 7 gde su sigurno prazna polja kod mene: W na (2,7), I na (4,7), T na (1,7), C na (5,7) i H na (6,7). Molim te proveri da li su ta polja prazna i bez linija kod tebe?"</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Na mojoj tabli su (2,7), (4,7) i (6,7) blokirani linijama, ali (1,7) i (5,7) su prazni. Pošto se ne možemo videti, hajde da sistematski proverimo slobodna polja. Ja predlažem ovih 10 sigurno praznih polja na mojoj tabli: (2,1), (3,1), (4,1), (1,2), (2,2), (4,2), (5,2), (2,3), (4,3), (5,3). Molim te, proveri koja od ovih 10 polja su prazna i bez linija na tvojoj tabli, pa ćemo izabrati 5 zajedničkih ciljnih pozicija.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Na mojoj tabli su (2,7), (4,7) i (6,7) blokirani linijama, ali (1,7) i (5,7) su prazni. Pošto se ne možemo videti, hajde da sistematski proverimo slobodna polja. Ja predlažem ovih 10 sigurno praznih polja na mojoj tabli: (2,1), (3,1), (4,1), (1,2), (2,2), (4,2), (5,2), (2,3), (4,3), (5,3). Molim te, proveri koja od ovih 10 polja su prazna i bez linija na tvojoj tabli, pa ćemo izabrati 5 zajedničkih ciljnih pozicija.</p></p>
+    </div>
+</div><div class="game-round" data-round="4">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 4 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Na mojoj tabli su (2,7), (4,7) i (6,7) blokirani linijama, ali (1,7) i (5,7) su prazni. Pošto se ne možemo videti, hajde da sistematski proverimo slobodna polja. Ja predlažem ovih 10 sigurno praznih polja na mojoj tabli: (2,1), (3,1), (4,1), (1,2), (2,2), (4,2), (5,2), (2,3), (4,3), (5,3). Molim te, proveri koja od ovih 10 polja su prazna i bez linija na tvojoj tabli, pa ćemo izabrati 5 zajedničkih ciljnih pozicija."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: Od tvojih 10 predloženih polja, na mojoj tabli su prazna i bez linija sledeća: (2,1), (3,1), (4,1), (1,2), (2,2) i (5,2). Polja (4,2), (2,3), (4,3) i (5,3) su kod mene blokirana linijama. Predlažem sledeće ciljeve: W na (2,1), I na (3,1), T na (4,1), C na (1,2) i H na (2,2). Javi mi da li prihvataš ove pozicije.</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Od tvojih 10 predloženih polja, na mojoj tabli su prazna i bez linija sledeća: (2,1), (3,1), (4,1), (1,2), (2,2) i (5,2). Polja (4,2), (2,3), (4,3) i (5,3) su kod mene blokirana linijama. Predlažem sledeće ciljeve: W na (2,1), I na (3,1), T na (4,1), C na (1,2) i H na (2,2). Javi mi da li prihvataš ove pozicije.</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 5 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Od tvojih 10 predloženih polja, na mojoj tabli su prazna i bez linija sledeća: (2,1), (3,1), (4,1), (1,2), (2,2) i (5,2). Polja (4,2), (2,3), (4,3) i (5,3) su kod mene blokirana linijama. Predlažem sledeće ciljeve: W na (2,1), I na (3,1), T na (4,1), C na (1,2) i H na (2,2). Javi mi da li prihvataš ove pozicije."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Prihvatam tvoj predlog! Ciljne pozicije su: W(2,1), I(3,1), T(4,1), C(1,2), H(2,2). Sve su prazne na mojoj tabli. Ja ću pomerati objekte sledećim redosledom: prvo W, pa I, pa T, pa C, pa H. Molim te i ti pomeri objekte istim redosledom. Krećem sa pomeranjem W na (2,1).</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Prihvatam tvoj predlog! Ciljne pozicije su: W(2,1), I(3,1), T(4,1), C(1,2), H(2,2). Sve su prazne na mojoj tabli. Ja ću pomerati objekte sledećim redosledom: prvo W, pa I, pa T, pa C, pa H. Molim te i ti pomeri objekte istim redosledom. Krećem sa pomeranjem W na (2,1).</p></p>
+    </div>
+</div><div class="game-round" data-round="5">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 5 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Prihvatam tvoj predlog! Ciljne pozicije su: W(2,1), I(3,1), T(4,1), C(1,2), H(2,2). Sve su prazne na mojoj tabli. Ja ću pomerati objekte sledećim redosledom: prvo W, pa I, pa T, pa C, pa H. Molim te i ti pomeri objekte istim redosledom. Krećem sa pomeranjem W na (2,1)."</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POMERI: W, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: W, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (2, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 6 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POMERI: W, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: W, (2, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>W moved to (2, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="6">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Objekat 'W' je uspešno pomeren na (2,1). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║HW◌◌│◌◌║ 1
+║◌◌◌◌│◌◌║ 2
+║◌C◌◌│◌◌║ 3
+║T◌◌◌│I◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 6 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POMERI: I, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: I, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (3, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Objekat 'W' je uspešno pomeren na (2,1). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌W◌T│◌◌║ 1
+║◌◌◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║H◌├─┼──╢ 6
+║I◌│◌│◌C║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 7 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POMERI: I, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: I, (3, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>I moved to (3, 1)</p></p>
+    </div>
+</div><div class="game-round" data-round="7">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Objekat 'I' je uspešno pomeren na (3,1). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║HWI◌│◌◌║ 1
+║◌◌◌◌│◌◌║ 2
+║◌C◌◌│◌◌║ 3
+║T◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 7 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POMERI: T, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: T, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>T moved to (4, 1)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Objekat 'I' je uspešno pomeren na (3,1). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌WIT│◌◌║ 1
+║◌◌◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║H◌├─┼──╢ 6
+║◌◌│◌│◌C║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 8 od maksimalno 20.
+Zajednički ste skupili 1 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POMERI: T, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: T, (4, 1)</p></p>
+    </div>
+
+    <div speaker="Game Master: invalid_move" class="msg gm-gm" style="">
+        <p><p>Kazna: (4,1) nije prazno, već sadrži 'T'.</p>
+<p>Zajednički ste skupili 2 od 12 kazni.
+Molimo pokušajte ponovo!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Kazna: (4,1) nije prazno, već sadrži 'T'.</p>
+<p>Zajednički ste skupili 2 od 12 kazni.
+Molimo pokušajte ponovo!</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POMERI: C, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: C, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (1, 2)</p></p>
+    </div>
+</div><div class="game-round" data-round="8">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Objekat 'T' je uspešno pomeren na (4,1). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║HWIT│◌◌║ 1
+║◌◌◌◌│◌◌║ 2
+║◌C◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 8 od maksimalno 20.
+Zajednički ste skupili 2 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POMERI: C, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: C, (1, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>C moved to (1, 2)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Objekat 'C' je uspešno pomeren na (1,2). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌WIT│◌◌║ 1
+║C◌◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║H◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 9 od maksimalno 20.
+Zajednički ste skupili 2 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>POMERI: H, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: H, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (2, 2)</p></p>
+    </div>
+</div><div class="game-round" data-round="9">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Objekat 'C' je uspešno pomeren na (1,2). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║HWIT│◌◌║ 1
+║C◌◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 9 od maksimalno 20.
+Zajednički ste skupili 2 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>POMERI: H, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>POMERI: H, (2, 2)</p></p>
+    </div>
+
+    <div speaker="Game Master: valid_move" class="msg gm-gm" style="">
+        <p><p>H moved to (2, 2)</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Objekat 'H' je uspešno pomeren na (2,2). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌WIT│◌◌║ 1
+║CH◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 10 od maksimalno 20.
+Zajednički ste skupili 2 od 12 kazni.
+Drugi igrač je pomerio objekat na svojoj mreži.</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: Ja sam završio pomeranje svih objekata na ciljne pozicije: W(2,1), I(3,1), T(4,1), C(1,2), H(2,2). Da li si i ti završio sa postavljanjem svih objekata na dogovorene pozicije?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: Ja sam završio pomeranje svih objekata na ciljne pozicije: W(2,1), I(3,1), T(4,1), C(1,2), H(2,2). Da li si i ti završio sa postavljanjem svih objekata na dogovorene pozicije?</p></p>
+    </div>
+</div><div class="game-round" data-round="10">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Objekat 'H' je uspešno pomeren na (2,2). Vaša ažurirana mreža izgleda ovako:</p>
+<pre><code> 1234567
+╔════╤══╗
+║◌WIT│◌◌║ 1
+║CH◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+</code></pre>
+<p>Trenutno igrate rundu 10 od maksimalno 20.
+Zajednički ste skupili 2 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"Ja sam završio pomeranje svih objekata na ciljne pozicije: W(2,1), I(3,1), T(4,1), C(1,2), H(2,2). Da li si i ti završio sa postavljanjem svih objekata na dogovorene pozicije?"</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: završeno!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: završeno!</p></p>
+    </div>
+
+    <div speaker="GM (Game Master) to Player 2 (GridCleaner)" class="msg gm-player p2" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 11 od maksimalno 20.
+Zajednički ste skupili 2 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"završeno!"</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 2 (GridCleaner) to GM (Game Master)" class="msg player-gm p2" style="">
+        <p><p>RECI: završeno?</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: završeno?</p></p>
+    </div>
+</div><div class="game-round" data-round="11">
+    <div speaker="GM (Game Master) to Player 1 (GridCleaner)" class="msg gm-player p1" style="">
+        <p><p>Vaša poruka je prosleđena drugom igraču.</p>
+<p>Trenutno igrate rundu 11 od maksimalno 20.
+Zajednički ste skupili 2 od 12 kazni.
+Drugi igrač je poslao ovu poruku:</p>
+<p>"završeno?"</p>
+<p>Koja je vaša sledeća komanda?</p></p>
+    </div>
+
+    <div speaker="Player 1 (GridCleaner) to GM (Game Master)" class="msg player-gm p1" style="">
+        <p><p>RECI: završeno!</p></p>
+    </div>
+
+    <div speaker="Game Master: player_response" class="msg gm-gm" style="">
+        <p><p>RECI: završeno!</p></p>
+    </div>
+
+    <div speaker="Game Master: success" class="msg gm-gm" style="">
+        <p><p>true</p></p>
+    </div>
+
+    <div speaker="Game Master: initial_state" class="msg gm-gm" style="">
+        <p><p>Initial states:</p>
+<pre><code>Player 1:
+ 1234567
+╔════╤══╗
+║H◌◌◌│◌◌║ 1
+║◌W◌◌│◌◌║ 2
+║◌C◌◌│◌◌║ 3
+║T◌◌◌│I◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔════╤══╗
+║◌◌◌T│◌◌║ 1
+║◌◌◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║W◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║H◌├─┼──╢ 6
+║I◌│◌│◌C║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: end_state" class="msg gm-gm" style="">
+        <p><p>End states:</p>
+<pre><code>Player 1:
+ 1234567
+╔════╤══╗
+║◌WIT│◌◌║ 1
+║CH◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+
+Player 2:
+ 1234567
+╔════╤══╗
+║◌WIT│◌◌║ 1
+║CH◌◌│◌◌║ 2
+║◌◌◌◌│◌◌║ 3
+║◌◌◌◌│◌◌║ 4
+╟──┐◌│◌◌║ 5
+║◌◌├─┼──╢ 6
+║◌◌│◌│◌◌║ 7
+╚══╧═╧══╝
+
+</code></pre></p>
+    </div>
+
+    <div speaker="Game Master: game_finished" class="msg gm-gm" style="">
+        <p><ul>
+<li>success: True</li>
+<li>lose: False</li>
+<li>aborted: False</li>
+</ul>
+<hr />
+<ul>
+<li>Shifts: 4.00</li>
+<li>Max Shifts: 8.00</li>
+<li>Min Shifts: 4.00</li>
+<li>End Distance Sum: 0.00</li>
+<li>Init Distance Sum: 23.71</li>
+<li>Expected Distance Sum: 20.95</li>
+<li>Penalties: 2.00</li>
+<li>Max Penalties: 12.00</li>
+<li>Rounds: 11.00</li>
+<li>Max Rounds: 20.00</li>
+<li>Object Count: 5.00</li>
+</ul></p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>
